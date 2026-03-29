@@ -14,7 +14,13 @@ import {
   ArrowLeft,
   GripVertical,
   Search,
-  RotateCcw
+  RotateCcw,
+  ClipboardList,
+  Bell,
+  CheckCircle2,
+  Clock,
+  ChefHat,
+  Ban
 } from 'lucide-react';
 import { Dish, formatPrice } from './constants';
 import { db, auth } from './firebase';
@@ -92,17 +98,36 @@ interface Category {
   order: number;
 }
 
+interface OrderItem {
+  dishId: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
+interface Order {
+  id: string;
+  tableNumber: string;
+  items: OrderItem[];
+  totalPrice: number;
+  status: 'pending' | 'preparing' | 'served' | 'completed' | 'cancelled';
+  createdAt: string;
+}
+
 export default function AdminPanel({ onClose }: AdminPanelProps) {
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [editingDish, setEditingDish] = useState<Partial<Dish> | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [itemToDelete, setItemToDelete] = useState<{ id: string, name: string, type: 'dish' | 'category' } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string, name: string, type: 'dish' | 'category' | 'order' } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [view, setView] = useState<'menu' | 'settings'>('menu');
+  const [view, setView] = useState<'menu' | 'settings' | 'orders'>('orders');
   const [gridColumns, setGridColumns] = useState(3);
+  const [lastOrderCount, setLastOrderCount] = useState(0);
+  const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
   const isReorderingRef = React.useRef(false);
 
   useEffect(() => {
@@ -140,12 +165,37 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       handleFirestoreError(error, OperationType.GET, 'dishes');
     });
 
+    // Real-time orders
+    const qOrders = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+    const unsubscribeOrders = onSnapshot(qOrders, (snapshot) => {
+      const ordersData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Order[];
+      
+      if (ordersData.length > lastOrderCount && lastOrderCount !== 0) {
+        setShowNewOrderAlert(true);
+        // Play notification sound if possible
+        try {
+          const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+          audio.play();
+        } catch (e) {
+          console.log('Audio play failed');
+        }
+      }
+      setLastOrderCount(ordersData.length);
+      setOrders(ordersData);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'orders');
+    });
+
     return () => {
       unsubscribeSettings();
       unsubscribeCats();
       unsubscribeDishes();
+      unsubscribeOrders();
     };
-  }, []);
+  }, [lastOrderCount]);
 
   const handleUpdateGridColumns = async (cols: number) => {
     try {
@@ -288,6 +338,23 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     }
   };
 
+  const handleUpdateOrderStatus = async (orderId: string, status: Order['status']) => {
+    try {
+      await updateDoc(doc(db, 'orders', orderId), { status });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `orders/${orderId}`);
+    }
+  };
+
+  const handleDeleteOrder = async (orderId: string) => {
+    try {
+      await deleteDoc(doc(db, 'orders', orderId));
+      setItemToDelete(null);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `orders/${orderId}`);
+    }
+  };
+
   const filteredDishes = dishes
     .filter(dish => {
       const matchesCategory = activeCategory ? dish.category === activeCategory : true;
@@ -334,6 +401,18 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
             </div>
             
             <div className="space-y-1 mb-8">
+              <button 
+                onClick={() => setView('orders')}
+                className={`w-full flex items-center px-4 py-3 rounded-xl text-sm font-bold transition-all ${view === 'orders' ? 'bg-red-600 text-white shadow-lg shadow-red-100' : 'text-gray-600 hover:bg-gray-50'}`}
+              >
+                <ClipboardList size={18} className="mr-3" />
+                订单管理
+                {orders.filter(o => o.status === 'pending').length > 0 && (
+                  <span className="ml-auto bg-white text-red-600 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black">
+                    {orders.filter(o => o.status === 'pending').length}
+                  </span>
+                )}
+              </button>
               <button 
                 onClick={() => {
                   setView('menu');
@@ -407,7 +486,143 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
 
         {/* Content Area */}
         <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">
-          {view === 'menu' ? (
+          {view === 'orders' ? (
+            <div className="max-w-6xl mx-auto">
+              <div className="mb-8 flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800">实时订单管理</h2>
+                  <p className="text-gray-400 text-sm mt-1">第一时间掌握每桌客人的点餐动态</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-xl border border-gray-100 shadow-sm">
+                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                    <span className="text-sm font-bold text-gray-600">实时监听中</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <AnimatePresence mode="popLayout">
+                  {orders.map(order => (
+                    <motion.div 
+                      key={order.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className={`bg-white rounded-[32px] overflow-hidden border-2 transition-all shadow-sm ${
+                        order.status === 'pending' ? 'border-red-500 shadow-red-100' : 
+                        order.status === 'preparing' ? 'border-blue-500' :
+                        order.status === 'served' ? 'border-green-500' :
+                        'border-gray-100'
+                      }`}
+                    >
+                      <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl ${
+                            order.status === 'pending' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-800'
+                          }`}>
+                            {order.tableNumber}
+                          </div>
+                          <div>
+                            <h3 className="font-black text-gray-900">餐桌 {order.tableNumber}</h3>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                              {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 下单
+                            </p>
+                          </div>
+                        </div>
+                        <div className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                          order.status === 'pending' ? 'bg-red-50 text-red-600' :
+                          order.status === 'preparing' ? 'bg-blue-50 text-blue-600' :
+                          order.status === 'served' ? 'bg-green-50 text-green-600' :
+                          'bg-gray-100 text-gray-500'
+                        }`}>
+                          {order.status === 'pending' ? '待处理' :
+                           order.status === 'preparing' ? '制作中' :
+                           order.status === 'served' ? '已上菜' :
+                           order.status === 'completed' ? '已完成' : '已取消'}
+                        </div>
+                      </div>
+
+                      <div className="p-6 space-y-4">
+                        <div className="space-y-2">
+                          {order.items.map((item, idx) => (
+                            <div key={idx} className="flex items-center justify-between text-sm">
+                              <div className="flex items-center space-x-2">
+                                <span className="w-6 h-6 rounded-lg bg-gray-50 flex items-center justify-center text-[10px] font-black text-gray-400">
+                                  {item.quantity}
+                                </span>
+                                <span className="font-bold text-gray-700">{item.name}</span>
+                              </div>
+                              <span className="text-gray-400 font-medium">{formatPrice(item.price * item.quantity)}</span>
+                            </div>
+                          ))}
+                        </div>
+
+                        <div className="pt-4 border-t border-gray-50 flex items-center justify-between">
+                          <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">合计金额</span>
+                          <span className="text-lg font-black text-red-600">{formatPrice(order.totalPrice)}</span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 pt-2">
+                          {order.status === 'pending' && (
+                            <button 
+                              onClick={() => handleUpdateOrderStatus(order.id, 'preparing')}
+                              className="col-span-2 py-3 bg-red-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-red-100 hover:bg-red-700 transition-all flex items-center justify-center space-x-2"
+                            >
+                              <ChefHat size={16} />
+                              <span>开始制作</span>
+                            </button>
+                          )}
+                          {order.status === 'preparing' && (
+                            <button 
+                              onClick={() => handleUpdateOrderStatus(order.id, 'served')}
+                              className="col-span-2 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all flex items-center justify-center space-x-2"
+                            >
+                              <CheckCircle2 size={16} />
+                              <span>标记已上菜</span>
+                            </button>
+                          )}
+                          {order.status === 'served' && (
+                            <button 
+                              onClick={() => handleUpdateOrderStatus(order.id, 'completed')}
+                              className="col-span-2 py-3 bg-green-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-green-100 hover:bg-green-700 transition-all flex items-center justify-center space-x-2"
+                            >
+                              <Save size={16} />
+                              <span>完成订单</span>
+                            </button>
+                          )}
+                          <button 
+                            onClick={() => setItemToDelete({ id: order.id, name: `餐桌 ${order.tableNumber} 的订单`, type: 'order' })}
+                            className="py-2.5 bg-gray-50 text-gray-400 rounded-xl font-bold text-xs hover:bg-red-50 hover:text-red-600 transition-all flex items-center justify-center space-x-1"
+                          >
+                            <Ban size={14} />
+                            <span>取消/删除</span>
+                          </button>
+                          <button 
+                            className="py-2.5 bg-gray-50 text-gray-400 rounded-xl font-bold text-xs hover:bg-gray-100 hover:text-gray-600 transition-all flex items-center justify-center space-x-1"
+                          >
+                            <Clock size={14} />
+                            <span>详情</span>
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
+              </div>
+
+              {orders.length === 0 && (
+                <div className="py-20 flex flex-col items-center justify-center text-center">
+                  <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center text-gray-100 mb-6 shadow-sm">
+                    <ClipboardList size={48} />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">暂无新订单</h3>
+                  <p className="text-gray-400">当客人下单后，这里会第一时间显示</p>
+                </div>
+              )}
+            </div>
+          ) : view === 'menu' ? (
             <>
               <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -764,7 +979,11 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                   取消
                 </button>
                 <button 
-                  onClick={() => itemToDelete.type === 'dish' ? handleDeleteDish(itemToDelete.id) : handleDeleteCategory(itemToDelete.id)}
+                  onClick={() => {
+                    if (itemToDelete.type === 'dish') handleDeleteDish(itemToDelete.id);
+                    else if (itemToDelete.type === 'category') handleDeleteCategory(itemToDelete.id);
+                    else if (itemToDelete.type === 'order') handleDeleteOrder(itemToDelete.id);
+                  }}
                   className="flex-1 py-3 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 transition-colors"
                 >
                   确认删除
@@ -772,6 +991,38 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* New Order Alert */}
+      <AnimatePresence>
+        {showNewOrderAlert && (
+          <motion.div 
+            initial={{ y: -100, opacity: 0 }}
+            animate={{ y: 20, opacity: 1 }}
+            exit={{ y: -100, opacity: 0 }}
+            className="fixed top-0 left-1/2 -translate-x-1/2 z-[200] bg-red-600 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center space-x-4 border-2 border-white/20"
+          >
+            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center animate-bounce">
+              <Bell size={20} />
+            </div>
+            <div>
+              <h4 className="font-black">收到新订单！</h4>
+              <p className="text-xs text-white/80">请立即前往订单管理处理</p>
+            </div>
+            <button 
+              onClick={() => {
+                setShowNewOrderAlert(false);
+                setView('orders');
+              }}
+              className="bg-white text-red-600 px-4 py-2 rounded-xl font-black text-xs hover:bg-gray-100 transition-colors"
+            >
+              立即查看
+            </button>
+            <button onClick={() => setShowNewOrderAlert(false)} className="text-white/60 hover:text-white">
+              <X size={18} />
+            </button>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

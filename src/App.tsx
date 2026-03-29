@@ -20,7 +20,8 @@ import {
   Settings,
   LogIn,
   LogOut,
-  Trash2
+  Trash2,
+  CheckCircle2
 } from 'lucide-react';
 import { Dish, CATEGORIES, DISHES, formatPrice } from './constants';
 import AdminPanel from './AdminPanel';
@@ -112,6 +113,10 @@ export default function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [gridColumns, setGridColumns] = useState(3);
+  const [isOrdering, setIsOrdering] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState(false);
+  const [lastOrderCount, setLastOrderCount] = useState(0);
+  const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -180,12 +185,30 @@ export default function App() {
       handleFirestoreError(error, OperationType.GET, 'dishes');
     });
 
+    // Listen for new orders (Admin only)
+    let unsubscribeOrders = () => {};
+    if (user?.email === 'yujianfei2016@gmail.com') {
+      const qOrders = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+      unsubscribeOrders = onSnapshot(qOrders, (snapshot) => {
+        const ordersData = snapshot.docs;
+        if (ordersData.length > lastOrderCount && lastOrderCount !== 0) {
+          setShowNewOrderAlert(true);
+          try {
+            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+            audio.play();
+          } catch (e) {}
+        }
+        setLastOrderCount(ordersData.length);
+      });
+    }
+
     return () => {
       unsubscribeSettings();
       unsubscribeCats();
       unsubscribeDishes();
+      unsubscribeOrders();
     };
-  }, [isAuthReady]);
+  }, [isAuthReady, user, lastOrderCount]);
 
   const seedInitialData = async () => {
     if (user?.email !== 'yujianfei2016@gmail.com') return;
@@ -264,6 +287,37 @@ export default function App() {
 
   const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  const handleOrderSubmit = async () => {
+    if (!selectedTable || cart.length === 0) return;
+    
+    setIsOrdering(true);
+    const orderData = {
+      tableNumber: selectedTable.toString(),
+      items: cart.map(item => ({
+        dishId: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity
+      })),
+      totalPrice: totalAmount,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      await addDoc(collection(db, 'orders'), orderData);
+      setOrderSuccess(true);
+      setTimeout(() => {
+        setOrderSuccess(false);
+        clearCart();
+      }, 3000);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, 'orders');
+    } finally {
+      setIsOrdering(false);
+    }
+  };
 
   if (isLoading && dishes.length === 0) {
     return (
@@ -513,14 +567,24 @@ export default function App() {
                 </button>
               )}
               <button 
-                disabled={totalItems === 0}
-                className={`px-10 py-4 rounded-2xl font-black text-base transition-all ${
-                  totalItems > 0 
+                onClick={handleOrderSubmit}
+                disabled={totalItems === 0 || !selectedTable || isOrdering}
+                className={`px-10 py-4 rounded-2xl font-black text-base transition-all flex items-center space-x-2 ${
+                  totalItems > 0 && selectedTable
                   ? 'bg-[#e63928] text-white shadow-xl shadow-red-900/40 active:scale-95 hover:bg-red-500' 
                   : 'bg-white/10 text-gray-500 cursor-not-allowed'
                 }`}
               >
-                立即下单
+                {isOrdering ? (
+                  <motion.div 
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                    className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                  />
+                ) : (
+                  <UtensilsCrossed size={20} />
+                )}
+                <span>{isOrdering ? '提交中...' : '立即下单'}</span>
               </button>
             </div>
           </motion.div>
@@ -663,14 +727,24 @@ export default function App() {
                       )}
                     </div>
                     <button 
-                      disabled={!selectedTable}
-                      className={`w-full py-5 rounded-[24px] font-black text-xl shadow-xl transition-all active:scale-[0.98] ${
+                      onClick={handleOrderSubmit}
+                      disabled={!selectedTable || isOrdering}
+                      className={`w-full py-5 rounded-[24px] font-black text-xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center space-x-3 ${
                         selectedTable 
                         ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-200' 
                         : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
                       }`}
                     >
-                      {selectedTable ? `确认下单 (${selectedTable}号桌)` : '请先选择餐桌号'}
+                      {isOrdering ? (
+                        <motion.div 
+                          animate={{ rotate: 360 }}
+                          transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                          className="w-6 h-6 border-2 border-white border-t-transparent rounded-full"
+                        />
+                      ) : (
+                        <UtensilsCrossed size={24} />
+                      )}
+                      <span>{isOrdering ? '提交中...' : selectedTable ? `确认下单 (${selectedTable}号桌)` : '请先选择餐桌号'}</span>
                     </button>
                   </div>
                 )}
@@ -699,6 +773,64 @@ export default function App() {
           scrollbar-width: none;
         }
       `}} />
+      {/* Order Success Overlay */}
+      <AnimatePresence>
+        {orderSuccess && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-red-600 flex flex-col items-center justify-center text-white"
+          >
+            <motion.div 
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', damping: 15 }}
+              className="w-32 h-32 bg-white rounded-full flex items-center justify-center text-red-600 mb-8 shadow-2xl"
+            >
+              <CheckCircle2 size={64} />
+            </motion.div>
+            <h2 className="text-4xl font-black mb-2">下单成功！</h2>
+            <p className="text-xl text-white/80 font-bold">餐桌 {selectedTable} 的美味正在准备中</p>
+            <div className="mt-12 flex items-center space-x-2 bg-white/10 px-6 py-3 rounded-2xl backdrop-blur-md border border-white/10">
+              <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+              <span className="text-sm font-bold">已实时通知后厨</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* New Order Alert (Admin) */}
+      <AnimatePresence>
+        {showNewOrderAlert && (
+          <motion.div 
+            initial={{ y: -100, opacity: 0 }}
+            animate={{ y: 20, opacity: 1 }}
+            exit={{ y: -100, opacity: 0 }}
+            className="fixed top-0 left-1/2 -translate-x-1/2 z-[200] bg-red-600 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center space-x-4 border-2 border-white/20"
+          >
+            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center animate-bounce">
+              <Bell size={20} />
+            </div>
+            <div>
+              <h4 className="font-black">收到新订单！</h4>
+              <p className="text-xs text-white/80">请立即前往后台处理</p>
+            </div>
+            <button 
+              onClick={() => {
+                setShowNewOrderAlert(false);
+                setIsAdminOpen(true);
+              }}
+              className="bg-white text-red-600 px-4 py-2 rounded-xl font-black text-xs hover:bg-gray-100 transition-colors"
+            >
+              立即查看
+            </button>
+            <button onClick={() => setShowNewOrderAlert(false)} className="text-white/60 hover:text-white">
+              <X size={18} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

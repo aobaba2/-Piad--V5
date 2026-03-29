@@ -38,6 +38,16 @@ service cloud.firestore {
              (!('order' in data) || data.order is number);
     }
 
+    function isValidOrder(data) {
+      let allowedFields = ['tableNumber', 'items', 'totalPrice', 'status', 'createdAt'];
+      return hasOnlyAllowedFields(data, allowedFields) &&
+             data.tableNumber is string &&
+             data.items is list &&
+             data.totalPrice is number &&
+             data.status in ['pending', 'preparing', 'served', 'completed', 'cancelled'] &&
+             data.createdAt is string;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
@@ -57,6 +67,13 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read: if true;
       allow write: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow read: if isAdmin();
+      allow create: if isValidOrder(request.resource.data);
+      allow update: if isAdmin() && isValidOrder(request.resource.data);
+      allow delete: if isAdmin();
     }
     
     match /users/{userId} {

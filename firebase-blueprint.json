@@ -63,6 +63,30 @@
           "description": "Number of columns for dish cards on the homepage"
         }
       }
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer orders",
+      "type": "object",
+      "properties": {
+        "tableNumber": { "type": "string" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "dishId": { "type": "string" },
+              "name": { "type": "string" },
+              "price": { "type": "number" },
+              "quantity": { "type": "number" }
+            }
+          }
+        },
+        "totalPrice": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "preparing", "served", "completed", "cancelled"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["tableNumber", "items", "totalPrice", "status", "createdAt"]
     }
   },
   "firestore": {
@@ -77,6 +101,10 @@
     "/settings": {
       "schema": "Settings",
       "description": "Global settings document"
+    },
+    "/orders": {
+      "schema": "Order",
+      "description": "Collection of customer orders"
     }
   }
 }
