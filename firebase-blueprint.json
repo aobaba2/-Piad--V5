@@ -1,0 +1,63 @@
+{
+  "entities": {
+    "Category": {
+      "title": "Category",
+      "description": "Dish categories",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Category name"
+        }
+      },
+      "required": ["name"]
+    },
+    "Dish": {
+      "title": "Dish",
+      "description": "Restaurant dishes",
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Dish name"
+        },
+        "price": {
+          "type": "number",
+          "description": "Dish price"
+        },
+        "image": {
+          "type": "string",
+          "description": "Image URL"
+        },
+        "category": {
+          "type": "string",
+          "description": "Category name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Dish description"
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Dish tags"
+        },
+        "isRecommended": {
+          "type": "boolean",
+          "description": "Whether the dish is recommended"
+        }
+      },
+      "required": ["name", "price", "category", "image"]
+    }
+  },
+  "firestore": {
+    "/categories": {
+      "schema": "Category",
+      "description": "Collection of dish categories"
+    },
+    "/dishes": {
+      "schema": "Dish",
+      "description": "Collection of dishes"
+    }
+  }
+}

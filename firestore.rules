@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "yujianfei2016@gmail.com" || 
+         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+    }
+
+    function hasOnlyAllowedFields(data, allowedFields) {
+      return data.keys().hasOnly(allowedFields);
+    }
+
+    function isValidCategory(data) {
+      return hasOnlyAllowedFields(data, ['name', 'order']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 50 &&
+             (!('order' in data) || data.order is number);
+    }
+
+    function isValidDish(data) {
+      let allowedFields = ['name', 'price', 'category', 'image', 'description', 'tags', 'isRecommended'];
+      return hasOnlyAllowedFields(data, allowedFields) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.price is number && data.price >= 0 &&
+             data.category is string &&
+             data.image is string &&
+             (!('description' in data) || (data.description is string && data.description.size() < 500)) &&
+             (!('tags' in data) || data.tags is list) &&
+             (!('isRecommended' in data) || data.isRecommended is bool);
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidCategory(request.resource.data);
+      allow delete: if isAdmin();
+    }
+
+    match /dishes/{dishId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidDish(request.resource.data);
+      allow delete: if isAdmin();
+    }
+    
+    match /users/{userId} {
+      allow read, write: if request.auth.uid == userId;
+    }
+    
+    // Connection test path
+    match /test/connection {
+      allow read: if true;
+    }
+  }
+}
