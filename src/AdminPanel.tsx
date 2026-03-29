@@ -408,7 +408,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                 <ClipboardList size={18} className="mr-3" />
                 订单管理
                 {orders.filter(o => o.status === 'pending').length > 0 && (
-                  <span className="ml-auto bg-white text-red-600 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black">
+                  <span className="ml-auto bg-white text-red-600 w-5 h-5 rounded-full flex items-center justify-center text-[0.625rem] font-black">
                     {orders.filter(o => o.status === 'pending').length}
                   </span>
                 )}
@@ -435,7 +435,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
             {view === 'menu' && (
               <>
                 <div className="flex items-center justify-between mb-4 mt-8 px-2">
-                  <h2 className="font-bold text-gray-400 uppercase tracking-wider text-[10px]">菜品分类</h2>
+                  <h2 className="font-bold text-gray-400 uppercase tracking-wider text-[0.625rem]">菜品分类</h2>
                   <button onClick={() => setEditingCategory({ id: '', name: '', order: categories.length })} className="text-red-600 hover:bg-red-50 p-1 rounded-lg transition-colors">
                     <Plus size={16} />
                   </button>
@@ -510,7 +510,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
-                      className={`bg-white rounded-[32px] overflow-hidden border-2 transition-all shadow-sm ${
+                      className={`bg-white rounded-[2rem] overflow-hidden border-2 transition-all shadow-sm ${
                         order.status === 'pending' ? 'border-red-500 shadow-red-100' : 
                         order.status === 'preparing' ? 'border-blue-500' :
                         order.status === 'served' ? 'border-green-500' :
@@ -526,12 +526,12 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                           </div>
                           <div>
                             <h3 className="font-black text-gray-900">餐桌 {order.tableNumber}</h3>
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">
+                            <p className="text-[0.625rem] text-gray-400 font-bold uppercase tracking-wider">
                               {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} 下单
                             </p>
                           </div>
                         </div>
-                        <div className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+                        <div className={`px-3 py-1 rounded-lg text-[0.625rem] font-black uppercase tracking-widest ${
                           order.status === 'pending' ? 'bg-red-50 text-red-600' :
                           order.status === 'preparing' ? 'bg-blue-50 text-blue-600' :
                           order.status === 'served' ? 'bg-green-50 text-green-600' :
@@ -549,7 +549,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                           {order.items.map((item, idx) => (
                             <div key={idx} className="flex items-center justify-between text-sm">
                               <div className="flex items-center space-x-2">
-                                <span className="w-6 h-6 rounded-lg bg-gray-50 flex items-center justify-center text-[10px] font-black text-gray-400">
+                                <span className="w-6 h-6 rounded-lg bg-gray-50 flex items-center justify-center text-[0.625rem] font-black text-gray-400">
                                   {item.quantity}
                                 </span>
                                 <span className="font-bold text-gray-700">{item.name}</span>
@@ -678,7 +678,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                         <div className="flex items-center space-x-2">
                           <h3 className="font-bold text-gray-800 text-lg truncate">{dish.name}</h3>
                           {dish.isRecommended && (
-                            <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">推荐</span>
+                            <span className="bg-red-600 text-white text-[0.625rem] font-bold px-2 py-0.5 rounded-md">推荐</span>
                           )}
                         </div>
                         <span className="text-red-600 font-bold text-lg">{formatPrice(dish.price)}</span>
@@ -688,11 +688,11 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                       
                       <div className="flex items-center justify-between">
                         <div className="flex flex-wrap gap-1.5">
-                          <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">
+                          <span className="text-[0.625rem] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">
                             {dish.category}
                           </span>
                           {dish.tags?.map(tag => (
-                            <span key={tag} className="text-[10px] border border-gray-200 text-gray-400 px-2 py-0.5 rounded-full">
+                            <span key={tag} className="text-[0.625rem] border border-gray-200 text-gray-400 px-2 py-0.5 rounded-full">
                               {tag}
                             </span>
                           ))}
@@ -736,7 +736,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                 <p className="text-gray-400 text-sm mt-1">配置应用全局显示参数</p>
               </div>
 
-              <div className="bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm space-y-8">
+              <div className="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm space-y-8">
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -757,7 +757,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                   </div>
                   
                   <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-start space-x-3">
-                    <div className="w-5 h-5 rounded-full bg-blue-500 text-white flex items-center justify-center text-[10px] font-bold mt-0.5">i</div>
+                    <div className="w-5 h-5 rounded-full bg-blue-500 text-white flex items-center justify-center text-[0.625rem] font-bold mt-0.5">i</div>
                     <p className="text-xs text-blue-700 leading-relaxed">
                       提示：增加列数会使菜品卡片变小，适合在大屏幕设备上显示更多内容。减少列数则会使卡片更大，更醒目。
                     </p>
@@ -784,7 +784,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white w-full max-w-xl rounded-[32px] overflow-hidden shadow-2xl relative z-10"
+              className="bg-white w-full max-w-xl rounded-[2rem] overflow-hidden shadow-2xl relative z-10"
             >
               <form onSubmit={handleSaveDish} className="p-8">
                 <div className="flex justify-between items-center mb-8">
@@ -904,7 +904,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white w-full max-w-md rounded-[32px] overflow-hidden shadow-2xl relative z-10"
+              className="bg-white w-full max-w-md rounded-[2rem] overflow-hidden shadow-2xl relative z-10"
             >
               <form onSubmit={handleSaveCategory} className="p-8">
                 <div className="flex justify-between items-center mb-8">
@@ -962,7 +962,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white w-full max-w-sm rounded-[32px] overflow-hidden shadow-2xl relative z-10 p-8 text-center"
+              className="bg-white w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl relative z-10 p-8 text-center"
             >
               <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Trash2 size={32} />

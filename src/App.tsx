@@ -333,83 +333,83 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-[#f3f4f6] text-[#333] font-sans overflow-hidden select-none">
-      {/* Sidebar Navigation - Updated to dark gray strip style */}
-      <aside className="w-32 bg-[#374151] border-r border-gray-200 flex flex-col items-center py-6 z-10 shadow-xl">
-        <div className="mb-10 flex flex-col items-center">
+      {/* Sidebar Navigation - 20% width for 11-inch screens */}
+      <aside className="w-[20vw] min-w-[10rem] bg-[#374151] border-r border-gray-200 flex flex-col items-center py-8 z-10 shadow-xl">
+        <div className="mb-12 flex flex-col items-center">
           {user ? (
             <div className="flex flex-col items-center">
               <img 
                 src={user.photoURL || ''} 
                 alt={user.displayName || ''} 
-                className="w-12 h-12 rounded-full border-2 border-white/20 mb-2"
+                className="w-16 h-16 rounded-full border-2 border-white/20 mb-3"
                 referrerPolicy="no-referrer"
               />
-              <span className="text-[10px] font-medium text-gray-300 truncate max-w-[80px]">{user.displayName}</span>
-              <button onClick={handleLogout} className="text-[8px] text-gray-500 hover:text-white mt-1">退出</button>
+              <span className="text-[0.625rem] font-bold text-gray-300 truncate max-w-[15vw]">{user.displayName}</span>
+              <button onClick={handleLogout} className="text-[0.625rem] text-gray-500 hover:text-white mt-2">退出登录</button>
             </div>
           ) : (
             <button 
               onClick={handleLogin}
               className="flex flex-col items-center text-gray-400 hover:text-white transition-colors"
             >
-              <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-white mb-2">
-                <LogIn size={24} />
+              <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center text-white mb-3">
+                <LogIn size={32} />
               </div>
-              <span className="text-[10px] font-medium">登录</span>
+              <span className="text-[0.75rem] font-bold">立即登录</span>
             </button>
           )}
         </div>
 
-        <nav className="flex-1 w-full space-y-3 overflow-y-auto no-scrollbar px-3">
+        <nav className="flex-1 w-full space-y-4 overflow-y-auto no-scrollbar px-6">
           <button
             onClick={() => setActiveCategory('店长推荐')}
-            className={`w-full py-3 px-2 rounded-lg flex items-center justify-center transition-all duration-200 text-center relative ${
+            className={`w-full py-4 px-4 rounded-[1rem] flex items-center justify-center transition-all duration-300 text-center relative ${
               activeCategory === '店长推荐' 
-              ? 'bg-[#f5c342] text-black font-bold shadow-lg shadow-[#f5c342]/30' 
+              ? 'bg-[#f5c342] text-black font-black shadow-lg shadow-[#f5c342]/30 scale-105' 
               : 'text-gray-400 hover:bg-white/5 hover:text-white'
             }`}
           >
-            <span className="text-sm leading-tight">店长推荐</span>
+            <span className="text-[1rem] font-black tracking-tight">店长推荐</span>
           </button>
           {categories.map(category => (
             <button
               key={category}
               onClick={() => setActiveCategory(category)}
-              className={`w-full py-3 px-2 rounded-lg flex items-center justify-center transition-all duration-200 text-center relative ${
+              className={`w-full py-4 px-4 rounded-[1rem] flex items-center justify-center transition-all duration-300 text-center relative ${
                 activeCategory === category 
-                ? 'bg-[#f5c342] text-black font-bold shadow-lg shadow-[#f5c342]/30' 
+                ? 'bg-[#f5c342] text-black font-black shadow-lg shadow-[#f5c342]/30 scale-105' 
                 : 'text-gray-400 hover:bg-white/5 hover:text-white'
               }`}
             >
-              <span className="text-sm leading-tight">{category}</span>
+              <span className="text-[1rem] font-black tracking-tight">{category}</span>
             </button>
           ))}
         </nav>
 
-        <div className="mt-auto space-y-6 w-full px-4 pt-6 border-t border-white/10">
+        <div className="mt-auto space-y-8 w-full px-8 pt-8 border-t border-white/10">
           {user?.email === 'yujianfei2016@gmail.com' && (
             <button 
               onClick={() => setIsAdminOpen(true)}
-              className="w-full flex flex-col items-center text-gray-400 hover:text-white transition-colors"
+              className="w-full flex flex-col items-center text-gray-400 hover:text-white transition-colors group"
             >
-              <Settings size={20} />
-              <span className="text-[10px] mt-1">管理</span>
+              <Settings size={24} className="group-hover:rotate-90 transition-transform duration-500" />
+              <span className="text-[0.75rem] mt-2 font-bold">后台管理</span>
             </button>
           )}
           <button className="w-full flex flex-col items-center text-gray-400 hover:text-white transition-colors">
-            <History size={20} />
-            <span className="text-[10px] mt-1">订单</span>
+            <History size={24} />
+            <span className="text-[0.75rem] mt-2 font-bold">历史订单</span>
           </button>
           <button className="w-full flex flex-col items-center text-gray-400 hover:text-white transition-colors">
-            <Bell size={20} />
-            <span className="text-[10px] mt-1">呼叫</span>
+            <Bell size={24} />
+            <span className="text-[0.75rem] mt-2 font-bold">呼叫服务</span>
           </button>
         </div>
       </aside>
 
-      {/* Main Content Area */}
+      {/* Main Content Area - 80% width */}
       <main 
-        className="flex-1 flex flex-col relative overflow-hidden"
+        className="w-[80vw] flex flex-col relative overflow-hidden"
         style={{
           background: `
             radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.6) 0%, transparent 40%),
@@ -468,9 +468,9 @@ export default function App() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-white rounded-[32px] overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 border border-gray-100 group relative"
+                  className="bg-white rounded-[2rem] overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 border border-gray-100 group relative"
                 >
-                  <div className="relative h-56 overflow-hidden">
+                  <div className="relative h-[25vh] overflow-hidden">
                     <img 
                       src={dish.image} 
                       alt={dish.name} 
@@ -480,12 +480,12 @@ export default function App() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-40" />
                     
                     {dish.isRecommended && (
-                      <div className="absolute top-4 left-4 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-lg z-10">
+                      <div className="absolute top-4 left-4 bg-red-600 text-white text-[0.625rem] font-bold px-2 py-1 rounded-md shadow-lg z-10">
                         店长推荐
                       </div>
                     )}
 
-                    <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md text-white text-[10px] px-2 py-1 rounded-md border border-white/10">
+                    <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md text-white text-[0.625rem] px-2 py-1 rounded-md border border-white/10">
                       10-15秒
                     </div>
                   </div>
@@ -522,54 +522,54 @@ export default function App() {
         </div>
 
         {/* Bottom Cart Bar - Enhanced */}
-        <div className="absolute bottom-6 right-8 left-40 z-20">
+        <div className="absolute bottom-8 right-12 left-[22vw] z-20">
           <motion.div 
-            initial={{ y: 50, opacity: 0 }}
+            initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="bg-[#1f2937]/95 backdrop-blur-xl border border-gray-700 rounded-[28px] h-20 flex items-center justify-between px-8 shadow-2xl"
+            className="bg-[#1f2937]/90 backdrop-blur-2xl border border-white/10 rounded-[2rem] h-[6rem] flex items-center justify-between px-10 shadow-[0_20px_50px_rgba(0,0,0,0.3)]"
           >
-            <div className="flex items-center space-x-8">
+            <div className="flex items-center space-x-10">
               <div 
                 onClick={() => setIsCartOpen(!isCartOpen)}
-                className="relative flex items-center space-x-4 cursor-pointer group"
+                className="relative flex items-center space-x-6 cursor-pointer group"
               >
                 <div className="relative">
-                  <div className="w-14 h-14 rounded-2xl bg-[#f5c342] flex items-center justify-center text-black shadow-lg shadow-[#f5c342]/20 group-hover:scale-110 transition-transform">
-                    <ShoppingCart size={28} />
+                  <div className="w-16 h-16 rounded-[1rem] bg-[#f5c342] flex items-center justify-center text-black shadow-lg shadow-[#f5c342]/20 group-hover:scale-110 transition-transform duration-300">
+                    <ShoppingCart size={32} />
                   </div>
                   {totalItems > 0 && (
                     <motion.div 
                       initial={{ scale: 0 }}
                       animate={{ scale: 1 }}
-                      className="absolute -top-2 -right-2 w-7 h-7 bg-red-600 text-white rounded-full flex items-center justify-center text-xs font-black border-2 border-[#1f2937] shadow-lg"
+                      className="absolute -top-3 -right-3 w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center text-[0.875rem] font-black border-4 border-[#1f2937] shadow-lg"
                     >
                       {totalItems}
                     </motion.div>
                   )}
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">当前合计</span>
-                  <div className="text-2xl font-black text-white tracking-tight">
+                  <span className="text-[0.75rem] text-gray-400 font-black uppercase tracking-widest">应付合计</span>
+                  <div className="text-[2rem] font-black text-white tracking-tighter">
                     {formatPrice(totalAmount)}
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-6">
               {totalItems > 0 && (
                 <button 
                   onClick={clearCart}
-                  className="p-3 text-gray-400 hover:text-red-500 transition-colors"
+                  className="p-4 text-gray-500 hover:text-red-500 transition-colors bg-white/5 rounded-[1rem]"
                   title="清空购物车"
                 >
-                  <Trash2 size={20} />
+                  <Trash2 size={24} />
                 </button>
               )}
               <button 
                 onClick={handleOrderSubmit}
                 disabled={totalItems === 0 || !selectedTable || isOrdering}
-                className={`px-10 py-4 rounded-2xl font-black text-base transition-all flex items-center space-x-2 ${
+                className={`px-12 py-5 rounded-[1.5rem] font-black text-[1.125rem] transition-all flex items-center space-x-3 ${
                   totalItems > 0 && selectedTable
                   ? 'bg-[#e63928] text-white shadow-xl shadow-red-900/40 active:scale-95 hover:bg-red-500' 
                   : 'bg-white/10 text-gray-500 cursor-not-allowed'
@@ -579,10 +579,10 @@ export default function App() {
                   <motion.div 
                     animate={{ rotate: 360 }}
                     transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                    className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                    className="w-6 h-6 border-2 border-white border-t-transparent rounded-full"
                   />
                 ) : (
-                  <UtensilsCrossed size={20} />
+                  <UtensilsCrossed size={24} />
                 )}
                 <span>{isOrdering ? '提交中...' : '立即下单'}</span>
               </button>
@@ -606,7 +606,7 @@ export default function App() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[900px] max-w-[95vw] max-h-[95vh] bg-white rounded-[48px] z-40 flex flex-col shadow-[0_32px_64px_rgba(0,0,0,0.4)] border border-gray-100 overflow-hidden"
+                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40vw] min-w-[31.25rem] h-[85vh] bg-white rounded-[3rem] z-40 flex flex-col shadow-[0_2rem_4rem_rgba(0,0,0,0.4)] border border-gray-100 overflow-hidden"
               >
                 <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                   <div className="flex items-center space-x-4">
@@ -677,7 +677,7 @@ export default function App() {
                             <motion.div 
                               layout
                               key={item.id} 
-                              className="flex flex-col bg-white border border-gray-100 p-4 rounded-[32px] shadow-sm hover:shadow-md transition-all group"
+                              className="flex flex-col bg-white border border-gray-100 p-4 rounded-[2rem] shadow-sm hover:shadow-md transition-all group"
                             >
                               <div className="relative aspect-square mb-4 overflow-hidden rounded-2xl">
                                 <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
@@ -729,7 +729,7 @@ export default function App() {
                     <button 
                       onClick={handleOrderSubmit}
                       disabled={!selectedTable || isOrdering}
-                      className={`w-full py-5 rounded-[24px] font-black text-xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center space-x-3 ${
+                      className={`w-full py-5 rounded-[1.5rem] font-black text-xl shadow-xl transition-all active:scale-[0.98] flex items-center justify-center space-x-3 ${
                         selectedTable 
                         ? 'bg-red-600 hover:bg-red-500 text-white shadow-red-200' 
                         : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
