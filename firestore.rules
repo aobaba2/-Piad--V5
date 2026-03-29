@@ -26,7 +26,7 @@ service cloud.firestore {
     }
 
     function isValidDish(data) {
-      let allowedFields = ['name', 'price', 'category', 'image', 'description', 'tags', 'isRecommended'];
+      let allowedFields = ['name', 'price', 'category', 'image', 'description', 'tags', 'isRecommended', 'order'];
       return hasOnlyAllowedFields(data, allowedFields) &&
              data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
              data.price is number && data.price >= 0 &&
@@ -34,7 +34,8 @@ service cloud.firestore {
              data.image is string &&
              (!('description' in data) || (data.description is string && data.description.size() < 500)) &&
              (!('tags' in data) || data.tags is list) &&
-             (!('isRecommended' in data) || data.isRecommended is bool);
+             (!('isRecommended' in data) || data.isRecommended is bool) &&
+             (!('order' in data) || data.order is number);
     }
 
     // ===============================================================
@@ -51,6 +52,11 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if isAdmin() && isValidDish(request.resource.data);
       allow delete: if isAdmin();
+    }
+    
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
     
     match /users/{userId} {

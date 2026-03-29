@@ -45,9 +45,24 @@
         "isRecommended": {
           "type": "boolean",
           "description": "Whether the dish is recommended"
+        },
+        "order": {
+          "type": "number",
+          "description": "Display order of the dish"
         }
       },
       "required": ["name", "price", "category", "image"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Global application settings",
+      "type": "object",
+      "properties": {
+        "gridColumns": {
+          "type": "number",
+          "description": "Number of columns for dish cards on the homepage"
+        }
+      }
     }
   },
   "firestore": {
@@ -58,6 +73,10 @@
     "/dishes": {
       "schema": "Dish",
       "description": "Collection of dishes"
+    },
+    "/settings": {
+      "schema": "Settings",
+      "description": "Global settings document"
     }
   }
 }

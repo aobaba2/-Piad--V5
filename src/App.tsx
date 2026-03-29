@@ -111,6 +111,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [gridColumns, setGridColumns] = useState(3);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -133,6 +134,15 @@ export default function App() {
       }
     };
     testConnection();
+
+    // Fetch settings
+    const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'global'), (snapshot) => {
+      if (snapshot.exists()) {
+        setGridColumns(snapshot.data().gridColumns || 3);
+      }
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'settings/global');
+    });
 
     // Fetch categories
     const qCats = query(collection(db, 'categories'), orderBy('order', 'asc'));
@@ -158,7 +168,8 @@ export default function App() {
     });
 
     // Fetch dishes
-    const unsubscribeDishes = onSnapshot(collection(db, 'dishes'), (snapshot) => {
+    const qDishes = query(collection(db, 'dishes'), orderBy('order', 'asc'));
+    const unsubscribeDishes = onSnapshot(qDishes, (snapshot) => {
       const dishesData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -170,6 +181,7 @@ export default function App() {
     });
 
     return () => {
+      unsubscribeSettings();
       unsubscribeCats();
       unsubscribeDishes();
     };
@@ -369,7 +381,7 @@ export default function App() {
                 type="text" 
                 placeholder="搜索菜品..." 
                 className="bg-transparent border-none outline-none text-xs w-full text-gray-700 placeholder-gray-400"
-                value={searchQuery}
+                value={searchQuery || ''}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
@@ -387,7 +399,13 @@ export default function App() {
             </h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${
+            gridColumns === 3 ? 'lg:grid-cols-3' :
+            gridColumns === 4 ? 'lg:grid-cols-4' :
+            gridColumns === 5 ? 'lg:grid-cols-5' :
+            gridColumns === 6 ? 'lg:grid-cols-6' :
+            'lg:grid-cols-3'
+          }`}>
             <AnimatePresence mode="popLayout">
               {filteredDishes.map(dish => (
                 <motion.div

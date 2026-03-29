@@ -7,6 +7,7 @@ export interface Dish {
   description?: string;
   tags?: string[];
   isRecommended?: boolean;
+  order?: number;
 }
 
 export const formatPrice = (price: number) => {
