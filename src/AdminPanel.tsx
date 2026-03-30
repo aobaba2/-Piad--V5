@@ -225,13 +225,18 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'global'), (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
-        setAppSettings({
+        const newSettings: AppSettings = {
           currency: data.currency || 'KRW',
           language: data.language || 'zh',
-          restaurantName: data.restaurantName || 'PIAD 点餐'
-        });
+          restaurantName: data.restaurantName || 'PIAD 点餐',
+          theme: data.theme || 'default'
+        };
+        setAppSettings(newSettings);
         setLocalRestaurantName(data.restaurantName || 'PIAD 点餐');
         setGridColumns(data.gridColumns || 3);
+        
+        // Apply theme to body
+        document.body.className = `theme-${newSettings.theme}`;
       }
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'settings/global');
@@ -626,46 +631,46 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   return (
     <div className="fixed inset-0 bg-[#f3f4f6] z-[100] flex flex-col overflow-hidden text-gray-800">
       {!user ? (
-        <div className="flex-1 flex items-center justify-center p-6 bg-gradient-to-br from-red-50 to-white">
+        <div className="flex-1 flex items-center justify-center p-6 bg-gradient-to-br from-piad-primary/5 to-piad-bg">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl shadow-red-100 overflow-hidden border border-red-50"
+            className="w-full max-w-md bg-piad-card rounded-[2.5rem] shadow-2xl shadow-piad-primary/10 overflow-hidden border border-piad-primary/5"
           >
             <div className="p-10">
-              <div className="w-20 h-20 bg-red-600 rounded-3xl flex items-center justify-center mb-8 shadow-xl shadow-red-200 mx-auto">
+              <div className="w-20 h-20 bg-piad-primary rounded-3xl flex items-center justify-center mb-8 shadow-xl shadow-piad-primary/20 mx-auto">
                 <ShieldCheck className="text-white" size={40} />
               </div>
-              <h2 className="text-3xl font-black text-center mb-2">后台管理登录</h2>
-              <p className="text-gray-400 text-center mb-10 font-medium">PIAD 点餐系统管理后台</p>
+              <h2 className="text-3xl font-black text-center mb-2 text-piad-text">后台管理登录</h2>
+              <p className="text-piad-subtext text-center mb-10 font-medium">PIAD 点餐系统管理后台</p>
 
               <form onSubmit={handleSuperAdminLogin} className="space-y-6">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-400 uppercase ml-1">用户名</label>
+                  <label className="text-xs font-bold text-piad-subtext uppercase ml-1">用户名</label>
                   <div className="relative">
-                    <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-piad-subtext" size={18} />
                     <input 
                       type="text"
                       required
                       value={adminUsername}
                       onChange={e => setAdminUsername(e.target.value)}
                       placeholder="请输入管理员账号"
-                      className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-4 py-4 outline-none focus:border-red-600 focus:bg-white transition-all font-medium"
+                      className="w-full bg-piad-primary/5 border border-piad-primary/5 rounded-2xl pl-12 pr-4 py-4 outline-none focus:border-piad-primary focus:bg-piad-card transition-all font-medium text-piad-text"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-400 uppercase ml-1">密码</label>
+                  <label className="text-xs font-bold text-piad-subtext uppercase ml-1">密码</label>
                   <div className="relative">
-                    <Zap className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <Zap className="absolute left-4 top-1/2 -translate-y-1/2 text-piad-subtext" size={18} />
                     <input 
                       type="password"
                       required
                       value={adminPassword}
                       onChange={e => setAdminPassword(e.target.value)}
                       placeholder="请输入登录密码"
-                      className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-4 py-4 outline-none focus:border-red-600 focus:bg-white transition-all font-medium"
+                      className="w-full bg-piad-primary/5 border border-piad-primary/5 rounded-2xl pl-12 pr-4 py-4 outline-none focus:border-piad-primary focus:bg-piad-card transition-all font-medium text-piad-text"
                     />
                   </div>
                 </div>
@@ -684,7 +689,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                 <button 
                   type="submit"
                   disabled={isLoggingIn}
-                  className="w-full bg-red-600 text-white py-4 rounded-2xl font-black shadow-xl shadow-red-200 hover:bg-red-700 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
+                  className="w-full bg-piad-primary text-white py-4 rounded-2xl font-black shadow-xl shadow-piad-primary/20 hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
                 >
                   {isLoggingIn ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -721,19 +726,19 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       ) : (
         <>
           {/* Admin Header */}
-      <header className="h-14 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 shadow-sm flex-shrink-0 sticky top-0 z-50">
+      <header className="h-14 bg-piad-card/80 backdrop-blur-md border-b border-piad-primary/10 flex items-center justify-between px-4 shadow-sm flex-shrink-0 sticky top-0 z-50">
         <div className="flex items-center space-x-3">
           <button 
             onClick={onClose}
-            className="p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+            className="p-1.5 hover:bg-piad-primary/5 rounded-full transition-colors text-piad-subtext"
           >
             <ArrowLeft size={20} />
           </button>
-          <h1 className="text-base font-black flex items-center">
-            <Settings className="mr-2 text-red-600" size={18} />
+          <h1 className="text-base font-black flex items-center text-piad-text">
+            <Settings className="mr-2 text-piad-primary" size={18} />
             后台管理
             {user?.email === 'aoba2026@admin.com' && (
-              <span className="ml-2 bg-red-50 text-red-600 text-[0.6rem] px-2 py-0.5 rounded-full border border-red-100">
+              <span className="ml-2 bg-piad-primary/10 text-piad-primary text-[0.6rem] px-2 py-0.5 rounded-full border border-piad-primary/20">
                 超级管理员
               </span>
             )}
@@ -748,7 +753,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
               window.speechSynthesis.speak(utterance);
               showToast('语音测试中...', 'info');
             }}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-red-600"
+            className="p-2 hover:bg-piad-primary/5 rounded-lg transition-colors text-piad-subtext hover:text-piad-primary"
             title="测试语音"
           >
             <Bell size={18} />
@@ -756,7 +761,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           {view === 'menu' && (
             <button 
               onClick={() => setEditingDish({ name: '', price: 0, category: categories[0]?.name || '', description: '', tags: [] })}
-              className="bg-red-600 text-white px-3 py-1.5 rounded-lg font-bold text-xs flex items-center shadow-md shadow-red-100 active:scale-95 transition-all"
+              className="bg-piad-primary text-white px-3 py-1.5 rounded-lg font-bold text-xs flex items-center shadow-md shadow-piad-primary/20 active:scale-95 transition-all"
             >
               <Plus size={14} className="mr-1" />
               新增
@@ -764,7 +769,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           )}
           <button 
             onClick={handleLogout}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-red-600"
+            className="p-2 hover:bg-piad-primary/5 rounded-lg transition-colors text-piad-subtext hover:text-piad-primary"
             title="退出登录"
           >
             <RotateCcw size={18} />
@@ -774,15 +779,15 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile Admin Navigation - Horizontal Scroll */}
-        <nav className="bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-2 flex items-center space-x-2 overflow-x-auto no-scrollbar flex-shrink-0 sticky top-0 z-40">
+        <nav className="bg-piad-card/80 backdrop-blur-md border-b border-piad-primary/10 px-4 py-2 flex items-center space-x-2 overflow-x-auto no-scrollbar flex-shrink-0 sticky top-0 z-40">
           <button 
             onClick={() => setView('orders')}
-            className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'orders' ? 'bg-red-600 text-white shadow-lg shadow-red-100' : 'text-gray-600 bg-gray-50'}`}
+            className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'orders' ? 'bg-piad-primary text-white shadow-lg shadow-piad-primary/20' : 'text-piad-subtext bg-piad-primary/5'}`}
           >
             <Zap size={14} className="mr-2" />
             实时看板
             {orders.filter(o => o.status === 'pending').length > 0 && (
-              <span className="ml-2 bg-white text-red-600 w-4 h-4 rounded-full flex items-center justify-center text-[0.5rem] font-black animate-pulse">
+              <span className="ml-2 bg-white text-piad-primary w-4 h-4 rounded-full flex items-center justify-center text-[0.5rem] font-black animate-pulse">
                 {orders.filter(o => o.status === 'pending').length}
               </span>
             )}
@@ -792,7 +797,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
               setView('menu');
               setActiveCategory(null);
             }}
-            className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'menu' && !activeCategory ? 'bg-red-600 text-white shadow-lg shadow-red-100' : 'text-gray-600 bg-gray-50'}`}
+            className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'menu' && !activeCategory ? 'bg-piad-primary text-white shadow-lg shadow-piad-primary/20' : 'text-piad-subtext bg-piad-primary/5'}`}
           >
             <ImageIcon size={14} className="mr-2" />
             智能菜单
@@ -800,7 +805,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           {userRole !== 'waiter' && (
             <button 
               onClick={() => setView('analytics')}
-              className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'analytics' ? 'bg-red-600 text-white shadow-lg shadow-red-100' : 'text-gray-600 bg-gray-50'}`}
+              className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'analytics' ? 'bg-piad-primary text-white shadow-lg shadow-piad-primary/20' : 'text-piad-subtext bg-piad-primary/5'}`}
             >
               <TrendingUp size={14} className="mr-2" />
               数据中心
@@ -809,7 +814,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           {userRole !== 'waiter' && (
             <button 
               onClick={() => setView('access')}
-              className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'access' ? 'bg-red-600 text-white shadow-lg shadow-red-100' : 'text-gray-600 bg-gray-50'}`}
+              className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'access' ? 'bg-piad-primary text-white shadow-lg shadow-piad-primary/20' : 'text-piad-subtext bg-piad-primary/5'}`}
             >
               <ShieldCheck size={14} className="mr-2" />
               权限安全
@@ -817,7 +822,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           )}
           <button 
             onClick={() => setView('tables')}
-            className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'tables' ? 'bg-red-600 text-white shadow-lg shadow-red-100' : 'text-gray-600 bg-gray-50'}`}
+            className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'tables' ? 'bg-piad-primary text-white shadow-lg shadow-piad-primary/20' : 'text-piad-subtext bg-piad-primary/5'}`}
           >
             <QrCode size={14} className="mr-2" />
             桌位管理
@@ -825,7 +830,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           {userRole !== 'waiter' && (
             <button 
               onClick={() => setView('settings')}
-              className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'settings' ? 'bg-red-600 text-white shadow-lg shadow-red-100' : 'text-gray-600 bg-gray-50'}`}
+              className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'settings' ? 'bg-piad-primary text-white shadow-lg shadow-piad-primary/20' : 'text-piad-subtext bg-piad-primary/5'}`}
             >
               <Settings size={14} className="mr-2" />
               系统设置
@@ -857,22 +862,22 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.9 }}
-                      className={`bg-white rounded-3xl p-5 border transition-all flex flex-col ${
-                        order.status === 'pending' ? 'border-red-200 shadow-md ring-2 ring-red-100' : 'border-gray-100 shadow-sm'
+                      className={`bg-piad-card rounded-3xl p-5 border transition-all flex flex-col ${
+                        order.status === 'pending' ? 'border-piad-primary shadow-piad ring-2 ring-piad-primary/10' : 'border-piad-primary/5 shadow-sm'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center space-x-3">
                           <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl ${
                             order.status === 'pending' 
-                              ? 'bg-red-600 text-white shadow-lg shadow-red-200' 
-                              : 'bg-gray-100 text-gray-600'
+                              ? 'bg-piad-primary text-white shadow-lg shadow-piad-primary/20' 
+                              : 'bg-piad-primary/5 text-piad-text'
                           }`}>
                             {order.tableNumber}
                           </div>
                           <div>
-                            <h3 className="font-black text-base text-gray-900">桌号 {order.tableNumber}</h3>
-                            <p className="text-xs text-gray-500">
+                            <h3 className="font-black text-base text-piad-text">桌号 {order.tableNumber}</h3>
+                            <p className="text-xs text-piad-subtext">
                               {order.createdAt ? (
                                 typeof order.createdAt === 'string' 
                                   ? new Date(order.createdAt).toLocaleTimeString()
@@ -882,8 +887,8 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                           </div>
                         </div>
                         <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          order.status === 'pending' ? 'bg-red-100 text-red-700' :
-                          order.status === 'preparing' ? 'bg-orange-100 text-orange-700' :
+                          order.status === 'pending' ? 'bg-piad-primary/10 text-piad-primary' :
+                          order.status === 'preparing' ? 'bg-piad-accent/10 text-piad-accent' :
                           order.status === 'served' ? 'bg-blue-100 text-blue-700' :
                           'bg-green-100 text-green-700'
                         }`}>
@@ -894,34 +899,34 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                       </div>
 
                       {/* Order items list */}
-                      <div className="flex-1 bg-gray-50 rounded-2xl p-3 mb-4 space-y-2 overflow-y-auto max-h-40 no-scrollbar">
+                      <div className="flex-1 bg-piad-bg rounded-2xl p-3 mb-4 space-y-2 overflow-y-auto max-h-40 no-scrollbar">
                         {order.items.map((item, idx) => (
                           <div key={idx} className="flex justify-between text-sm">
                             <div className="flex-1">
-                              <span className="font-bold text-gray-900">{item.name}</span>
+                              <span className="font-bold text-piad-text">{item.name}</span>
                               {item.modifiers && item.modifiers.length > 0 && (
-                                <div className="text-xs text-gray-500 mt-0.5">
+                                <div className="text-xs text-piad-subtext mt-0.5">
                                   {item.modifiers.map(m => m.name).join(', ')}
                                 </div>
                               )}
                             </div>
                             <div className="flex items-center space-x-3 ml-2">
-                              <span className="text-gray-500 font-medium">x{item.quantity}</span>
-                              <span className="font-bold text-gray-900 w-16 text-right">{formatPrice(item.price * item.quantity)}</span>
+                              <span className="text-piad-subtext font-medium">x{item.quantity}</span>
+                              <span className="font-bold text-piad-text w-16 text-right">{formatPrice(item.price * item.quantity)}</span>
                             </div>
                           </div>
                         ))}
                       </div>
 
-                      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                        <div className="text-lg font-black text-red-600">
+                      <div className="flex items-center justify-between pt-3 border-t border-piad-primary/5">
+                        <div className="text-lg font-black text-piad-primary">
                           {formatPrice(order.totalPrice)}
                         </div>
                         <div className="flex space-x-2">
                           {order.status === 'pending' && (
                             <button 
                               onClick={() => handleUpdateOrderStatus(order.id, 'preparing')}
-                              className="bg-orange-500 text-white px-4 py-2.5 rounded-xl text-sm font-black shadow-lg shadow-orange-100 active:scale-95 transition-all flex items-center"
+                              className="bg-piad-accent text-white px-4 py-2.5 rounded-xl text-sm font-black shadow-lg shadow-piad-accent/20 active:scale-95 transition-all flex items-center"
                             >
                               <ChefHat size={16} className="mr-1.5" />
                               开始制作
@@ -947,7 +952,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                           )}
                           <button 
                             onClick={() => setItemToDelete({ id: order.id, name: `桌号 ${order.tableNumber} 的订单`, type: 'order' })}
-                            className="p-2.5 bg-gray-100 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            className="p-2.5 bg-piad-primary/5 rounded-xl text-piad-subtext hover:text-piad-primary hover:bg-piad-primary/10 transition-colors"
                           >
                             <Trash2 size={16} />
                           </button>
@@ -1574,6 +1579,45 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                         className={`flex-1 h-10 rounded-lg font-black text-xs transition-all ${gridColumns === cols ? 'bg-red-600 text-white shadow-lg shadow-red-100 scale-105' : 'text-gray-400'}`}
                       >
                         {cols} 列
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Theme Selection */}
+                <div className="space-y-3">
+                  <h3 className="font-black text-sm text-piad-text flex items-center">
+                    <Zap size={16} className="mr-2 text-piad-primary" />
+                    系统主题风格
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { id: 'default', name: '经典味觉红', color: 'bg-[#E60012]' },
+                      { id: 'luxury', name: '黑金饕餮', color: 'bg-[#D4AF37]' },
+                      { id: 'nature', name: '清新抹茶', color: 'bg-[#487E4C]' },
+                      { id: 'sweet', name: '多巴胺蜜桃', color: 'bg-[#FF6B6B]' }
+                    ].map(theme => (
+                      <button
+                        key={theme.id}
+                        onClick={async () => {
+                          setAppSettings(prev => ({ ...prev, theme: theme.id as any }));
+                          try {
+                            await setDoc(doc(db, 'settings', 'global'), { theme: theme.id }, { merge: true });
+                            showToast(`已切换至 ${theme.name}`, 'success');
+                          } catch (error) {
+                            handleFirestoreError(error, OperationType.UPDATE, 'settings/global');
+                          }
+                        }}
+                        className={`flex items-center p-3 rounded-xl border transition-all ${
+                          appSettings.theme === theme.id 
+                            ? 'border-piad-primary bg-piad-primary/5 shadow-sm' 
+                            : 'border-piad-primary/10 bg-piad-card hover:border-piad-primary/20'
+                        }`}
+                      >
+                        <div className={`w-4 h-4 rounded-full ${theme.color} mr-2 shadow-sm`} />
+                        <span className={`text-[0.65rem] font-black ${appSettings.theme === theme.id ? 'text-piad-primary' : 'text-piad-subtext'}`}>
+                          {theme.name}
+                        </span>
                       </button>
                     ))}
                   </div>

@@ -575,12 +575,17 @@ export default function App() {
     const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'global'), (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.data();
-        setAppSettings({
+        const newSettings: AppSettings = {
           currency: data.currency || 'KRW',
           language: data.language || 'zh',
-          restaurantName: data.restaurantName || 'PIAD 点餐'
-        });
+          restaurantName: data.restaurantName || 'PIAD 点餐',
+          theme: data.theme || 'default'
+        };
+        setAppSettings(newSettings);
         setGridColumns(data.gridColumns || 3);
+        
+        // Apply theme to body
+        document.body.className = `theme-${newSettings.theme}`;
       }
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'settings/global');
@@ -899,15 +904,15 @@ export default function App() {
 
   if (isSessionValid === false) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-6">
+      <div className="min-h-screen bg-piad-bg flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-20 h-20 bg-piad-primary/10 text-piad-primary rounded-full flex items-center justify-center mb-6">
           <X size={40} />
         </div>
-        <h1 className="text-2xl font-black text-gray-800 mb-2">{t.invalidQr}</h1>
-        <p className="text-gray-500 text-sm mb-8">{t.invalidQrDesc}</p>
+        <h1 className="text-2xl font-black text-piad-text mb-2">{t.invalidQr}</h1>
+        <p className="text-piad-subtext text-sm mb-8">{t.invalidQrDesc}</p>
         <button 
           onClick={() => window.location.reload()}
-          className="bg-red-600 text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-red-100 active:scale-95 transition-all"
+          className="bg-piad-primary text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-piad-primary/20 active:scale-95 transition-all"
         >
           {t.reload}
         </button>
@@ -916,7 +921,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-white text-[#333] font-sans overflow-hidden select-none relative">
+    <div className="flex h-screen bg-piad-bg text-piad-text font-sans overflow-hidden select-none relative">
       {/* Notification Toast */}
       <AnimatePresence>
         {notification && (
@@ -934,19 +939,19 @@ export default function App() {
         )}
       </AnimatePresence>
       {/* Mobile Sidebar Navigation */}
-      <aside className="flex w-20 bg-gray-50 border-r border-gray-100 flex-col py-4 z-10 overflow-y-auto no-scrollbar">
+      <aside className="flex w-20 bg-piad-bg border-r border-piad-primary/5 flex-col py-4 z-10 overflow-y-auto no-scrollbar">
         <div className="flex flex-col space-y-2">
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => handleCategoryClick('店长推荐')}
             className={`flex flex-col items-center py-4 relative transition-all ${
-              activeCategory === '店长推荐' ? 'bg-white text-red-600' : 'text-gray-500'
+              activeCategory === '店长推荐' ? 'bg-piad-card text-piad-primary' : 'text-piad-subtext'
             }`}
           >
             {activeCategory === '店长推荐' && (
               <motion.div 
                 layoutId="active-indicator"
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-red-600 rounded-r-full" 
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-piad-primary rounded-r-full" 
               />
             )}
             <motion.span 
@@ -955,7 +960,7 @@ export default function App() {
             >
               {CATEGORY_ICONS['店长推荐']}
             </motion.span>
-            <span className={`text-[0.65rem] font-bold ${activeCategory === '店长推荐' ? 'text-red-600' : 'text-gray-400'}`}>{t.hotRecommended}</span>
+            <span className={`text-[0.65rem] font-bold ${activeCategory === '店长推荐' ? 'text-piad-primary' : 'text-piad-subtext'}`}>{t.hotRecommended}</span>
           </motion.button>
           {categories.map(category => (
             <motion.button
@@ -963,13 +968,13 @@ export default function App() {
               whileTap={{ scale: 0.95 }}
               onClick={() => handleCategoryClick(category)}
               className={`flex flex-col items-center py-4 relative transition-all ${
-                activeCategory === category ? 'bg-white text-red-600' : 'text-gray-500'
+                activeCategory === category ? 'bg-piad-card text-piad-primary' : 'text-piad-subtext'
               }`}
             >
               {activeCategory === category && (
                 <motion.div 
                   layoutId="active-indicator"
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-red-600 rounded-r-full" 
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-piad-primary rounded-r-full" 
                 />
               )}
               <motion.span 
@@ -978,21 +983,21 @@ export default function App() {
               >
                 {CATEGORY_ICONS[category] || '🍽️'}
               </motion.span>
-              <span className={`text-[0.65rem] font-bold ${activeCategory === category ? 'text-red-600' : 'text-gray-400'}`}>{getLocalizedCategory(category)}</span>
+              <span className={`text-[0.65rem] font-bold ${activeCategory === category ? 'text-piad-primary' : 'text-piad-subtext'}`}>{getLocalizedCategory(category)}</span>
             </motion.button>
           ))}
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col relative overflow-hidden bg-white">
+      <main className="flex-1 flex flex-col relative overflow-hidden bg-piad-bg">
         {/* Sticky Header with Glassmorphism */}
-        <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-50/50">
+        <div className="sticky top-0 z-30 bg-piad-card/80 backdrop-blur-md border-b border-piad-primary/5">
           <div className="pt-[env(safe-area-inset-top)]">
             <div className="h-14 flex items-center justify-between px-4">
               <div className="w-8" />
               <h1 
-                className="text-lg font-black tracking-tight text-gray-900 cursor-pointer select-none active:scale-95 transition-transform"
+                className="text-lg font-black tracking-tight text-piad-text cursor-pointer select-none active:scale-95 transition-transform"
                 onClick={handleLogoTap}
               >
                 {appSettings.restaurantName}
@@ -1000,7 +1005,7 @@ export default function App() {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => setLocalLanguage(currentLanguage === 'zh' ? 'ko' : 'zh')}
-                  className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gray-100/50 text-gray-600 hover:bg-gray-200/50 transition-colors flex items-center space-x-1"
+                  className="px-3 py-1.5 text-xs font-bold rounded-lg bg-piad-primary/5 text-piad-subtext hover:bg-piad-primary/10 transition-colors flex items-center space-x-1"
                 >
                   <span>{currentLanguage === 'zh' ? '🇨🇳' : '🇰🇷'}</span>
                 </button>
@@ -1011,7 +1016,7 @@ export default function App() {
 
           {/* Search Bar inside Sticky Header */}
           <div className="px-4 pb-3">
-            <div className="bg-gray-100/50 rounded-xl flex items-center px-4 py-2 border border-gray-200/20">
+            <div className="bg-piad-primary/5 rounded-xl flex items-center px-4 py-2 border border-piad-primary/5">
               <AnimatePresence mode="wait">
                 <motion.input 
                   key={searchPlaceholderIndex}
@@ -1020,7 +1025,7 @@ export default function App() {
                   exit={{ opacity: 0, y: -5 }}
                   type="text" 
                   placeholder={searchQuery ? '' : t.searchPlaceholders[searchPlaceholderIndex]}
-                  className="bg-transparent border-none outline-none text-sm w-full text-gray-700 placeholder-gray-400"
+                  className="bg-transparent border-none outline-none text-sm w-full text-piad-text placeholder-piad-subtext"
                   value={searchQuery || ''}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -1048,7 +1053,7 @@ export default function App() {
         <div 
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto px-4 pb-32 no-scrollbar bg-white"
+          className="flex-1 overflow-y-auto px-4 pb-32 no-scrollbar bg-piad-bg"
         >
           {searchQuery ? (
             <div className="grid grid-cols-1 gap-4 pt-4">
@@ -1060,11 +1065,11 @@ export default function App() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className={`bg-white rounded-2xl p-2 shadow-sm border border-gray-50 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-md hover:border-red-50'}`}
+                    className={`bg-piad-card rounded-2xl p-2 shadow-piad border border-piad-primary/5 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-md hover:border-piad-primary/20'}`}
                   >
                     {dish.isSoldOut && (
-                      <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/40 backdrop-blur-[1px] rounded-2xl">
-                        <div className="bg-gray-800 text-white px-3 py-1 rounded-full text-[0.65rem] font-black uppercase tracking-widest shadow-xl">
+                      <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-[1px] rounded-2xl">
+                        <div className="bg-piad-text text-piad-bg px-3 py-1 rounded-full text-[0.65rem] font-black uppercase tracking-widest shadow-xl">
                           {t.soldOut}
                         </div>
                       </div>
@@ -1082,16 +1087,16 @@ export default function App() {
                     <div className="flex-1 pl-3 py-1 flex flex-col justify-between">
                       <div>
                         <div className="flex items-start justify-between mb-1">
-                          <h3 className="text-base font-black text-gray-900 group-hover:text-red-600 transition-colors line-clamp-1">
+                          <h3 className="text-base font-black text-piad-text group-hover:text-piad-primary transition-colors line-clamp-1">
                             {getLocalizedName(dish)}
                           </h3>
                         </div>
-                        <p className="text-[0.65rem] text-gray-400 line-clamp-1">{getLocalizedDesc(dish) || t.defaultDesc}</p>
+                        <p className="text-[0.65rem] text-piad-subtext line-clamp-1">{getLocalizedDesc(dish) || t.defaultDesc}</p>
                       </div>
 
                       <div className="flex items-center justify-between mt-auto">
                         <div className="flex flex-col">
-                          <span className="text-red-600 text-lg font-black">{formatPrice(dish.price, appSettings.currency)}</span>
+                          <span className="text-piad-primary text-lg font-black">{formatPrice(dish.price, appSettings.currency)}</span>
                           {dish.stock !== undefined && dish.stock > 0 && dish.stock <= 10 && (
                             <span className="text-[0.6rem] text-red-500 font-bold animate-pulse">
                               🔥 {t.stockLeft(dish.stock)}
@@ -1127,7 +1132,7 @@ export default function App() {
               {/* Hot Recommended Section */}
               <div id="category-店长推荐" className="category-section pt-4">
                 <div className="mb-6 flex items-center justify-between">
-                  <h2 className="text-lg font-black text-gray-900 flex items-center">
+                  <h2 className="text-lg font-black text-piad-text flex items-center">
                     {t.hotRecommended} {CATEGORY_ICONS['店长推荐']}
                   </h2>
                 </div>
@@ -1138,61 +1143,61 @@ export default function App() {
                       layout
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`bg-white rounded-2xl p-2 shadow-sm border border-gray-50 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-md hover:border-red-50'}`}
-                    >
-                      {dish.isSoldOut && (
-                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/40 backdrop-blur-[1px] rounded-2xl">
-                          <div className="bg-gray-800 text-white px-3 py-1 rounded-full text-[0.65rem] font-black uppercase tracking-widest shadow-xl">
-                            {t.soldOut}
-                          </div>
-                        </div>
-                      )}
-                      <div className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl bg-gray-100">
-                        <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
-                        <div className="absolute top-2 left-2 bg-red-600 text-white text-[0.5rem] font-bold px-1.5 py-0.5 rounded-md shadow-lg z-10">
-                          {t.recommended}
+                    className={`bg-piad-card rounded-2xl p-2 shadow-piad border border-piad-primary/5 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-md hover:border-piad-primary/20'}`}
+                  >
+                    {dish.isSoldOut && (
+                      <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-[1px] rounded-2xl">
+                        <div className="bg-piad-text text-piad-bg px-3 py-1 rounded-full text-[0.65rem] font-black uppercase tracking-widest shadow-xl">
+                          {t.soldOut}
                         </div>
                       </div>
-                      
-                      <div className="flex-1 pl-3 py-1 flex flex-col justify-between">
-                        <div>
-                          <div className="flex items-start justify-between mb-1">
-                            <h3 className="text-base font-black text-gray-900 group-hover:text-red-600 transition-colors line-clamp-1">
-                              {getLocalizedName(dish)}
-                            </h3>
-                          </div>
-                          <p className="text-[0.65rem] text-gray-400 line-clamp-1">{getLocalizedDesc(dish) || t.defaultDesc}</p>
+                    )}
+                    <div className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl bg-piad-primary/5">
+                      <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
+                      <div className="absolute top-2 left-2 bg-piad-primary text-white text-[0.5rem] font-bold px-1.5 py-0.5 rounded-md shadow-lg z-10">
+                        {t.recommended}
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 pl-3 py-1 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-start justify-between mb-1">
+                          <h3 className="text-base font-black text-piad-text group-hover:text-piad-primary transition-colors line-clamp-1">
+                            {getLocalizedName(dish)}
+                          </h3>
                         </div>
+                        <p className="text-[0.65rem] text-piad-subtext line-clamp-1">{getLocalizedDesc(dish) || t.defaultDesc}</p>
+                      </div>
 
-                        <div className="flex items-center justify-between mt-auto">
-                          <div className="flex flex-col">
-                            <span className="text-red-600 text-lg font-black">{formatPrice(dish.price, appSettings.currency)}</span>
-                            {dish.stock !== undefined && dish.stock > 0 && dish.stock <= 10 && (
-                              <span className="text-[0.6rem] text-red-500 font-bold animate-pulse">
-                                🔥 {t.stockLeft(dish.stock)}
-                              </span>
+                      <div className="flex items-center justify-between mt-auto">
+                        <div className="flex flex-col">
+                          <span className="text-piad-primary text-lg font-black">{formatPrice(dish.price, appSettings.currency)}</span>
+                          {dish.stock !== undefined && dish.stock > 0 && dish.stock <= 10 && (
+                            <span className="text-[0.6rem] text-piad-accent font-bold animate-pulse">
+                              🔥 {t.stockLeft(dish.stock)}
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <button 
+                            onClick={(e) => handleAddToCart(dish, e)}
+                            disabled={dish.isSoldOut}
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 ${
+                              dish.isSoldOut 
+                                ? 'bg-piad-primary/10 text-piad-subtext' 
+                                : 'bg-piad-primary text-white shadow-piad-primary/20'
+                            }`}
+                          >
+                            {dish.modifiers && dish.modifiers.length > 0 ? (
+                              <span className="text-[0.65rem] font-black">{t.selectSpecs}</span>
+                            ) : (
+                              <Plus size={20} />
                             )}
-                          </div>
-                          
-                          <div className="flex items-center space-x-2">
-                            <button 
-                              onClick={(e) => handleAddToCart(dish, e)}
-                              disabled={dish.isSoldOut}
-                              className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 ${
-                                dish.isSoldOut 
-                                  ? 'bg-gray-100 text-gray-300' 
-                                  : 'bg-red-600 text-white shadow-red-100'
-                              }`}
-                            >
-                              {dish.modifiers && dish.modifiers.length > 0 ? (
-                                <span className="text-[0.65rem] font-black">{t.selectSpecs}</span>
-                              ) : (
-                                <Plus size={20} />
-                              )}
-                            </button>
-                          </div>
+                          </button>
                         </div>
                       </div>
+                    </div>
                     </motion.div>
                   ))}
                 </div>
@@ -1370,25 +1375,25 @@ export default function App() {
                     else setIsCartOpen(false);
                   }
                 }}
-                className="fixed bottom-0 left-0 right-0 w-full bg-white rounded-t-[2.5rem] z-40 flex flex-col shadow-[0_-10px_60px_rgba(0,0,0,0.3)] border-t border-gray-100 overflow-hidden touch-none"
+                className="fixed bottom-0 left-0 right-0 w-full bg-piad-card rounded-t-[2.5rem] z-40 flex flex-col shadow-piad border-t border-piad-primary/5 overflow-hidden touch-none"
               >
                 {/* Step 1: Handle */}
                 <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mt-4 mb-2 shrink-0 cursor-grab active:cursor-grabbing" />
                 
                 {/* Step 1 & 2: Header & Actions */}
-                <div className="px-6 py-4 flex items-center justify-between border-b border-gray-50 shrink-0">
+                <div className="px-6 py-4 flex items-center justify-between border-b border-piad-primary/5 shrink-0">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
-                      <ShoppingCart size={20} className="text-red-600" />
+                    <div className="w-10 h-10 rounded-xl bg-piad-primary/10 flex items-center justify-center">
+                      <ShoppingCart size={20} className="text-piad-primary" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-black text-gray-900 leading-tight">{t.myOrder}</h3>
-                      <p className="text-[0.65rem] text-gray-400 font-bold uppercase tracking-wider">{t.itemsSelected(totalItems)}</p>
+                      <h3 className="text-lg font-black text-piad-text leading-tight">{t.myOrder}</h3>
+                      <p className="text-[0.65rem] text-piad-subtext font-bold uppercase tracking-wider">{t.itemsSelected(totalItems)}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <button onClick={clearCart} className="text-xs font-black text-gray-400 hover:text-red-600 transition-colors">{t.clearAll}</button>
-                    <button onClick={() => setIsCartOpen(false)} className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors">
+                    <button onClick={clearCart} className="text-xs font-black text-piad-subtext hover:text-piad-primary transition-colors">{t.clearAll}</button>
+                    <button onClick={() => setIsCartOpen(false)} className="w-10 h-10 rounded-full bg-piad-primary/5 flex items-center justify-center text-piad-subtext hover:bg-piad-primary/10 transition-colors">
                       <X size={20} />
                     </button>
                   </div>
@@ -1434,35 +1439,35 @@ export default function App() {
                             <motion.div 
                               layout
                               key={item.id} 
-                              className="flex items-center bg-white p-3 rounded-2xl shadow-sm border border-gray-100"
+                              className="flex items-center bg-piad-card p-3 rounded-2xl shadow-piad border border-piad-primary/5"
                             >
-                              <div className="w-16 h-16 shrink-0 rounded-xl overflow-hidden mr-4">
+                              <div className="w-16 h-16 shrink-0 rounded-xl overflow-hidden mr-4 bg-piad-primary/5">
                                 <img src={getOptimizedImage(item.image)} alt={item.name} className="w-full h-full object-cover" />
                               </div>
                               <div className="flex-1 min-w-0 mr-4">
-                                <h4 className="font-bold text-base text-gray-900 truncate">{getLocalizedName(item)}</h4>
-                                <div className="text-red-600 text-sm font-bold mt-1">{formatPrice(item.price, appSettings.currency)}</div>
+                                <h4 className="font-bold text-base text-piad-text truncate">{getLocalizedName(item)}</h4>
+                                <div className="text-piad-primary text-sm font-bold mt-1">{formatPrice(item.price, appSettings.currency)}</div>
                                 {item.modifiers && item.modifiers.length > 0 && (
                                   <div className="flex flex-wrap gap-1 mt-1">
                                     {item.modifiers.map((m, idx) => (
-                                      <span key={idx} className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-medium">
+                                      <span key={idx} className="text-[10px] bg-piad-primary/5 text-piad-subtext px-1.5 py-0.5 rounded font-medium">
                                         {getLocalizedModifierName(m)}
                                       </span>
                                     ))}
                                   </div>
                                 )}
                               </div>
-                              <div className="flex items-center bg-gray-50 rounded-full p-1 shrink-0">
+                              <div className="flex items-center bg-piad-primary/5 rounded-full p-1 shrink-0">
                                 <button 
                                   onClick={() => removeFromCart(item)}
-                                  className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-red-600 hover:bg-white rounded-full transition-colors"
+                                  className="w-8 h-8 flex items-center justify-center text-piad-subtext hover:text-piad-primary hover:bg-piad-card rounded-full transition-colors"
                                 >
                                   <Minus size={16} strokeWidth={3} />
                                 </button>
-                                <span className="w-8 text-center font-bold text-sm text-gray-900">{item.quantity}</span>
+                                <span className="w-8 text-center font-bold text-sm text-piad-text">{item.quantity}</span>
                                 <button 
                                   onClick={(e) => handleAddToCart(item, e)}
-                                  className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-red-600 hover:bg-white rounded-full transition-colors"
+                                  className="w-8 h-8 flex items-center justify-center text-piad-subtext hover:text-piad-primary hover:bg-piad-card rounded-full transition-colors"
                                 >
                                   <Plus size={16} strokeWidth={3} />
                                 </button>
@@ -1475,21 +1480,21 @@ export default function App() {
                       {/* Upsell Section */}
                       <section className="mt-8">
                         <div className="flex items-center justify-between mb-4">
-                          <h4 className="text-base font-black text-gray-900">{t.upsellTitle}</h4>
-                          <span className="text-[0.65rem] text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded-full">{t.upsellDesc}</span>
+                          <h4 className="text-base font-black text-piad-text">{t.upsellTitle}</h4>
+                          <span className="text-[0.65rem] text-piad-primary font-bold bg-piad-primary/10 px-2 py-0.5 rounded-full">{t.upsellDesc}</span>
                         </div>
                         <div className="flex overflow-x-auto gap-4 pb-2 no-scrollbar">
                           {dishes.filter(d => d.category === '酒水类' && !cart.some(ci => ci.id === d.id)).slice(0, 4).map(dish => (
-                            <div key={dish.id} className="shrink-0 w-32 bg-gray-50 rounded-2xl p-2 border border-gray-100">
+                            <div key={dish.id} className="shrink-0 w-32 bg-piad-primary/5 rounded-2xl p-2 border border-piad-primary/5">
                               <div className="w-full aspect-square rounded-xl overflow-hidden mb-2">
                                 <img src={getOptimizedImage(dish.image)} className="w-full h-full object-cover" alt="" />
                               </div>
-                              <h5 className="text-[0.7rem] font-bold text-gray-800 line-clamp-1 mb-1">{getLocalizedName(dish)}</h5>
+                              <h5 className="text-[0.7rem] font-bold text-piad-text line-clamp-1 mb-1">{getLocalizedName(dish)}</h5>
                               <div className="flex items-center justify-between">
-                                <span className="text-[0.7rem] font-black text-red-600">{formatPrice(dish.price, appSettings.currency)}</span>
+                                <span className="text-[0.7rem] font-black text-piad-primary">{formatPrice(dish.price, appSettings.currency)}</span>
                                 <button 
                                   onClick={(e) => handleAddToCart(dish, e)}
-                                  className="w-6 h-6 bg-white rounded-lg flex items-center justify-center text-red-600 shadow-sm border border-gray-100 active:scale-90 transition-all"
+                                  className="w-6 h-6 bg-piad-card rounded-lg flex items-center justify-center text-piad-primary shadow-piad border border-piad-primary/5 active:scale-90 transition-all"
                                 >
                                   <Plus size={14} strokeWidth={3} />
                                 </button>
@@ -1527,13 +1532,13 @@ export default function App() {
 
                 {/* Step 4: Checkout Bar */}
                 {cart.length > 0 && (
-                  <div className="p-6 bg-white border-t border-gray-100 shrink-0 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+                  <div className="p-6 bg-piad-card border-t border-piad-primary/5 shrink-0 shadow-piad pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-baseline gap-2">
-                        <span className="text-sm font-bold text-gray-900">{t.totalAmount}</span>
-                        <span className="text-2xl font-black text-red-600">{formatPrice(totalAmount, appSettings.currency)}</span>
+                        <span className="text-sm font-bold text-piad-text">{t.totalAmount}</span>
+                        <span className="text-2xl font-black text-piad-primary">{formatPrice(totalAmount, appSettings.currency)}</span>
                       </div>
-                      <div className="text-gray-500 text-sm font-medium">
+                      <div className="text-piad-subtext text-sm font-medium">
                         {selectedTable ? t.tableNumber(selectedTable) : t.noTableSelected}
                       </div>
                     </div>
@@ -1542,8 +1547,8 @@ export default function App() {
                       disabled={!selectedTable || isOrdering}
                       className={`w-full py-4 rounded-2xl font-black text-lg flex items-center justify-center space-x-2 transition-all ${
                         selectedTable 
-                        ? 'bg-red-600 hover:bg-red-500 text-white shadow-xl shadow-red-200 active:scale-[0.98]' 
-                        : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        ? 'bg-piad-primary hover:opacity-90 text-white shadow-piad-primary/20 active:scale-[0.98]' 
+                        : 'bg-piad-primary/20 text-piad-subtext cursor-not-allowed'
                       }`}
                     >
                       {isOrdering ? (
@@ -1584,16 +1589,16 @@ export default function App() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 h-[70vh] bg-white rounded-t-[2rem] z-[70] flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.2)] overflow-hidden"
+              className="fixed bottom-0 left-0 right-0 h-[70vh] bg-piad-card rounded-t-[2rem] z-[70] flex flex-col shadow-piad overflow-hidden"
             >
-              <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mt-3 mb-1" />
+              <div className="w-12 h-1.5 bg-piad-primary/10 rounded-full mx-auto mt-3 mb-1" />
               
-              <div className="px-6 py-4 flex items-center justify-between border-b border-gray-50">
+              <div className="px-6 py-4 flex items-center justify-between border-b border-piad-primary/5">
                 <div className="flex items-center space-x-4">
-                  <img src={selectedDishForSpecs.image} className="w-16 h-16 rounded-xl object-cover" alt="" />
+                  <img src={selectedDishForSpecs.image} className="w-16 h-16 rounded-xl object-cover bg-piad-primary/5" alt="" />
                   <div>
-                    <h3 className="text-lg font-black text-gray-900">{getLocalizedName(selectedDishForSpecs)}</h3>
-                    <p className="text-red-600 font-black">{formatPrice(selectedDishForSpecs.price, appSettings.currency)}</p>
+                    <h3 className="text-lg font-black text-piad-text">{getLocalizedName(selectedDishForSpecs)}</h3>
+                    <p className="text-piad-primary font-black">{formatPrice(selectedDishForSpecs.price, appSettings.currency)}</p>
                   </div>
                 </div>
                 <button 
@@ -1601,7 +1606,7 @@ export default function App() {
                     setSelectedDishForSpecs(null);
                     setSelectedModifiers([]);
                   }}
-                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400"
+                  className="w-8 h-8 rounded-full bg-piad-primary/5 flex items-center justify-center text-piad-subtext"
                 >
                   <X size={18} />
                 </button>
@@ -1653,8 +1658,8 @@ export default function App() {
                                 }}
                                 className={`p-3 rounded-xl border-2 text-left transition-all ${
                                   isSelected 
-                                    ? 'border-red-600 bg-red-50 text-red-600' 
-                                    : 'border-gray-100 bg-gray-50 text-gray-500'
+                                    ? 'border-piad-primary bg-piad-primary/10 text-piad-primary' 
+                                    : 'border-piad-primary/5 bg-piad-primary/5 text-piad-subtext'
                                 }`}
                               >
                                 <div className="text-xs font-black mb-0.5">{getLocalizedModifierName(mod)}</div>
@@ -1669,10 +1674,10 @@ export default function App() {
                 })()}
               </div>
 
-              <div className="p-6 bg-gray-50 border-t border-gray-100 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+              <div className="p-6 bg-piad-primary/5 border-t border-piad-primary/5 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="text-xs text-gray-400 font-bold">{t.selected}{selectedModifiers.length > 0 ? selectedModifiers.map(m => getLocalizedModifierName(m)).join(', ') : t.none}</div>
-                  <div className="text-lg font-black text-red-600">
+                  <div className="text-xs text-piad-subtext font-bold">{t.selected}{selectedModifiers.length > 0 ? selectedModifiers.map(m => getLocalizedModifierName(m)).join(', ') : t.none}</div>
+                  <div className="text-lg font-black text-piad-primary">
                     {formatPrice(selectedDishForSpecs.price + selectedModifiers.reduce((acc, m) => acc + m.price, 0), appSettings.currency)}
                   </div>
                 </div>
@@ -1691,8 +1696,8 @@ export default function App() {
                       disabled={!allRequiredMet}
                       className={`w-full py-4 rounded-2xl font-black text-lg shadow-xl transition-all ${
                         allRequiredMet 
-                        ? 'bg-red-600 text-white shadow-red-200 active:scale-95' 
-                        : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                        ? 'bg-piad-primary text-white shadow-piad-primary/20 active:scale-95' 
+                        : 'bg-piad-primary/20 text-piad-subtext cursor-not-allowed shadow-none'
                       }`}
                     >
                       {allRequiredMet ? t.confirm : t.specRequired}
@@ -1743,13 +1748,13 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-red-600 flex flex-col items-center justify-center text-white"
+            className="fixed inset-0 z-[100] bg-piad-primary flex flex-col items-center justify-center text-white"
           >
             <motion.div 
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: 'spring', damping: 15 }}
-              className="w-32 h-32 bg-white rounded-full flex items-center justify-center text-red-600 mb-8 shadow-2xl"
+              className="w-32 h-32 bg-white rounded-full flex items-center justify-center text-piad-primary mb-8 shadow-piad"
             >
               <CheckCircle2 size={64} />
             </motion.div>
@@ -1770,7 +1775,7 @@ export default function App() {
             initial={{ y: -100, opacity: 0 }}
             animate={{ y: 20, opacity: 1 }}
             exit={{ y: -100, opacity: 0 }}
-            className="fixed top-0 left-1/2 -translate-x-1/2 z-[200] bg-red-600 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center space-x-4 border-2 border-white/20"
+            className="fixed top-0 left-1/2 -translate-x-1/2 z-[200] bg-piad-primary text-white px-8 py-4 rounded-2xl shadow-piad flex items-center space-x-4 border-2 border-white/20"
           >
             <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center animate-bounce">
               <Bell size={20} />
@@ -1784,7 +1789,7 @@ export default function App() {
                 setShowNewOrderAlert(false);
                 setIsAdminOpen(true);
               }}
-              className="bg-white text-red-600 px-4 py-2 rounded-xl font-black text-xs hover:bg-gray-100 transition-colors"
+              className="bg-white text-piad-primary px-4 py-2 rounded-xl font-black text-xs hover:bg-gray-100 transition-colors"
             >
               {t.viewNow}
             </button>
