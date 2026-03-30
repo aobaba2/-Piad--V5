@@ -3,6 +3,8 @@ export interface DishModifier {
   name_en?: string;
   name_ko?: string;
   price: number;
+  group?: string;
+  groupRequired?: boolean;
 }
 
 export interface Dish {
@@ -20,6 +22,7 @@ export interface Dish {
   isRecommended?: boolean;
   order?: number;
   isSoldOut?: boolean;
+  stock?: number;
   clickCount?: number;
   modifiers?: DishModifier[];
 }

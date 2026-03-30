@@ -380,6 +380,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       tags: editingDish.tags || [],
       isRecommended: editingDish.isRecommended || false,
       isSoldOut: editingDish.isSoldOut || false,
+      stock: editingDish.stock ?? undefined,
       modifiers: editingDish.modifiers || [],
       order: editingDish.order ?? dishes.filter(d => d.category === editingDish.category).length
     };
@@ -1423,29 +1424,49 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-gray-400 uppercase">价格 ({appSettings.currency === 'KRW' ? '₩' : appSettings.currency === 'CNY' ? '¥' : '$'})</label>
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center">
+                        <DollarSign size={12} className="mr-1" />
+                        价格 ({appSettings.currency === 'KRW' ? '₩' : appSettings.currency === 'CNY' ? '¥' : '$'})
+                      </label>
                       <input 
                         required
                         type="number" 
                         value={editingDish.price || 0}
                         onChange={e => setEditingDish({ ...editingDish, price: Number(e.target.value) })}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-red-600 transition-colors"
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-red-600 transition-colors text-sm font-bold"
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-gray-400 uppercase">所属分类</label>
-                      <select 
-                        required
-                        value={editingDish.category || ''}
-                        onChange={e => setEditingDish({ ...editingDish, category: e.target.value })}
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-red-600 transition-colors appearance-none"
-                      >
-                        <option value="" disabled>选择分类</option>
-                        {categories.map(cat => (
-                          <option key={cat.id} value={cat.name}>{cat.name}</option>
-                        ))}
-                      </select>
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center">
+                        <Zap size={12} className="mr-1" />
+                        库存数量 (可选)
+                      </label>
+                      <input 
+                        type="number" 
+                        value={editingDish.stock ?? ''}
+                        onChange={e => setEditingDish({ ...editingDish, stock: e.target.value === '' ? undefined : Number(e.target.value) })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-red-600 transition-colors text-sm font-bold"
+                        placeholder="不填则不限"
+                      />
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center">
+                      <LayoutGrid size={12} className="mr-1" />
+                      所属分类
+                    </label>
+                    <select 
+                      required
+                      value={editingDish.category || ''}
+                      onChange={e => setEditingDish({ ...editingDish, category: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-red-600 transition-colors appearance-none text-sm font-bold"
+                    >
+                      <option value="" disabled>选择分类</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.name}>{cat.name}</option>
+                      ))}
+                    </select>
                   </div>
 
                   <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-4">
@@ -1528,6 +1549,35 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                         <div key={idx} className="bg-gray-50 p-3 rounded-xl border border-gray-100 space-y-2">
                           <div className="flex items-center space-x-2">
                             <div className="flex-1 space-y-1">
+                              <label className="text-[0.4rem] font-bold text-gray-400 uppercase">分组 (如: 辣度) & 必选</label>
+                              <div className="flex items-center space-x-2">
+                                <input 
+                                  type="text" 
+                                  value={mod.group || ''}
+                                  onChange={e => {
+                                    const newModifiers = [...(editingDish.modifiers || [])];
+                                    newModifiers[idx].group = e.target.value;
+                                    setEditingDish({ ...editingDish, modifiers: newModifiers });
+                                  }}
+                                  className="flex-1 bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-[0.6rem] outline-none focus:border-red-600"
+                                  placeholder="分组名称"
+                                />
+                                <label className="flex items-center space-x-1 cursor-pointer">
+                                  <input 
+                                    type="checkbox"
+                                    checked={mod.groupRequired || false}
+                                    onChange={e => {
+                                      const newModifiers = [...(editingDish.modifiers || [])];
+                                      newModifiers[idx].groupRequired = e.target.checked;
+                                      setEditingDish({ ...editingDish, modifiers: newModifiers });
+                                    }}
+                                    className="w-3 h-3 rounded text-red-600 focus:ring-red-500"
+                                  />
+                                  <span className="text-[0.5rem] font-bold text-gray-500">必选</span>
+                                </label>
+                              </div>
+                            </div>
+                            <div className="flex-1 space-y-1">
                               <label className="text-[0.4rem] font-bold text-gray-400 uppercase">名称 (中/EN/KO)</label>
                               <div className="grid grid-cols-3 gap-1.5">
                                 <input 
@@ -1550,7 +1600,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                                     setEditingDish({ ...editingDish, modifiers: newModifiers });
                                   }}
                                   className="bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-[0.6rem] outline-none focus:border-red-600"
-                                  placeholder="English"
+                                  placeholder="EN"
                                 />
                                 <input 
                                   type="text" 
@@ -1561,7 +1611,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                                     setEditingDish({ ...editingDish, modifiers: newModifiers });
                                   }}
                                   className="bg-white border border-gray-200 rounded-lg px-2 py-1.5 text-[0.6rem] outline-none focus:border-red-600"
-                                  placeholder="한국어"
+                                  placeholder="KO"
                                 />
                               </div>
                             </div>
@@ -1587,34 +1637,10 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                                 const newModifiers = (editingDish.modifiers || []).filter((_, i) => i !== idx);
                                 setEditingDish({ ...editingDish, modifiers: newModifiers });
                               }}
-                              className="text-gray-300 hover:text-red-600 transition-colors"
+                              className="text-gray-300 hover:text-red-600 transition-colors pt-4"
                             >
                               <Trash2 size={16} />
                             </button>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2">
-                            <input 
-                              type="text" 
-                              value={mod.name_en || ''}
-                              onChange={e => {
-                                const newModifiers = [...(editingDish.modifiers || [])];
-                                newModifiers[idx].name_en = e.target.value;
-                                setEditingDish({ ...editingDish, modifiers: newModifiers });
-                              }}
-                              className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-[0.6rem] outline-none focus:border-red-600"
-                              placeholder="Name (EN)"
-                            />
-                            <input 
-                              type="text" 
-                              value={mod.name_ko || ''}
-                              onChange={e => {
-                                const newModifiers = [...(editingDish.modifiers || [])];
-                                newModifiers[idx].name_ko = e.target.value;
-                                setEditingDish({ ...editingDish, modifiers: newModifiers });
-                              }}
-                              className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-[0.6rem] outline-none focus:border-red-600"
-                              placeholder="이름 (KO)"
-                            />
                           </div>
                         </div>
                       ))}

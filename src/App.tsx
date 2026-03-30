@@ -103,6 +103,49 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
+// New Components for Enhanced UI/UX
+const DishImage = ({ src, alt }: { src: string; alt: string }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  return (
+    <div className="relative w-full h-full">
+      {!isLoaded && (
+        <div className="absolute inset-0 bg-gray-100 animate-pulse flex items-center justify-center">
+          <UtensilsCrossed className="text-gray-200" size={24} />
+        </div>
+      )}
+      <img
+        src={src}
+        alt={alt}
+        onLoad={() => setIsLoaded(true)}
+        className={`w-full h-full object-cover transition-all duration-700 ${isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}
+        referrerPolicy="no-referrer"
+      />
+    </div>
+  );
+};
+
+const FlyToCart: React.FC<{ start: { x: number; y: number }; end: { x: number; y: number }; onComplete: () => void }> = ({ start, end, onComplete }) => {
+  return (
+    <motion.div
+      initial={{ x: start.x - 12, y: start.y - 12, scale: 1, opacity: 1 }}
+      animate={{ 
+        x: [start.x - 12, (start.x + end.x) / 2, end.x - 12],
+        y: [start.y - 12, Math.min(start.y, end.y) - 100, end.y - 12],
+        scale: [1, 1.2, 0.2],
+        opacity: [1, 1, 0],
+      }}
+      transition={{
+        duration: 0.6,
+        ease: "easeInOut"
+      }}
+      onAnimationComplete={onComplete}
+      className="fixed top-0 left-0 w-6 h-6 bg-red-600 rounded-full z-[100] shadow-lg pointer-events-none flex items-center justify-center"
+    >
+      <Plus size={12} className="text-white" />
+    </motion.div>
+  );
+};
+
 export default function App() {
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
@@ -110,6 +153,8 @@ export default function App() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [cartHeight, setCartHeight] = useState<'half' | 'full'>('half');
+  const [flyItems, setFlyItems] = useState<{ id: number; start: { x: number; y: number } }[]>([]);
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -133,6 +178,18 @@ export default function App() {
   const [selectedDishForSpecs, setSelectedDishForSpecs] = useState<Dish | null>(null);
   const [selectedModifiers, setSelectedModifiers] = useState<DishModifier[]>([]);
   const [isCartPopping, setIsCartPopping] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -411,6 +468,12 @@ export default function App() {
       newOrderTitle: '새 주문이 접수되었습니다!',
       newOrderDesc: '관리자 페이지에서 확인해주세요',
       viewNow: '지금 확인',
+      stockLeft: (count: number) => `남은 수량 ${count}개`,
+      offlineTitle: '네트워크 연결 끊김',
+      offlineDesc: '주문 실패를 방지하기 위해 네트워크 연결을 확인해주세요',
+      upsellTitle: '가성비 추가',
+      upsellDesc: '조금만 더하면 맛이 두 배!',
+      emptyCartHint: '배가 비어있어요, 주문하러 가볼까요?~',
       categories: {
         "招牌烤鱼": "시그니처 생선구이",
         "东北菜": "동북 요리",
@@ -500,6 +563,12 @@ export default function App() {
     newOrderTitle: '收到新订单！',
     newOrderDesc: '请立即前往后台处理',
     viewNow: '立即查看',
+    stockLeft: (count: number) => `仅剩 ${count} 份`,
+    offlineTitle: '网络已断开',
+    offlineDesc: '请检查您的网络连接，以免下单失败',
+    upsellTitle: '超值加购',
+    upsellDesc: '再加一点，美味翻倍',
+    emptyCartHint: '肚子空空，快去点餐吧~',
     categories: {
       "招牌烤鱼": "招牌烤鱼",
       "东北菜": "东北菜",
@@ -613,8 +682,18 @@ export default function App() {
     });
   }, [activeCategory, searchQuery, dishes]);
 
-  const handleAddToCart = async (dish: Dish) => {
+  const handleAddToCart = async (dish: Dish, e?: React.MouseEvent) => {
     if (dish.isSoldOut) return;
+
+    // Trigger fly animation
+    if (e) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const newItem = {
+        id: Date.now(),
+        start: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+      };
+      setFlyItems(prev => [...prev, newItem]);
+    }
 
     // Track click for analytics
     try {
@@ -643,7 +722,17 @@ export default function App() {
     setTimeout(() => setIsCartPopping(false), 300);
   };
 
-  const handleAddWithModifiers = (dish: Dish, selectedModifiers: DishModifier[]) => {
+  const handleAddWithModifiers = (dish: Dish, selectedModifiers: DishModifier[], e?: React.MouseEvent) => {
+    // Trigger fly animation
+    if (e) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const newItem = {
+        id: Date.now(),
+        start: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+      };
+      setFlyItems(prev => [...prev, newItem]);
+    }
+
     setCart(prev => {
       const modifierIds = selectedModifiers.map(m => m.name).sort().join('|');
       const existing = prev.find(item => 
@@ -791,7 +880,7 @@ export default function App() {
             exit={{ y: -100, opacity: 0 }}
             className="fixed top-0 left-4 right-4 z-[200] flex justify-center pointer-events-none"
           >
-            <div className={`px-6 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 pointer-events-auto ${notification.type === 'success' ? 'bg-green-600 text-white' : 'bg-blue-600 text-white'}`}>
+            <div className={`px-6 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 pointer-events-auto ${notification.type === 'success' ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'}`}>
               <Bell size={18} className="animate-bounce" />
               <span className="text-sm font-bold">{notification.message}</span>
             </div>
@@ -804,24 +893,24 @@ export default function App() {
           <button
             onClick={() => setActiveCategory('店长推荐')}
             className={`flex flex-col items-center py-4 relative transition-all ${
-              activeCategory === '店长推荐' ? 'bg-white text-green-600' : 'text-gray-500'
+              activeCategory === '店长推荐' ? 'bg-white text-red-600' : 'text-gray-500'
             }`}
           >
-            {activeCategory === '店长推荐' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-500 rounded-r-full" />}
+            {activeCategory === '店长推荐' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-red-600 rounded-r-full" />}
             <span className="text-xl mb-1">{CATEGORY_ICONS['店长推荐']}</span>
-            <span className={`text-[0.65rem] font-bold ${activeCategory === '店长推荐' ? 'text-green-600' : 'text-gray-400'}`}>{t.hotRecommended}</span>
+            <span className={`text-[0.65rem] font-bold ${activeCategory === '店长推荐' ? 'text-red-600' : 'text-gray-400'}`}>{t.hotRecommended}</span>
           </button>
           {categories.map(category => (
             <button
               key={category}
               onClick={() => setActiveCategory(category)}
               className={`flex flex-col items-center py-4 relative transition-all ${
-                activeCategory === category ? 'bg-white text-green-600' : 'text-gray-500'
+                activeCategory === category ? 'bg-white text-red-600' : 'text-gray-500'
               }`}
             >
-              {activeCategory === category && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-500 rounded-r-full" />}
+              {activeCategory === category && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-red-600 rounded-r-full" />}
               <span className="text-xl mb-1">{CATEGORY_ICONS[category] || '🍽️'}</span>
-              <span className={`text-[0.65rem] font-bold ${activeCategory === category ? 'text-green-600' : 'text-gray-400'}`}>{getLocalizedCategory(category)}</span>
+              <span className={`text-[0.65rem] font-bold ${activeCategory === category ? 'text-red-600' : 'text-gray-400'}`}>{getLocalizedCategory(category)}</span>
             </button>
           ))}
         </div>
@@ -830,35 +919,52 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col relative overflow-hidden bg-white">
         {/* Mobile Header */}
-        <div className="h-14 flex items-center justify-between px-4 bg-white border-b border-gray-50 z-20">
-          <div className="w-8">
-            {/* Admin button removed as per user request */}
-          </div>
-          <h1 className="text-lg font-black tracking-tight text-gray-900">{appSettings.restaurantName}</h1>
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => setLocalLanguage(currentLanguage === 'zh' ? 'ko' : 'zh')}
-              className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors flex items-center space-x-1"
-            >
-              <span>{currentLanguage === 'zh' ? '🇨🇳 CN' : '🇰🇷 KO'}</span>
-            </button>
-            {!user ? (
-              <button 
-                onClick={handleLogin}
-                className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"
+        <div className="pt-[env(safe-area-inset-top)] bg-white z-20">
+          <div className="h-14 flex items-center justify-between px-4 border-b border-gray-50">
+            <div className="w-8">
+              {/* Admin button removed as per user request */}
+            </div>
+            <h1 className="text-lg font-black tracking-tight text-gray-900">{appSettings.restaurantName}</h1>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setLocalLanguage(currentLanguage === 'zh' ? 'ko' : 'zh')}
+                className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors flex items-center space-x-1"
               >
-                <LogIn size={20} />
+                <span>{currentLanguage === 'zh' ? '🇨🇳 CN' : '🇰🇷 KO'}</span>
               </button>
-            ) : (
-              <button 
-                onClick={handleLogout}
-                className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"
-              >
-                <LogOut size={20} />
-              </button>
-            )}
+              {!user ? (
+                <button 
+                  onClick={handleLogin}
+                  className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"
+                >
+                  <LogIn size={20} />
+                </button>
+              ) : (
+                <button 
+                  onClick={handleLogout}
+                  className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"
+                >
+                  <LogOut size={20} />
+                </button>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Offline Banner */}
+        <AnimatePresence>
+          {!isOnline && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="bg-red-600 text-white px-4 py-2 text-xs font-bold flex items-center justify-center space-x-2 z-30"
+            >
+              <div className="w-2 h-2 bg-white rounded-full animate-ping" />
+              <span>{t.offlineTitle}: {t.offlineDesc}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Mobile Search Bar */}
         <div className="px-4 py-3 bg-white z-10">
@@ -891,22 +997,17 @@ export default function App() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className={`bg-white overflow-hidden transition-all duration-500 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : ''}`}
+                  className={`bg-white rounded-2xl p-2 shadow-sm border border-gray-50 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-md hover:border-red-50'}`}
                 >
                   {dish.isSoldOut && (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/40 backdrop-blur-[1px]">
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/40 backdrop-blur-[1px] rounded-2xl">
                       <div className="bg-gray-800 text-white px-3 py-1 rounded-full text-[0.65rem] font-black uppercase tracking-widest shadow-xl">
                         {t.soldOut}
                       </div>
                     </div>
                   )}
-                  <div className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl">
-                    <img 
-                      src={getOptimizedImage(dish.image)} 
-                      alt={dish.name} 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                      referrerPolicy="no-referrer"
-                    />
+                  <div className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl bg-gray-100">
+                    <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
                     
                     {dish.isRecommended && (
                       <div className="absolute top-2 left-2 bg-red-600 text-white text-[0.5rem] font-bold px-1.5 py-0.5 rounded-md shadow-lg z-10">
@@ -915,7 +1016,7 @@ export default function App() {
                     )}
                   </div>
                   
-                  <div className="flex-1 p-3 flex flex-col justify-between">
+                  <div className="flex-1 pl-3 py-1 flex flex-col justify-between">
                     <div>
                       <div className="flex items-start justify-between mb-1">
                         <h3 className="text-base font-black text-gray-900 group-hover:text-red-600 transition-colors line-clamp-1">
@@ -928,16 +1029,21 @@ export default function App() {
                     <div className="flex items-center justify-between mt-auto">
                       <div className="flex flex-col">
                         <span className="text-red-600 text-lg font-black">{formatPrice(dish.price, appSettings.currency)}</span>
+                        {dish.stock !== undefined && dish.stock > 0 && dish.stock <= 10 && (
+                          <span className="text-[0.6rem] text-red-500 font-bold animate-pulse">
+                            🔥 {t.stockLeft(dish.stock)}
+                          </span>
+                        )}
                       </div>
                       
                       <div className="flex items-center space-x-2">
                         <button 
-                          onClick={() => handleAddToCart(dish)}
+                          onClick={(e) => handleAddToCart(dish, e)}
                           disabled={dish.isSoldOut}
                           className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 ${
                             dish.isSoldOut 
                               ? 'bg-gray-100 text-gray-300' 
-                              : 'bg-green-500 text-white shadow-green-100'
+                              : 'bg-red-600 text-white shadow-red-100'
                           }`}
                         >
                           {dish.modifiers && dish.modifiers.length > 0 ? (
@@ -974,7 +1080,7 @@ export default function App() {
               className="flex items-center flex-1 cursor-pointer pl-4"
             >
               <div className="relative mr-4">
-                <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white shadow-lg shadow-green-500/20">
+                <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-500/20">
                   <ShoppingCart size={20} />
                 </div>
                 {totalItems > 0 && (
@@ -1000,7 +1106,7 @@ export default function App() {
               disabled={totalItems === 0 || isOrdering}
               className={`h-12 px-8 rounded-full font-black text-sm transition-all flex items-center space-x-2 ${
                 totalItems > 0
-                ? 'bg-green-500 text-white shadow-lg shadow-green-900/20 active:scale-95' 
+                ? 'bg-red-600 text-white shadow-lg shadow-red-900/20 active:scale-95' 
                 : 'bg-gray-700 text-gray-500 cursor-not-allowed'
               }`}
             >
@@ -1031,24 +1137,41 @@ export default function App() {
               />
               <motion.div 
                 initial={{ y: "100%" }}
-                animate={{ y: 0 }}
+                animate={{ 
+                  y: 0,
+                  height: cartHeight === 'half' ? '65vh' : '92vh'
+                }}
                 exit={{ y: "100%" }}
-                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="fixed bottom-0 left-0 right-0 w-full h-[75vh] bg-white rounded-t-[2rem] z-40 flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.2)] border-t border-gray-100 overflow-hidden"
+                transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                drag="y"
+                dragConstraints={{ top: 0, bottom: 0 }}
+                onDragEnd={(_, info) => {
+                  if (info.offset.y < -50) setCartHeight('full');
+                  else if (info.offset.y > 100) {
+                    if (cartHeight === 'full') setCartHeight('half');
+                    else setIsCartOpen(false);
+                  }
+                }}
+                className="fixed bottom-0 left-0 right-0 w-full bg-white rounded-t-[2.5rem] z-40 flex flex-col shadow-[0_-10px_60px_rgba(0,0,0,0.3)] border-t border-gray-100 overflow-hidden touch-none"
               >
                 {/* Step 1: Handle */}
-                <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mt-3 mb-1 shrink-0" />
+                <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mt-4 mb-2 shrink-0 cursor-grab active:cursor-grabbing" />
                 
                 {/* Step 1 & 2: Header & Actions */}
-                <div className="px-6 py-4 flex items-center justify-between border-b border-gray-100 shrink-0">
-                  <div className="flex items-center space-x-2">
-                    <ShoppingCart size={20} className="text-red-600" />
-                    <h3 className="text-lg font-black text-gray-900">{t.myOrder}</h3>
+                <div className="px-6 py-4 flex items-center justify-between border-b border-gray-50 shrink-0">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center">
+                      <ShoppingCart size={20} className="text-red-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-gray-900 leading-tight">{t.myOrder}</h3>
+                      <p className="text-[0.65rem] text-gray-400 font-bold uppercase tracking-wider">{t.itemsSelected(totalItems)}</p>
+                    </div>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <button onClick={clearCart} className="text-sm font-bold text-gray-400 hover:text-red-600">{t.clearAll}</button>
-                    <button onClick={() => setIsCartOpen(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
-                      <X size={16} />
+                    <button onClick={clearCart} className="text-xs font-black text-gray-400 hover:text-red-600 transition-colors">{t.clearAll}</button>
+                    <button onClick={() => setIsCartOpen(false)} className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors">
+                      <X size={20} />
                     </button>
                   </div>
                 </div>
@@ -1056,11 +1179,28 @@ export default function App() {
                 <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
                   {cart.length === 0 ? (
                     <div className="py-20 flex flex-col items-center justify-center text-center">
-                      <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center text-gray-200 mb-6">
-                        <ShoppingCart size={48} />
-                      </div>
-                      <h4 className="text-xl font-bold text-gray-800 mb-2">{t.emptyCartTitle}</h4>
-                      <p className="text-gray-400">{t.emptyCartDesc}</p>
+                      <motion.div 
+                        initial={{ scale: 0.8, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        className="w-32 h-32 bg-gray-50 rounded-full flex items-center justify-center text-gray-200 mb-6 relative"
+                      >
+                        <ShoppingCart size={64} />
+                        <motion.div 
+                          animate={{ y: [0, -10, 0] }}
+                          transition={{ repeat: Infinity, duration: 2 }}
+                          className="absolute -top-2 -right-2 text-4xl"
+                        >
+                          🍕
+                        </motion.div>
+                      </motion.div>
+                      <h4 className="text-xl font-black text-gray-800 mb-2">{t.emptyCartTitle}</h4>
+                      <p className="text-gray-400 font-medium mb-8">{t.emptyCartHint}</p>
+                      <button 
+                        onClick={() => setIsCartOpen(false)}
+                        className="bg-red-600 text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-red-100 active:scale-95 transition-all"
+                      >
+                        {t.all}
+                      </button>
                     </div>
                   ) : (
                     <>
@@ -1103,13 +1243,40 @@ export default function App() {
                                 </button>
                                 <span className="w-8 text-center font-bold text-sm text-gray-900">{item.quantity}</span>
                                 <button 
-                                  onClick={() => handleAddToCart(item)}
+                                  onClick={(e) => handleAddToCart(item, e)}
                                   className="w-8 h-8 flex items-center justify-center text-gray-600 hover:text-red-600 hover:bg-white rounded-full transition-colors"
                                 >
                                   <Plus size={16} strokeWidth={3} />
                                 </button>
                               </div>
                             </motion.div>
+                          ))}
+                        </div>
+                      </section>
+
+                      {/* Upsell Section */}
+                      <section className="mt-8">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="text-base font-black text-gray-900">{t.upsellTitle}</h4>
+                          <span className="text-[0.65rem] text-red-600 font-bold bg-red-50 px-2 py-0.5 rounded-full">{t.upsellDesc}</span>
+                        </div>
+                        <div className="flex overflow-x-auto gap-4 pb-2 no-scrollbar">
+                          {dishes.filter(d => d.category === '酒水类' && !cart.some(ci => ci.id === d.id)).slice(0, 4).map(dish => (
+                            <div key={dish.id} className="shrink-0 w-32 bg-gray-50 rounded-2xl p-2 border border-gray-100">
+                              <div className="w-full aspect-square rounded-xl overflow-hidden mb-2">
+                                <img src={getOptimizedImage(dish.image)} className="w-full h-full object-cover" alt="" />
+                              </div>
+                              <h5 className="text-[0.7rem] font-bold text-gray-800 line-clamp-1 mb-1">{getLocalizedName(dish)}</h5>
+                              <div className="flex items-center justify-between">
+                                <span className="text-[0.7rem] font-black text-red-600">{formatPrice(dish.price, appSettings.currency)}</span>
+                                <button 
+                                  onClick={(e) => handleAddToCart(dish, e)}
+                                  className="w-6 h-6 bg-white rounded-lg flex items-center justify-center text-red-600 shadow-sm border border-gray-100 active:scale-90 transition-all"
+                                >
+                                  <Plus size={14} strokeWidth={3} />
+                                </button>
+                              </div>
+                            </div>
                           ))}
                         </div>
                       </section>
@@ -1142,7 +1309,7 @@ export default function App() {
 
                 {/* Step 4: Checkout Bar */}
                 {cart.length > 0 && (
-                  <div className="p-6 bg-white border-t border-gray-100 shrink-0 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+                  <div className="p-6 bg-white border-t border-gray-100 shrink-0 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-baseline gap-2">
                         <span className="text-sm font-bold text-gray-900">{t.totalAmount}</span>
@@ -1223,57 +1390,114 @@ export default function App() {
               </div>
 
               <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
-                <section>
-                  <h4 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-widest">{t.specSelection}</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    {selectedDishForSpecs.modifiers?.map((mod, idx) => {
-                      const isSelected = selectedModifiers.some(m => m.name === mod.name);
-                      return (
-                        <button 
-                          key={idx}
-                          onClick={() => {
-                            if (isSelected) {
-                              setSelectedModifiers(prev => prev.filter(m => m.name !== mod.name));
-                            } else {
-                              setSelectedModifiers(prev => [...prev, mod]);
-                            }
-                          }}
-                          className={`p-3 rounded-xl border-2 text-left transition-all ${
-                            isSelected 
-                              ? 'border-red-600 bg-red-50 text-red-600' 
-                              : 'border-gray-100 bg-gray-50 text-gray-500'
-                          }`}
-                        >
-                          <div className="text-xs font-black mb-0.5">{getLocalizedModifierName(mod)}</div>
-                          <div className="text-[0.65rem] font-bold opacity-60">+{formatPrice(mod.price, appSettings.currency)}</div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
+                {(() => {
+                  const groupedModifiers: Record<string, DishModifier[]> = {};
+                  selectedDishForSpecs.modifiers?.forEach(mod => {
+                    const groupName = mod.group || t.specSelection;
+                    if (!groupedModifiers[groupName]) groupedModifiers[groupName] = [];
+                    groupedModifiers[groupName].push(mod);
+                  });
+
+                  return Object.entries(groupedModifiers).map(([groupName, mods]) => {
+                    const isRequired = mods.some(m => m.groupRequired);
+                    const hasSelection = mods.some(m => selectedModifiers.some(sm => sm.name === m.name));
+                    
+                    return (
+                      <section key={groupName}>
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-bold text-gray-900 uppercase tracking-widest">{groupName}</h4>
+                          {isRequired && (
+                            <span className={`text-[0.65rem] font-bold px-2 py-0.5 rounded-full ${hasSelection ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                              {hasSelection ? '✓' : t.specRequired}
+                            </span>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          {mods.map((mod, idx) => {
+                            const isSelected = selectedModifiers.some(m => m.name === mod.name);
+                            return (
+                              <button 
+                                key={idx}
+                                onClick={() => {
+                                  if (isSelected) {
+                                    setSelectedModifiers(prev => prev.filter(m => m.name !== mod.name));
+                                  } else {
+                                    // If it's a required group, we might want to limit to one selection if it's like "Spiciness"
+                                    // But for now, let's allow multiple unless we add a 'maxSelection' field.
+                                    // Let's assume groups like "Spiciness" are single-select if they are required.
+                                    if (isRequired) {
+                                      const otherInGroup = mods.map(m => m.name);
+                                      setSelectedModifiers(prev => [...prev.filter(m => !otherInGroup.includes(m.name)), mod]);
+                                    } else {
+                                      setSelectedModifiers(prev => [...prev, mod]);
+                                    }
+                                  }
+                                }}
+                                className={`p-3 rounded-xl border-2 text-left transition-all ${
+                                  isSelected 
+                                    ? 'border-red-600 bg-red-50 text-red-600' 
+                                    : 'border-gray-100 bg-gray-50 text-gray-500'
+                                }`}
+                              >
+                                <div className="text-xs font-black mb-0.5">{getLocalizedModifierName(mod)}</div>
+                                <div className="text-[0.65rem] font-bold opacity-60">+{formatPrice(mod.price, appSettings.currency)}</div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </section>
+                    );
+                  });
+                })()}
               </div>
 
-              <div className="p-6 bg-gray-50 border-t border-gray-100">
+              <div className="p-6 bg-gray-50 border-t border-gray-100 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
                 <div className="flex items-center justify-between mb-4">
                   <div className="text-xs text-gray-400 font-bold">{t.selected}{selectedModifiers.length > 0 ? selectedModifiers.map(m => getLocalizedModifierName(m)).join(', ') : t.none}</div>
                   <div className="text-lg font-black text-red-600">
                     {formatPrice(selectedDishForSpecs.price + selectedModifiers.reduce((acc, m) => acc + m.price, 0), appSettings.currency)}
                   </div>
                 </div>
-                <button 
-                  onClick={() => {
-                    handleAddWithModifiers(selectedDishForSpecs, selectedModifiers);
-                    setSelectedModifiers([]);
-                  }}
-                  className="w-full py-4 bg-red-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-red-200 active:scale-95 transition-all"
-                >
-                  {t.confirm}
-                </button>
+                {(() => {
+                  const requiredGroups = Array.from(new Set(selectedDishForSpecs.modifiers?.filter(m => m.groupRequired).map(m => m.group || t.specSelection) || []));
+                  const selectedGroups = Array.from(new Set(selectedModifiers.filter(m => m.groupRequired).map(m => m.group || t.specSelection)));
+                  const allRequiredMet = requiredGroups.every(rg => selectedGroups.includes(rg));
+
+                  return (
+                    <button 
+                      onClick={(e) => {
+                        if (!allRequiredMet) return;
+                        handleAddWithModifiers(selectedDishForSpecs, selectedModifiers, e);
+                        setSelectedModifiers([]);
+                      }}
+                      disabled={!allRequiredMet}
+                      className={`w-full py-4 rounded-2xl font-black text-lg shadow-xl transition-all ${
+                        allRequiredMet 
+                        ? 'bg-red-600 text-white shadow-red-200 active:scale-95' 
+                        : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
+                      }`}
+                    >
+                      {allRequiredMet ? t.confirm : t.specRequired}
+                    </button>
+                  );
+                })()}
               </div>
             </motion.div>
           </>
         )}
       </AnimatePresence>
+
+      {/* Fly to Cart Animations */}
+      {flyItems.map(item => (
+        <FlyToCart 
+          key={item.id} 
+          start={item.start} 
+          end={{ x: window.innerWidth / 2, y: window.innerHeight - 40 }} 
+          onComplete={() => {
+            setFlyItems(prev => prev.filter(i => i.id !== item.id));
+          }}
+        />
+      ))}
 
       {/* Admin Panel Overlay */}
       <AnimatePresence>
