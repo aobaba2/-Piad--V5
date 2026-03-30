@@ -168,7 +168,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
-  // Audio notification for pending orders
+  // Audio notification for pending orders - removed looping audio to avoid conflict with voice
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
@@ -176,23 +176,6 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const hasPendingOrders = orders.some(o => o.status === 'pending');
-    let audio: HTMLAudioElement | null = null;
-    
-    if (hasPendingOrders) {
-      audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-      audio.loop = true;
-      audio.play().catch(e => console.error('Audio play failed:', e));
-    }
-
-    return () => {
-      if (audio) {
-        audio.pause();
-        audio.currentTime = 0;
-      }
-    };
-  }, [orders]);
   const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
   const [userRole, setUserRole] = useState<'owner' | 'manager' | 'waiter'>('owner');
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
@@ -302,17 +285,38 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         setShowNewOrderAlert(true);
         // Voice reminder
         try {
+          // Play a short notification sound first
+          const ding = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+          ding.volume = 0.5;
+          ding.play().catch(e => console.log('Ding failed', e));
+
           const messages = [
             '叮咚！新的美味订单来啦，请老板快快查看哦~',
             '嘿！主人，又有客人下单啦，加油加油！',
             '哇！一份热腾腾的订单飞过来啦，请查收~'
           ];
           const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+          
+          // Cancel any ongoing speech
+          window.speechSynthesis.cancel();
+          
           const utterance = new SpeechSynthesisUtterance(randomMsg);
           utterance.lang = 'zh-CN';
-          utterance.rate = 1.1; // Slightly faster for a cuter tone
-          utterance.pitch = 1.2; // Slightly higher pitch for a cuter tone
-          window.speechSynthesis.speak(utterance);
+          
+          // Try to find a Chinese voice explicitly
+          const voices = window.speechSynthesis.getVoices();
+          const chineseVoice = voices.find(v => v.lang.includes('zh') || v.lang.includes('CN'));
+          if (chineseVoice) {
+            utterance.voice = chineseVoice;
+          }
+          
+          utterance.rate = 1.0; 
+          utterance.pitch = 1.1;
+          
+          // Some browsers need a small delay after cancel
+          setTimeout(() => {
+            window.speechSynthesis.speak(utterance);
+          }, 200);
         } catch (e) {
           console.log('Voice synthesis failed');
         }
@@ -736,6 +740,19 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           </h1>
         </div>
         <div className="flex items-center space-x-2">
+          <button 
+            onClick={() => {
+              window.speechSynthesis.cancel();
+              const utterance = new SpeechSynthesisUtterance('语音功能已开启，祝您生意兴隆！');
+              utterance.lang = 'zh-CN';
+              window.speechSynthesis.speak(utterance);
+              showToast('语音测试中...', 'info');
+            }}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-red-600"
+            title="测试语音"
+          >
+            <Bell size={18} />
+          </button>
           {view === 'menu' && (
             <button 
               onClick={() => setEditingDish({ name: '', price: 0, category: categories[0]?.name || '', description: '', tags: [] })}
