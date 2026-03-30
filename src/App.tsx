@@ -117,6 +117,8 @@ export default function App() {
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [lastOrderCount, setLastOrderCount] = useState(0);
   const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
+  const [selectedDishForSpecs, setSelectedDishForSpecs] = useState<Dish | null>(null);
+  const [isCartPopping, setIsCartPopping] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -267,6 +269,10 @@ export default function App() {
       }
       return [...prev, { ...dish, quantity: 1 }];
     });
+    
+    // Trigger cart pop animation
+    setIsCartPopping(true);
+    setTimeout(() => setIsCartPopping(false), 300);
   };
 
   const removeFromCart = (id: string) => {
@@ -287,6 +293,13 @@ export default function App() {
 
   const totalAmount = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  const getOptimizedImage = (url: string) => {
+    if (!url.includes('picsum.photos')) return url;
+    // For mobile, we use 200x200 thumbnails, for desktop 600x400
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    return isMobile ? url.replace('600/400', '200/200') : url;
+  };
 
   const handleOrderSubmit = async () => {
     if (!selectedTable || cart.length === 0) return;
@@ -319,6 +332,19 @@ export default function App() {
     }
   };
 
+  const CATEGORY_ICONS: Record<string, string> = {
+    "店长推荐": "🔥",
+    "招牌烤鱼": "🐟",
+    "东北菜": "🥟",
+    "川菜": "🌶️",
+    "肉菜类": "🥩",
+    "素菜类": "🥦",
+    "海鲜类": "🦀",
+    "主食类": "🍚",
+    "酒水类": "🥤",
+    "啤酒菜": "🍺"
+  };
+
   if (isLoading && dishes.length === 0) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-[#f3f4f6]">
@@ -332,134 +358,68 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-[#f3f4f6] text-[#333] font-sans overflow-hidden select-none">
-      {/* Sidebar Navigation - 20% width for 11-inch screens */}
-      <aside className="w-[20vw] min-w-[10rem] bg-[#374151] border-r border-gray-200 flex flex-col items-center py-8 z-10 shadow-xl">
-        <div className="mb-12 flex flex-col items-center">
-          {user ? (
-            <div className="flex flex-col items-center">
-              <img 
-                src={user.photoURL || ''} 
-                alt={user.displayName || ''} 
-                className="w-16 h-16 rounded-full border-2 border-white/20 mb-3"
-                referrerPolicy="no-referrer"
-              />
-              <span className="text-[0.625rem] font-bold text-gray-300 truncate max-w-[15vw]">{user.displayName}</span>
-              <button onClick={handleLogout} className="text-[0.625rem] text-gray-500 hover:text-white mt-2">退出登录</button>
-            </div>
-          ) : (
-            <button 
-              onClick={handleLogin}
-              className="flex flex-col items-center text-gray-400 hover:text-white transition-colors"
-            >
-              <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center text-white mb-3">
-                <LogIn size={32} />
-              </div>
-              <span className="text-[0.75rem] font-bold">立即登录</span>
-            </button>
-          )}
-        </div>
-
-        <nav className="flex-1 w-full space-y-4 overflow-y-auto no-scrollbar px-6">
+    <div className="flex h-screen bg-white text-[#333] font-sans overflow-hidden select-none">
+      {/* Mobile Sidebar Navigation */}
+      <aside className="flex w-20 bg-gray-50 border-r border-gray-100 flex-col py-4 z-10 overflow-y-auto no-scrollbar">
+        <div className="flex flex-col space-y-2">
           <button
             onClick={() => setActiveCategory('店长推荐')}
-            className={`w-full py-4 px-4 rounded-[1rem] flex items-center justify-center transition-all duration-300 text-center relative ${
-              activeCategory === '店长推荐' 
-              ? 'bg-[#f5c342] text-black font-black shadow-lg shadow-[#f5c342]/30 scale-105' 
-              : 'text-gray-400 hover:bg-white/5 hover:text-white'
+            className={`flex flex-col items-center py-4 relative transition-all ${
+              activeCategory === '店长推荐' ? 'bg-white text-green-600' : 'text-gray-500'
             }`}
           >
-            <span className="text-[1rem] font-black tracking-tight">店长推荐</span>
+            {activeCategory === '店长推荐' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-500 rounded-r-full" />}
+            <span className="text-xl mb-1">{CATEGORY_ICONS['店长推荐']}</span>
+            <span className={`text-[0.65rem] font-bold ${activeCategory === '店长推荐' ? 'text-green-600' : 'text-gray-400'}`}>热门推荐</span>
           </button>
           {categories.map(category => (
             <button
               key={category}
               onClick={() => setActiveCategory(category)}
-              className={`w-full py-4 px-4 rounded-[1rem] flex items-center justify-center transition-all duration-300 text-center relative ${
-                activeCategory === category 
-                ? 'bg-[#f5c342] text-black font-black shadow-lg shadow-[#f5c342]/30 scale-105' 
-                : 'text-gray-400 hover:bg-white/5 hover:text-white'
+              className={`flex flex-col items-center py-4 relative transition-all ${
+                activeCategory === category ? 'bg-white text-green-600' : 'text-gray-500'
               }`}
             >
-              <span className="text-[1rem] font-black tracking-tight">{category}</span>
+              {activeCategory === category && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-500 rounded-r-full" />}
+              <span className="text-xl mb-1">{CATEGORY_ICONS[category] || '🍽️'}</span>
+              <span className={`text-[0.65rem] font-bold ${activeCategory === category ? 'text-green-600' : 'text-gray-400'}`}>{category}</span>
             </button>
           ))}
-        </nav>
-
-        <div className="mt-auto space-y-8 w-full px-8 pt-8 border-t border-white/10">
-          {user?.email === 'yujianfei2016@gmail.com' && (
-            <button 
-              onClick={() => setIsAdminOpen(true)}
-              className="w-full flex flex-col items-center text-gray-400 hover:text-white transition-colors group"
-            >
-              <Settings size={24} className="group-hover:rotate-90 transition-transform duration-500" />
-              <span className="text-[0.75rem] mt-2 font-bold">后台管理</span>
-            </button>
-          )}
-          <button className="w-full flex flex-col items-center text-gray-400 hover:text-white transition-colors">
-            <History size={24} />
-            <span className="text-[0.75rem] mt-2 font-bold">历史订单</span>
-          </button>
-          <button className="w-full flex flex-col items-center text-gray-400 hover:text-white transition-colors">
-            <Bell size={24} />
-            <span className="text-[0.75rem] mt-2 font-bold">呼叫服务</span>
-          </button>
         </div>
       </aside>
 
-      {/* Main Content Area - 80% width */}
-      <main 
-        className="w-[80vw] flex flex-col relative overflow-hidden"
-        style={{
-          background: `
-            radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.6) 0%, transparent 40%),
-            radial-gradient(circle at 80% 90%, rgba(156, 163, 175, 0.1) 0%, transparent 50%),
-            radial-gradient(circle at 90% 10%, rgba(209, 213, 219, 0.2) 0%, transparent 40%),
-            #f3f4f6
-          `
-        }}
-      >
-        {/* Header */}
-        <header className="h-20 flex items-center justify-between px-8 z-10">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2 bg-white rounded-full px-4 py-2 border border-gray-200 shadow-sm">
-              <span className="text-xs text-gray-500 font-medium">11号桌</span>
-            </div>
-            <div className="text-xs text-gray-400 italic">“环保健康生活方式，从按需适量点餐”</div>
-          </div>
+      {/* Main Content Area */}
+      <main className="flex-1 flex flex-col relative overflow-hidden bg-white">
+        {/* Mobile Header */}
+        <div className="h-14 flex items-center justify-between px-4 bg-white border-b border-gray-50 z-20">
+          <div className="w-8" />
+          <h1 className="text-lg font-black tracking-tight text-gray-900">PIAD 点餐</h1>
+          <Search size={20} className="text-gray-900" />
+        </div>
 
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center bg-white rounded-full px-4 py-2 border border-gray-200 shadow-sm w-64">
-              <Search size={16} className="text-gray-400 mr-2" />
-              <input 
-                type="text" 
-                placeholder="搜索菜品..." 
-                className="bg-transparent border-none outline-none text-xs w-full text-gray-700 placeholder-gray-400"
-                value={searchQuery || ''}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <button className="w-10 h-10 rounded-full bg-white flex items-center justify-center border border-gray-200 shadow-sm text-gray-500">
-              <LayoutGrid size={18} />
-            </button>
+        {/* Mobile Search Bar */}
+        <div className="px-4 py-3 bg-white z-10">
+          <div className="bg-gray-100 rounded-xl flex items-center px-4 py-2">
+            <Search size={16} className="text-gray-400 mr-2" />
+            <input 
+              type="text" 
+              placeholder="搜索菜品或首字母..." 
+              className="bg-transparent border-none outline-none text-sm w-full text-gray-700 placeholder-gray-400"
+              value={searchQuery || ''}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
-        </header>
+        </div>
 
-        {/* Dish Grid */}
-        <div className="flex-1 overflow-y-auto px-8 pb-24 no-scrollbar">
-          <div className="mb-8 flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-800">
-              {activeCategory} <span className="text-sm text-gray-400 font-normal ml-2">(产品以实物为准)</span>
+        {/* Dish Grid/List */}
+        <div className="flex-1 overflow-y-auto px-4 pb-32 no-scrollbar bg-white">
+          <div className="mb-6 flex items-center justify-between pt-4">
+            <h2 className="text-lg font-black text-gray-900 flex items-center">
+              {activeCategory} {CATEGORY_ICONS[activeCategory]}
             </h2>
           </div>
 
-          <div className={`grid grid-cols-1 md:grid-cols-2 gap-6 ${
-            gridColumns === 3 ? 'lg:grid-cols-3' :
-            gridColumns === 4 ? 'lg:grid-cols-4' :
-            gridColumns === 5 ? 'lg:grid-cols-5' :
-            gridColumns === 6 ? 'lg:grid-cols-6' :
-            'lg:grid-cols-3'
-          }`}>
+          <div className="grid grid-cols-1 gap-4">
             <AnimatePresence mode="popLayout">
               {filteredDishes.map(dish => (
                 <motion.div
@@ -468,47 +428,41 @@ export default function App() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-white rounded-[2rem] overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 border border-gray-100 group relative"
+                  className="bg-white overflow-hidden transition-all duration-500 group relative flex"
                 >
-                  <div className="relative h-[25vh] overflow-hidden">
+                  <div className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl">
                     <img 
-                      src={dish.image} 
+                      src={getOptimizedImage(dish.image)} 
                       alt={dish.name} 
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                       referrerPolicy="no-referrer"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-40" />
                     
                     {dish.isRecommended && (
-                      <div className="absolute top-4 left-4 bg-red-600 text-white text-[0.625rem] font-bold px-2 py-1 rounded-md shadow-lg z-10">
+                      <div className="absolute top-2 left-2 bg-red-600 text-white text-[0.5rem] font-bold px-1.5 py-0.5 rounded-md shadow-lg z-10">
                         店长推荐
                       </div>
                     )}
-
-                    <div className="absolute top-4 right-4 bg-black/40 backdrop-blur-md text-white text-[0.625rem] px-2 py-1 rounded-md border border-white/10">
-                      10-15秒
-                    </div>
                   </div>
                   
-                  <div className="p-5">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-bold text-lg text-gray-800">{dish.name}</h3>
-                    </div>
-                    <p className="text-xs text-gray-500 mb-4 line-clamp-1">{dish.description}</p>
-                    
-                    <div className="flex items-center justify-between mt-4">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xl font-bold text-red-600">{formatPrice(dish.price)}</span>
+                  <div className="flex-1 p-3 flex flex-col justify-between">
+                    <div>
+                      <div className="flex items-start justify-between mb-1">
+                        <h3 className="text-base font-black text-gray-900 group-hover:text-red-600 transition-colors line-clamp-1">
+                          {dish.name}
+                        </h3>
                       </div>
-                      <div className="flex items-center space-x-3">
-                        {cart.find(item => item.id === dish.id) && (
-                          <span className="text-sm font-bold text-red-600">
-                            {cart.find(item => item.id === dish.id)?.quantity}
-                          </span>
-                        )}
+                    </div>
+
+                    <div className="flex items-center justify-between mt-auto">
+                      <div className="flex flex-col">
+                        <span className="text-red-600 text-lg font-black">{formatPrice(dish.price)}</span>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
                         <button 
                           onClick={() => addToCart(dish)}
-                          className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-200 active:scale-90 transition-all"
+                          className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center text-white shadow-lg shadow-green-100 hover:scale-110 active:scale-95 transition-all"
                         >
                           <Plus size={20} />
                         </button>
@@ -522,71 +476,65 @@ export default function App() {
         </div>
 
         {/* Bottom Cart Bar - Enhanced */}
-        <div className="absolute bottom-8 right-12 left-[22vw] z-20">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90vw] z-30">
           <motion.div 
             initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            className="bg-[#1f2937]/90 backdrop-blur-2xl border border-white/10 rounded-[2rem] h-[6rem] flex items-center justify-between px-10 shadow-[0_20px_50px_rgba(0,0,0,0.3)]"
+            animate={{ 
+              y: 0, 
+              opacity: 1,
+              scale: isCartPopping ? 1.05 : 1
+            }}
+            transition={{
+              scale: { duration: 0.1 }
+            }}
+            className="bg-[#1f2937]/95 backdrop-blur-xl border border-white/10 rounded-full h-16 flex items-center justify-between px-2 shadow-[0_20px_50px_rgba(0,0,0,0.3)] active:scale-95 transition-transform"
           >
-            <div className="flex items-center space-x-10">
-              <div 
-                onClick={() => setIsCartOpen(!isCartOpen)}
-                className="relative flex items-center space-x-6 cursor-pointer group"
-              >
-                <div className="relative">
-                  <div className="w-16 h-16 rounded-[1rem] bg-[#f5c342] flex items-center justify-center text-black shadow-lg shadow-[#f5c342]/20 group-hover:scale-110 transition-transform duration-300">
-                    <ShoppingCart size={32} />
-                  </div>
-                  {totalItems > 0 && (
-                    <motion.div 
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-3 -right-3 w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center text-[0.875rem] font-black border-4 border-[#1f2937] shadow-lg"
-                    >
-                      {totalItems}
-                    </motion.div>
-                  )}
+            <div 
+              onClick={() => setIsCartOpen(!isCartOpen)}
+              className="flex items-center flex-1 cursor-pointer pl-4"
+            >
+              <div className="relative mr-4">
+                <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white shadow-lg shadow-green-500/20">
+                  <ShoppingCart size={20} />
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-[0.75rem] text-gray-400 font-black uppercase tracking-widest">应付合计</span>
-                  <div className="text-[2rem] font-black text-white tracking-tighter">
-                    {formatPrice(totalAmount)}
-                  </div>
+                {totalItems > 0 && (
+                  <motion.div 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center text-[0.65rem] font-black border-2 border-[#1f2937]"
+                  >
+                    {totalItems}
+                  </motion.div>
+                )}
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-baseline space-x-1">
+                  <span className="text-white text-lg font-black">{formatPrice(totalAmount)}</span>
                 </div>
+                <span className="text-[0.6rem] text-gray-400 font-bold">已点 {totalItems} 件</span>
               </div>
             </div>
 
-            <div className="flex items-center space-x-6">
-              {totalItems > 0 && (
-                <button 
-                  onClick={clearCart}
-                  className="p-4 text-gray-500 hover:text-red-500 transition-colors bg-white/5 rounded-[1rem]"
-                  title="清空购物车"
-                >
-                  <Trash2 size={24} />
-                </button>
+            <button 
+              onClick={handleOrderSubmit}
+              disabled={totalItems === 0 || isOrdering}
+              className={`h-12 px-8 rounded-full font-black text-sm transition-all flex items-center space-x-2 ${
+                totalItems > 0
+                ? 'bg-green-500 text-white shadow-lg shadow-green-900/20 active:scale-95' 
+                : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              {isOrdering ? (
+                <motion.div 
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                  className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                />
+              ) : (
+                <CheckCircle2 size={18} />
               )}
-              <button 
-                onClick={handleOrderSubmit}
-                disabled={totalItems === 0 || !selectedTable || isOrdering}
-                className={`px-12 py-5 rounded-[1.5rem] font-black text-[1.125rem] transition-all flex items-center space-x-3 ${
-                  totalItems > 0 && selectedTable
-                  ? 'bg-[#e63928] text-white shadow-xl shadow-red-900/40 active:scale-95 hover:bg-red-500' 
-                  : 'bg-white/10 text-gray-500 cursor-not-allowed'
-                }`}
-              >
-                {isOrdering ? (
-                  <motion.div 
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                    className="w-6 h-6 border-2 border-white border-t-transparent rounded-full"
-                  />
-                ) : (
-                  <UtensilsCrossed size={24} />
-                )}
-                <span>{isOrdering ? '提交中...' : '立即下单'}</span>
-              </button>
-            </div>
+              <span>{isOrdering ? '提交中...' : '去结算'}</span>
+            </button>
           </motion.div>
         </div>
 
@@ -602,12 +550,14 @@ export default function App() {
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm z-30"
               />
               <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[40vw] min-w-[31.25rem] h-[85vh] bg-white rounded-[3rem] z-40 flex flex-col shadow-[0_2rem_4rem_rgba(0,0,0,0.4)] border border-gray-100 overflow-hidden"
+                className="fixed bottom-0 left-0 right-0 w-full h-[75vh] bg-white rounded-t-[2rem] z-40 flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.2)] border-t border-gray-100 overflow-hidden"
               >
+                {/* Drag Handle for Mobile */}
+                <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mt-3 mb-1" />
                 <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
                   <div className="flex items-center space-x-4">
                     <div className="w-12 h-12 rounded-2xl bg-red-50 flex items-center justify-center text-red-600">
@@ -680,7 +630,7 @@ export default function App() {
                               className="flex flex-col bg-white border border-gray-100 p-4 rounded-[2rem] shadow-sm hover:shadow-md transition-all group"
                             >
                               <div className="relative aspect-square mb-4 overflow-hidden rounded-2xl">
-                                <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                <img src={getOptimizedImage(item.image)} alt={item.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                                 <div className="absolute top-2 right-2 w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center text-xs font-black border-2 border-white shadow-lg">
                                   {item.quantity}
                                 </div>
@@ -753,6 +703,96 @@ export default function App() {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Specification Selector Bottom Sheet */}
+      <AnimatePresence>
+        {selectedDishForSpecs && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedDishForSpecs(null)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
+            />
+            <motion.div 
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed bottom-0 left-0 right-0 h-[65vh] bg-white rounded-t-[2rem] z-[70] flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.2)] overflow-hidden"
+            >
+              <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mt-3 mb-1" />
+              
+              <div className="px-6 py-4 flex items-center justify-between border-b border-gray-50">
+                <div className="flex items-center space-x-4">
+                  <img src={selectedDishForSpecs.image} className="w-16 h-16 rounded-xl object-cover" alt="" />
+                  <div>
+                    <h3 className="text-lg font-black text-gray-900">{selectedDishForSpecs.name}</h3>
+                    <p className="text-red-600 font-black">{formatPrice(selectedDishForSpecs.price)}</p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setSelectedDishForSpecs(null)}
+                  className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                <section>
+                  <h4 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-widest">辣度选择</h4>
+                  <div className="flex flex-wrap gap-3">
+                    {['不辣', '微辣', '中辣', '特辣'].map(level => (
+                      <button 
+                        key={level}
+                        className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all border-2 ${
+                          level === '微辣' 
+                          ? 'bg-red-50 border-red-500 text-red-600' 
+                          : 'bg-white border-gray-100 text-gray-500'
+                        }`}
+                      >
+                        {level}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                <section>
+                  <h4 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-widest">份量</h4>
+                  <div className="flex flex-wrap gap-3">
+                    {['标准份', '大份 (+₩10,000)'].map(size => (
+                      <button 
+                        key={size}
+                        className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all border-2 ${
+                          size === '标准份' 
+                          ? 'bg-red-50 border-red-500 text-red-600' 
+                          : 'bg-white border-gray-100 text-gray-500'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              </div>
+
+              <div className="p-6 bg-gray-50 border-t border-gray-100">
+                <button 
+                  onClick={() => {
+                    addToCart(selectedDishForSpecs);
+                    setSelectedDishForSpecs(null);
+                  }}
+                  className="w-full py-4 bg-red-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-red-200 active:scale-95 transition-all"
+                >
+                  确认加入购物车
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Admin Panel Overlay */}
       <AnimatePresence>

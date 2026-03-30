@@ -366,142 +366,80 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   return (
     <div className="fixed inset-0 bg-[#f3f4f6] z-[100] flex flex-col overflow-hidden text-gray-800">
       {/* Admin Header */}
-      <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-8 shadow-sm">
-        <div className="flex items-center space-x-4">
+      <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-4 shadow-sm flex-shrink-0">
+        <div className="flex items-center space-x-3">
           <button 
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
+            className="p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
           >
-            <ArrowLeft size={24} />
+            <ArrowLeft size={20} />
           </button>
-          <h1 className="text-xl font-bold flex items-center">
-            <Settings className="mr-2 text-red-600" size={24} />
-            后台管理系统
+          <h1 className="text-base font-black flex items-center">
+            <Settings className="mr-2 text-red-600" size={18} />
+            后台管理
           </h1>
         </div>
-        <div className="flex items-center space-x-4">
-          {view === 'menu' && (
-            <button 
-              onClick={() => setEditingDish({ name: '', price: 0, category: categories[0]?.name || '', description: '', tags: [] })}
-              className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold flex items-center shadow-md shadow-red-100 active:scale-95 transition-all"
-            >
-              <Plus size={20} className="mr-1" />
-              新增菜品
-            </button>
-          )}
-        </div>
+        {view === 'menu' && (
+          <button 
+            onClick={() => setEditingDish({ name: '', price: 0, category: categories[0]?.name || '', description: '', tags: [] })}
+            className="bg-red-600 text-white px-3 py-1.5 rounded-lg font-bold text-xs flex items-center shadow-md shadow-red-100 active:scale-95 transition-all"
+          >
+            <Plus size={14} className="mr-1" />
+            新增
+          </button>
+        )}
       </header>
 
-      <div className="flex-1 flex overflow-hidden">
-        {/* Category Management Sidebar */}
-        <aside className="w-64 bg-white border-r border-gray-200 p-6 flex flex-col">
-          <div className="flex-1 overflow-y-auto no-scrollbar">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="font-bold text-gray-500 uppercase tracking-wider text-xs">内容管理</h2>
-            </div>
-            
-            <div className="space-y-1 mb-8">
-              <button 
-                onClick={() => setView('orders')}
-                className={`w-full flex items-center px-4 py-3 rounded-xl text-sm font-bold transition-all ${view === 'orders' ? 'bg-red-600 text-white shadow-lg shadow-red-100' : 'text-gray-600 hover:bg-gray-50'}`}
-              >
-                <ClipboardList size={18} className="mr-3" />
-                订单管理
-                {orders.filter(o => o.status === 'pending').length > 0 && (
-                  <span className="ml-auto bg-white text-red-600 w-5 h-5 rounded-full flex items-center justify-center text-[0.625rem] font-black">
-                    {orders.filter(o => o.status === 'pending').length}
-                  </span>
-                )}
-              </button>
-              <button 
-                onClick={() => {
-                  setView('menu');
-                  setActiveCategory(null);
-                }}
-                className={`w-full flex items-center px-4 py-3 rounded-xl text-sm font-bold transition-all ${view === 'menu' && !activeCategory ? 'bg-red-600 text-white shadow-lg shadow-red-100' : 'text-gray-600 hover:bg-gray-50'}`}
-              >
-                <ImageIcon size={18} className="mr-3" />
-                全部菜品
-              </button>
-              <button 
-                onClick={() => setView('settings')}
-                className={`w-full flex items-center px-4 py-3 rounded-xl text-sm font-bold transition-all ${view === 'settings' ? 'bg-red-600 text-white shadow-lg shadow-red-100' : 'text-gray-600 hover:bg-gray-50'}`}
-              >
-                <Settings size={18} className="mr-3" />
-                系统设置
-              </button>
-            </div>
-
-            {view === 'menu' && (
-              <>
-                <div className="flex items-center justify-between mb-4 mt-8 px-2">
-                  <h2 className="font-bold text-gray-400 uppercase tracking-wider text-[0.625rem]">菜品分类</h2>
-                  <button onClick={() => setEditingCategory({ id: '', name: '', order: categories.length })} className="text-red-600 hover:bg-red-50 p-1 rounded-lg transition-colors">
-                    <Plus size={16} />
-                  </button>
-                </div>
-
-                <Reorder.Group axis="y" values={categories} onReorder={handleReorder} className="space-y-1">
-                  {categories.map(cat => (
-                    <Reorder.Item 
-                      key={cat.id} 
-                      value={cat}
-                      className={`group flex items-center justify-between p-3 rounded-xl transition-all border cursor-grab active:cursor-grabbing ${activeCategory === cat.name ? 'border-red-100 bg-red-50 text-red-600 font-bold' : 'border-transparent text-gray-600 hover:bg-gray-50'}`}
-                      onClick={() => {
-                        setView('menu');
-                        setActiveCategory(cat.name);
-                      }}
-                    >
-                      <div className="flex items-center overflow-hidden">
-                        <GripVertical size={14} className="text-gray-300 mr-2 flex-shrink-0" />
-                        <span className="text-sm truncate">{cat.name}</span>
-                      </div>
-                      <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-all">
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingCategory(cat);
-                          }}
-                          className="text-gray-400 hover:text-blue-600 p-1"
-                        >
-                          <Edit2 size={12} />
-                        </button>
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setItemToDelete({ id: cat.id, name: cat.name, type: 'category' });
-                          }}
-                          className="text-gray-400 hover:text-red-600 p-1"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </Reorder.Item>
-                  ))}
-                </Reorder.Group>
-              </>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Mobile Admin Navigation - Horizontal Scroll */}
+        <nav className="bg-white border-b border-gray-100 px-4 py-2 flex items-center space-x-2 overflow-x-auto no-scrollbar flex-shrink-0">
+          <button 
+            onClick={() => setView('orders')}
+            className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'orders' ? 'bg-red-600 text-white shadow-lg shadow-red-100' : 'text-gray-600 bg-gray-50'}`}
+          >
+            <ClipboardList size={14} className="mr-2" />
+            订单管理
+            {orders.filter(o => o.status === 'pending').length > 0 && (
+              <span className="ml-2 bg-white text-red-600 w-4 h-4 rounded-full flex items-center justify-center text-[0.5rem] font-black">
+                {orders.filter(o => o.status === 'pending').length}
+              </span>
             )}
-          </div>
-        </aside>
+          </button>
+          <button 
+            onClick={() => {
+              setView('menu');
+              setActiveCategory(null);
+            }}
+            className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'menu' && !activeCategory ? 'bg-red-600 text-white shadow-lg shadow-red-100' : 'text-gray-600 bg-gray-50'}`}
+          >
+            <ImageIcon size={14} className="mr-2" />
+            全部菜品
+          </button>
+          <button 
+            onClick={() => setView('settings')}
+            className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'settings' ? 'bg-red-600 text-white shadow-lg shadow-red-100' : 'text-gray-600 bg-gray-50'}`}
+          >
+            <Settings size={14} className="mr-2" />
+            系统设置
+          </button>
+        </nav>
 
         {/* Content Area */}
-        <main className="flex-1 p-8 overflow-y-auto bg-gray-50/50">
+        <main className="flex-1 p-4 overflow-y-auto bg-gray-50/50 no-scrollbar">
           {view === 'orders' ? (
-            <div className="max-w-6xl mx-auto">
-              <div className="mb-8 flex items-center justify-between">
+            <div className="w-full">
+              <div className="mb-6 flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-800">实时订单管理</h2>
-                  <p className="text-gray-400 text-sm mt-1">第一时间掌握每桌客人的点餐动态</p>
+                  <h2 className="text-lg font-black text-gray-800">实时订单</h2>
+                  <p className="text-gray-400 text-[0.65rem] mt-0.5">第一时间掌握每桌客人的点餐动态</p>
                 </div>
-                <div className="flex items-center space-x-3">
-                  <div className="flex items-center space-x-2 bg-white px-4 py-2 rounded-xl border border-gray-100 shadow-sm">
-                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                    <span className="text-sm font-bold text-gray-600">实时监听中</span>
-                  </div>
+                <div className="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm">
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                  <span className="text-[0.65rem] font-bold text-gray-600">监听中</span>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 gap-4">
                 <AnimatePresence mode="popLayout">
                   {orders.map(order => (
                     <motion.div 
@@ -623,37 +561,61 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
               )}
             </div>
           ) : view === 'menu' ? (
-            <>
-              <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="w-full">
+              <div className="mb-6 flex flex-col gap-4">
                 <div>
-                  <div className="flex items-center space-x-4">
-                    <h2 className="text-2xl font-bold text-gray-800">
+                  <div className="flex items-center space-x-3">
+                    <h2 className="text-lg font-black text-gray-800">
                       {activeCategory || '全部菜品'} 
-                      <span className="text-sm font-normal text-gray-400 ml-2">({filteredDishes.length} 个项目)</span>
+                      <span className="text-[0.65rem] font-normal text-gray-400 ml-1">({filteredDishes.length})</span>
                     </h2>
                     {activeCategory && (
                       <button 
                         onClick={handleResetDishOrder}
-                        className="flex items-center space-x-1 text-xs font-bold text-gray-400 hover:text-red-600 transition-colors bg-white px-3 py-1.5 rounded-lg border border-gray-100 shadow-sm"
-                        title="按名称恢复默认排序"
+                        className="flex items-center space-x-1 text-[0.65rem] font-bold text-gray-400 hover:text-red-600 transition-colors bg-white px-2 py-1 rounded-lg border border-gray-100 shadow-sm"
                       >
-                        <RotateCcw size={14} />
-                        <span>恢复默认排序</span>
+                        <RotateCcw size={12} />
+                        <span>重置排序</span>
                       </button>
                     )}
                   </div>
-                  <p className="text-gray-400 text-sm mt-1">管理您的菜单项和分类 {activeCategory && '（可拖动菜品卡片调整顺序）'}</p>
+                  <p className="text-gray-400 text-[0.65rem] mt-0.5">管理菜单项和分类</p>
                 </div>
                 
-                <div className="relative flex-1 max-w-md">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <div className="relative w-full">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                   <input 
                     type="text"
                     placeholder="搜索菜品名称..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-2xl outline-none focus:border-red-600 focus:ring-2 focus:ring-red-600/5 transition-all shadow-sm"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl outline-none focus:border-red-600 text-sm shadow-sm"
                   />
+                </div>
+
+                {/* Category Quick Switch for Menu View */}
+                <div className="flex items-center space-x-2 overflow-x-auto no-scrollbar py-1">
+                  <button 
+                    onClick={() => setActiveCategory(null)}
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-[0.65rem] font-bold transition-all ${!activeCategory ? 'bg-red-600 text-white' : 'bg-white text-gray-500 border border-gray-100'}`}
+                  >
+                    全部
+                  </button>
+                  {categories.map(cat => (
+                    <button 
+                      key={cat.id}
+                      onClick={() => setActiveCategory(cat.name)}
+                      className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-[0.65rem] font-bold transition-all ${activeCategory === cat.name ? 'bg-red-600 text-white' : 'bg-white text-gray-500 border border-gray-100'}`}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                  <button 
+                    onClick={() => setEditingCategory({ id: '', name: '', order: categories.length })}
+                    className="flex-shrink-0 w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400"
+                  >
+                    <Plus size={14} />
+                  </button>
                 </div>
               </div>
 
@@ -661,66 +623,57 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                 axis="y" 
                 values={filteredDishes} 
                 onReorder={handleReorderDishes}
-                className="space-y-4 max-w-4xl"
+                className="space-y-3"
               >
                 {filteredDishes.map(dish => (
                   <Reorder.Item 
                     key={dish.id} 
                     value={dish}
-                    className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group hover:shadow-md transition-all cursor-grab active:cursor-grabbing flex items-center p-4"
+                    className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group active:scale-[0.98] transition-all cursor-grab active:cursor-grabbing flex items-center p-3"
                   >
-                    <div className="flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden mr-6">
+                    <div className="flex-shrink-0 w-16 aspect-square rounded-xl overflow-hidden mr-4">
                       <img src={dish.image} alt={dish.name} className="w-full h-full object-cover" />
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <div className="flex items-center space-x-2">
-                          <h3 className="font-bold text-gray-800 text-lg truncate">{dish.name}</h3>
+                      <div className="flex items-center justify-between mb-0.5">
+                        <div className="flex items-center space-x-1.5">
+                          <h3 className="font-black text-gray-800 text-sm truncate">{dish.name}</h3>
                           {dish.isRecommended && (
-                            <span className="bg-red-600 text-white text-[0.625rem] font-bold px-2 py-0.5 rounded-md">推荐</span>
+                            <span className="bg-red-600 text-white text-[0.5rem] font-bold px-1.5 py-0.5 rounded-md">推荐</span>
                           )}
                         </div>
-                        <span className="text-red-600 font-bold text-lg">{formatPrice(dish.price)}</span>
+                        <span className="text-red-600 font-black text-sm">{formatPrice(dish.price)}</span>
                       </div>
                       
-                      <p className="text-gray-400 text-sm line-clamp-1 mb-2">{dish.description || '暂无描述'}</p>
-                      
                       <div className="flex items-center justify-between">
-                        <div className="flex flex-wrap gap-1.5">
-                          <span className="text-[0.625rem] bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">
+                        <div className="flex flex-wrap gap-1">
+                          <span className="text-[0.5rem] bg-gray-50 text-gray-400 px-1.5 py-0.5 rounded-md font-bold">
                             {dish.category}
                           </span>
-                          {dish.tags?.map(tag => (
-                            <span key={tag} className="text-[0.625rem] border border-gray-200 text-gray-400 px-2 py-0.5 rounded-full">
-                              {tag}
-                            </span>
-                          ))}
                         </div>
                         
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-1">
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
                               setEditingDish(dish);
                             }}
-                            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                            title="编辑"
+                            className="p-1.5 text-gray-400 hover:text-blue-600"
                           >
-                            <Edit2 size={18} />
+                            <Edit2 size={14} />
                           </button>
                           <button 
                             onClick={(e) => {
                               e.stopPropagation();
                               setItemToDelete({ id: dish.id, name: dish.name, type: 'dish' });
                             }}
-                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                            title="删除"
+                            className="p-1.5 text-gray-400 hover:text-red-600"
                           >
-                            <Trash2 size={18} />
+                            <Trash2 size={14} />
                           </button>
-                          <div className="p-2 text-gray-300">
-                            <GripVertical size={20} />
+                          <div className="p-1.5 text-gray-200">
+                            <GripVertical size={16} />
                           </div>
                         </div>
                       </div>
@@ -728,27 +681,27 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                   </Reorder.Item>
                 ))}
               </Reorder.Group>
-            </>
+            </div>
           ) : (
-            <div className="max-w-2xl mx-auto">
-              <div className="mb-8">
-                <h2 className="text-2xl font-bold text-gray-800">系统设置</h2>
-                <p className="text-gray-400 text-sm mt-1">配置应用全局显示参数</p>
+            <div className="w-full">
+              <div className="mb-6">
+                <h2 className="text-lg font-black text-gray-800">系统设置</h2>
+                <p className="text-gray-400 text-[0.65rem] mt-0.5">配置应用全局显示参数</p>
               </div>
 
-              <div className="bg-white rounded-[2rem] p-8 border border-gray-100 shadow-sm space-y-8">
+              <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col space-y-3">
                     <div>
-                      <h3 className="font-bold text-gray-800">首页菜品显示列数</h3>
-                      <p className="text-sm text-gray-400">设置首页每个分类中菜品卡片的每行显示数量</p>
+                      <h3 className="font-black text-sm text-gray-800">首页菜品显示列数</h3>
+                      <p className="text-[0.65rem] text-gray-400">设置首页每个分类中菜品卡片的每行显示数量</p>
                     </div>
-                    <div className="flex items-center bg-gray-50 p-1.5 rounded-2xl border border-gray-100">
-                      {[3, 4, 5, 6].map(num => (
+                    <div className="flex items-center bg-gray-50 p-1 rounded-xl border border-gray-100 w-fit">
+                      {[1, 2, 3].map(num => (
                         <button
                           key={num}
                           onClick={() => handleUpdateGridColumns(num)}
-                          className={`w-12 h-12 rounded-xl font-black text-lg transition-all ${gridColumns === num ? 'bg-red-600 text-white shadow-lg shadow-red-100 scale-105' : 'text-gray-400 hover:text-gray-600'}`}
+                          className={`w-10 h-10 rounded-lg font-black text-sm transition-all ${gridColumns === num ? 'bg-red-600 text-white shadow-lg shadow-red-100 scale-105' : 'text-gray-400'}`}
                         >
                           {num}
                         </button>
@@ -756,10 +709,10 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                     </div>
                   </div>
                   
-                  <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 flex items-start space-x-3">
-                    <div className="w-5 h-5 rounded-full bg-blue-500 text-white flex items-center justify-center text-[0.625rem] font-bold mt-0.5">i</div>
-                    <p className="text-xs text-blue-700 leading-relaxed">
-                      提示：增加列数会使菜品卡片变小，适合在大屏幕设备上显示更多内容。减少列数则会使卡片更大，更醒目。
+                  <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 flex items-start space-x-2">
+                    <div className="w-4 h-4 rounded-full bg-blue-500 text-white flex items-center justify-center text-[0.5rem] font-bold mt-0.5">i</div>
+                    <p className="text-[0.65rem] text-blue-700 leading-relaxed">
+                      提示：手机端建议使用 1 或 2 列显示。
                     </p>
                   </div>
                 </div>
@@ -781,23 +734,23 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
               className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             />
             <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white w-full max-w-xl rounded-[2rem] overflow-hidden shadow-2xl relative z-10"
+              initial={{ y: "100%", opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: "100%", opacity: 0 }}
+              className="bg-white w-full h-full rounded-t-[2rem] overflow-hidden shadow-2xl relative z-10 flex flex-col"
             >
-              <form onSubmit={handleSaveDish} className="p-8">
-                <div className="flex justify-between items-center mb-8">
-                  <h2 className="text-2xl font-bold">{editingDish.id ? '编辑菜品' : '新增菜品'}</h2>
+              <form onSubmit={handleSaveDish} className="p-6 flex-1 overflow-y-auto no-scrollbar">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-black">{editingDish.id ? '编辑菜品' : '新增菜品'}</h2>
                   <button type="button" onClick={() => setEditingDish(null)} className="text-gray-400 hover:text-gray-600">
                     <X size={24} />
                   </button>
                 </div>
 
-                <div className="space-y-6">
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label className="text-xs font-bold text-gray-400 uppercase">菜品名称</label>
+                <div className="space-y-5">
+                  <div className="grid grid-cols-1 gap-5">
+                    <div className="space-y-1.5">
+                      <label className="text-[0.65rem] font-black text-gray-400 uppercase tracking-widest">菜品名称</label>
                       <input 
                         required
                         type="text" 
@@ -844,7 +797,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                         className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-red-600 transition-colors"
                         placeholder="https://..."
                       />
-                      <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden border border-gray-200">
+                      <div className="w-12 aspect-square bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden border border-gray-200">
                         {editingDish.image ? <img src={editingDish.image} className="w-full h-full object-cover" /> : <ImageIcon className="text-gray-300" />}
                       </div>
                     </div>
