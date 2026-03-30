@@ -392,11 +392,20 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       try {
         await signInWithEmailAndPassword(auth, email, adminPassword);
       } catch (err: any) {
-        // If user not found and it's the requested super admin, try to create it
-        if (err.code === 'auth/user-not-found' && normalizedUsername === 'aoba2026') {
-          const { createUserWithEmailAndPassword } = await import('firebase/auth');
-          await createUserWithEmailAndPassword(auth, email, adminPassword);
-          showToast('管理员账号已自动创建并登录', 'success');
+        // If user not found OR invalid credential (new Firebase security behavior)
+        // and it's the requested super admin, try to create it
+        if ((err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') && normalizedUsername === 'aoba2026') {
+          try {
+            const { createUserWithEmailAndPassword } = await import('firebase/auth');
+            await createUserWithEmailAndPassword(auth, email, adminPassword);
+            showToast('管理员账号已初始化并登录', 'success');
+          } catch (createErr: any) {
+            // If creation fails because it already exists, then it's a real wrong password error
+            if (createErr.code === 'auth/email-already-in-use') {
+              throw err; // Throw the original sign-in error (wrong password)
+            }
+            throw createErr;
+          }
         } else {
           throw err;
         }
