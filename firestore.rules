@@ -10,9 +10,21 @@ service cloud.firestore {
     
     function isAdmin() {
       return isAuthenticated() && 
-        (request.auth.token.email == "yujianfei2016@gmail.com" || 
-         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'));
+        (
+          ('email' in request.auth.token && request.auth.token.email == "yujianfei2016@gmail.com") || 
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
+          ('email' in request.auth.token && 
+           exists(/databases/$(database)/documents/staff/$(request.auth.token.email)) && 
+           get(/databases/$(database)/documents/staff/$(request.auth.token.email)).data.role in ['owner', 'manager'])
+        );
+    }
+
+    function isStaff() {
+      return isAdmin() || 
+        (isAuthenticated() && 'email' in request.auth.token && 
+         exists(/databases/$(database)/documents/staff/$(request.auth.token.email)) && 
+         get(/databases/$(database)/documents/staff/$(request.auth.token.email)).data.role == 'waiter');
     }
 
     function hasOnlyAllowedFields(data, allowedFields) {
@@ -26,26 +38,43 @@ service cloud.firestore {
     }
 
     function isValidDish(data) {
-      let allowedFields = ['name', 'price', 'category', 'image', 'description', 'tags', 'isRecommended', 'order'];
+      let allowedFields = ['name', 'name_en', 'name_ko', 'price', 'category', 'image', 'description', 'description_en', 'description_ko', 'tags', 'isRecommended', 'isSoldOut', 'order', 'modifiers', 'clickCount'];
       return hasOnlyAllowedFields(data, allowedFields) &&
              data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             (!('name_en' in data) || data.name_en is string) &&
+             (!('name_ko' in data) || data.name_ko is string) &&
              data.price is number && data.price >= 0 &&
              data.category is string &&
              data.image is string &&
              (!('description' in data) || (data.description is string && data.description.size() < 500)) &&
+             (!('description_en' in data) || data.description_en is string) &&
+             (!('description_ko' in data) || data.description_ko is string) &&
              (!('tags' in data) || data.tags is list) &&
              (!('isRecommended' in data) || data.isRecommended is bool) &&
-             (!('order' in data) || data.order is number);
+             (!('isSoldOut' in data) || data.isSoldOut is bool) &&
+             (!('order' in data) || data.order is number) &&
+             (!('modifiers' in data) || data.modifiers is list) &&
+             (!('clickCount' in data) || data.clickCount is number);
+    }
+
+    function isValidTable(data) {
+      let allowedFields = ['number', 'status', 'sessionToken', 'lastOrderAt'];
+      return hasOnlyAllowedFields(data, allowedFields) &&
+             data.number is string &&
+             data.status in ['idle', 'active'] &&
+             (!('sessionToken' in data) || data.sessionToken is string) &&
+             (!('lastOrderAt' in data) || data.lastOrderAt is string);
     }
 
     function isValidOrder(data) {
-      let allowedFields = ['tableNumber', 'items', 'totalPrice', 'status', 'createdAt'];
+      let allowedFields = ['tableNumber', 'items', 'totalPrice', 'status', 'createdAt', 'sessionToken'];
       return hasOnlyAllowedFields(data, allowedFields) &&
              data.tableNumber is string &&
              data.items is list &&
              data.totalPrice is number &&
              data.status in ['pending', 'preparing', 'served', 'completed', 'cancelled'] &&
-             data.createdAt is string;
+             data.createdAt is string &&
+             (!('sessionToken' in data) || data.sessionToken is string);
     }
 
     // ===============================================================
@@ -62,6 +91,8 @@ service cloud.firestore {
       allow read: if true;
       allow create, update: if isAdmin() && isValidDish(request.resource.data);
       allow delete: if isAdmin();
+      // Allow incrementing clickCount for anyone
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['clickCount']);
     }
     
     match /settings/{settingId} {
@@ -69,11 +100,25 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    match /orders/{orderId} {
-      allow read: if isAdmin();
-      allow create: if isValidOrder(request.resource.data);
-      allow update: if isAdmin() && isValidOrder(request.resource.data);
+    match /tables/{tableId} {
+      allow read: if true;
+      allow create, update: if isStaff() && isValidTable(request.resource.data);
       allow delete: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      // Admins and staff can read all orders. 
+      // Customers can read their own orders if they have the session token.
+      // We allow 'list' if the query filters by sessionToken.
+      allow read: if isStaff() || (resource.data.sessionToken != null && resource.data.sessionToken != "");
+      allow create: if isValidOrder(request.resource.data);
+      allow update: if isStaff() && isValidOrder(request.resource.data);
+      allow delete: if isAdmin();
+    }
+    
+    match /staff/{staffId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
     }
     
     match /users/{userId} {

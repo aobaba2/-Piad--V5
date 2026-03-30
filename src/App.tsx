@@ -23,7 +23,7 @@ import {
   Trash2,
   CheckCircle2
 } from 'lucide-react';
-import { Dish, CATEGORIES, DISHES, formatPrice } from './constants';
+import { Dish, DishModifier, CATEGORIES, DISHES, formatPrice, Settings as AppSettings, Table } from './constants';
 import AdminPanel from './AdminPanel';
 import { db, auth } from './firebase';
 import { 
@@ -31,11 +31,13 @@ import {
   onSnapshot, 
   query, 
   orderBy, 
+  where,
   getDocs, 
   addDoc, 
   setDoc, 
   doc,
-  getDocFromServer
+  getDocFromServer,
+  updateDoc
 } from 'firebase/firestore';
 import { 
   signInWithPopup, 
@@ -47,6 +49,7 @@ import {
 
 interface CartItem extends Dish {
   quantity: number;
+  modifiers?: DishModifier[];
 }
 
 enum OperationType {
@@ -113,11 +116,20 @@ export default function App() {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [gridColumns, setGridColumns] = useState(3);
+  const [appSettings, setAppSettings] = useState<AppSettings>({
+    currency: 'KRW',
+    language: 'zh',
+    restaurantName: 'PIAD 点餐'
+  });
+  const [sessionInfo, setSessionInfo] = useState<{ table: string, token: string } | null>(null);
+  const [isSessionValid, setIsSessionValid] = useState<boolean | null>(null);
+  const [notification, setNotification] = useState<{ message: string, type: 'info' | 'success' } | null>(null);
   const [isOrdering, setIsOrdering] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [lastOrderCount, setLastOrderCount] = useState(0);
   const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
   const [selectedDishForSpecs, setSelectedDishForSpecs] = useState<Dish | null>(null);
+  const [selectedModifiers, setSelectedModifiers] = useState<DishModifier[]>([]);
   const [isCartPopping, setIsCartPopping] = useState(false);
 
   useEffect(() => {
@@ -129,23 +141,57 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    // Parse URL parameters for QR code session
+    const params = new URLSearchParams(window.location.search);
+    const table = params.get('table');
+    const token = params.get('token');
+    
+    if (table && token) {
+      setSessionInfo({ table, token });
+      setSelectedTable(Number(table));
+    }
+
+    if (params.get('admin') === 'true') {
+      setIsAdminOpen(true);
+    }
+  }, []);
+
+  useEffect(() => {
     if (!isAuthReady) return;
 
-    const testConnection = async () => {
-      try {
-        await getDocFromServer(doc(db, 'test', 'connection'));
-      } catch (error) {
-        if(error instanceof Error && error.message.includes('the client is offline')) {
-          console.error("Please check your Firebase configuration. ");
+    // Validate Session
+    if (sessionInfo) {
+      const validateSession = async () => {
+        try {
+          const q = query(collection(db, 'tables'), orderBy('number'));
+          const snapshot = await getDocs(q);
+          const tableDoc = snapshot.docs.find(d => d.data().number === sessionInfo.table);
+          
+          if (tableDoc && tableDoc.data().sessionToken === sessionInfo.token) {
+            setIsSessionValid(true);
+            // Update table status to active
+            await updateDoc(doc(db, 'tables', tableDoc.id), { status: 'active' });
+          } else {
+            setIsSessionValid(false);
+          }
+        } catch (error) {
+          console.error('Session validation failed:', error);
+          setIsSessionValid(false);
         }
-      }
-    };
-    testConnection();
+      };
+      validateSession();
+    }
 
     // Fetch settings
     const unsubscribeSettings = onSnapshot(doc(db, 'settings', 'global'), (snapshot) => {
       if (snapshot.exists()) {
-        setGridColumns(snapshot.data().gridColumns || 3);
+        const data = snapshot.data();
+        setAppSettings({
+          currency: data.currency || 'KRW',
+          language: data.language || 'zh',
+          restaurantName: data.restaurantName || 'PIAD 点餐'
+        });
+        setGridColumns(data.gridColumns || 3);
       }
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'settings/global');
@@ -162,7 +208,6 @@ export default function App() {
       const cats = catsData.map(c => c.name);
       
       if (cats.length === 0) {
-        // Seed categories if empty
         seedInitialData();
       } else {
         setCategories(cats);
@@ -187,21 +232,34 @@ export default function App() {
       handleFirestoreError(error, OperationType.GET, 'dishes');
     });
 
-    // Listen for new orders (Admin only)
+    // Listen for order status changes (Simulated Push Notification)
     let unsubscribeOrders = () => {};
-    if (user?.email === 'yujianfei2016@gmail.com') {
-      const qOrders = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+    if (sessionInfo) {
+      const qOrders = query(
+        collection(db, 'orders'), 
+        where('tableNumber', '==', sessionInfo.table),
+        where('sessionToken', '==', sessionInfo.token)
+      );
       unsubscribeOrders = onSnapshot(qOrders, (snapshot) => {
-        const ordersData = snapshot.docs;
-        if (ordersData.length > lastOrderCount && lastOrderCount !== 0) {
-          setShowNewOrderAlert(true);
-          try {
-            const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-            audio.play();
-          } catch (e) {}
-        }
-        setLastOrderCount(ordersData.length);
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'modified') {
+            const order = change.doc.data();
+            if (order.status === 'served') {
+              setNotification({
+                message: `您的订单已出餐，请慢用！`,
+                type: 'success'
+              });
+              setTimeout(() => setNotification(null), 5000);
+            }
+          }
+        });
+      }, (error) => {
+        handleFirestoreError(error, OperationType.GET, 'orders');
       });
+    } else if (user?.email === 'yujianfei2016@gmail.com') {
+      // Admins can listen to all orders (optional, but AdminPanel does this anyway)
+      // For App.tsx, we only care about session-based notifications.
+      // So we don't need to listen to all orders here if not in a session.
     }
 
     return () => {
@@ -210,7 +268,25 @@ export default function App() {
       unsubscribeDishes();
       unsubscribeOrders();
     };
-  }, [isAuthReady, user, lastOrderCount]);
+  }, [isAuthReady, user, lastOrderCount, sessionInfo]);
+
+  const getLocalizedName = (dish: Dish) => {
+    if (appSettings.language === 'en' && dish.name_en) return dish.name_en;
+    if (appSettings.language === 'ko' && dish.name_ko) return dish.name_ko;
+    return dish.name;
+  };
+
+  const getLocalizedDesc = (dish: Dish) => {
+    if (appSettings.language === 'en' && dish.description_en) return dish.description_en;
+    if (appSettings.language === 'ko' && dish.description_ko) return dish.description_ko;
+    return dish.description;
+  };
+
+  const getLocalizedModifierName = (mod: DishModifier) => {
+    if (appSettings.language === 'en' && mod.name_en) return mod.name_en;
+    if (appSettings.language === 'ko' && mod.name_ko) return mod.name_ko;
+    return mod.name;
+  };
 
   const seedInitialData = async () => {
     if (user?.email !== 'yujianfei2016@gmail.com') return;
@@ -261,27 +337,78 @@ export default function App() {
     });
   }, [activeCategory, searchQuery, dishes]);
 
-  const addToCart = (dish: Dish) => {
+  const handleAddToCart = async (dish: Dish) => {
+    if (dish.isSoldOut) return;
+
+    // Track click for analytics
+    try {
+      await updateDoc(doc(db, 'dishes', dish.id), {
+        clickCount: (dish.clickCount || 0) + 1
+      });
+    } catch (error) {
+      console.error('Failed to track click:', error);
+    }
+
+    if (dish.modifiers && dish.modifiers.length > 0) {
+      setSelectedDishForSpecs(dish);
+      return;
+    }
+
     setCart(prev => {
-      const existing = prev.find(item => item.id === dish.id);
+      const existing = prev.find(item => item.id === dish.id && !item.modifiers);
       if (existing) {
-        return prev.map(item => item.id === dish.id ? { ...item, quantity: item.quantity + 1 } : item);
+        return prev.map(item => 
+          (item.id === dish.id && !item.modifiers) ? { ...item, quantity: item.quantity + 1 } : item
+        );
       }
       return [...prev, { ...dish, quantity: 1 }];
     });
-    
-    // Trigger cart pop animation
     setIsCartPopping(true);
     setTimeout(() => setIsCartPopping(false), 300);
   };
 
-  const removeFromCart = (id: string) => {
+  const handleAddWithModifiers = (dish: Dish, selectedModifiers: DishModifier[]) => {
     setCart(prev => {
-      const existing = prev.find(item => item.id === id);
-      if (existing && existing.quantity > 1) {
-        return prev.map(item => item.id === id ? { ...item, quantity: item.quantity - 1 } : item);
+      const modifierIds = selectedModifiers.map(m => m.name).sort().join('|');
+      const existing = prev.find(item => 
+        item.id === dish.id && 
+        item.modifiers?.map(m => m.name).sort().join('|') === modifierIds
+      );
+
+      if (existing) {
+        return prev.map(item => 
+          (item.id === dish.id && item.modifiers?.map(m => m.name).sort().join('|') === modifierIds)
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
       }
-      return prev.filter(item => item.id !== id);
+
+      const priceWithModifiers = dish.price + selectedModifiers.reduce((acc, m) => acc + m.price, 0);
+      return [...prev, { ...dish, price: priceWithModifiers, quantity: 1, modifiers: selectedModifiers }];
+    });
+    setSelectedDishForSpecs(null);
+    setIsCartPopping(true);
+    setTimeout(() => setIsCartPopping(false), 300);
+  };
+
+  const removeFromCart = (itemToRemove: CartItem) => {
+    setCart(prev => {
+      const modifierIds = itemToRemove.modifiers?.map(m => m.name).sort().join('|') || '';
+      const existing = prev.find(item => 
+        item.id === itemToRemove.id && 
+        (item.modifiers?.map(m => m.name).sort().join('|') || '') === modifierIds
+      );
+
+      if (existing && existing.quantity > 1) {
+        return prev.map(item => 
+          (item.id === itemToRemove.id && (item.modifiers?.map(m => m.name).sort().join('|') || '') === modifierIds)
+            ? { ...item, quantity: item.quantity - 1 } 
+            : item
+        );
+      }
+      return prev.filter(item => 
+        !(item.id === itemToRemove.id && (item.modifiers?.map(m => m.name).sort().join('|') || '') === modifierIds)
+      );
     });
   };
 
@@ -311,11 +438,13 @@ export default function App() {
         dishId: item.id,
         name: item.name,
         price: item.price,
-        quantity: item.quantity
+        quantity: item.quantity,
+        modifiers: item.modifiers || []
       })),
       totalPrice: totalAmount,
       status: 'pending',
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
+      sessionToken: sessionInfo?.token || ''
     };
 
     try {
@@ -357,8 +486,42 @@ export default function App() {
     );
   }
 
+  if (isSessionValid === false) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-6">
+          <X size={40} />
+        </div>
+        <h1 className="text-2xl font-black text-gray-800 mb-2">二维码已失效</h1>
+        <p className="text-gray-500 text-sm mb-8">该桌位的用餐会话已结束或二维码已过期，请重新扫码或联系服务员。</p>
+        <button 
+          onClick={() => window.location.reload()}
+          className="bg-red-600 text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-red-100 active:scale-95 transition-all"
+        >
+          重新加载
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex h-screen bg-white text-[#333] font-sans overflow-hidden select-none">
+    <div className="flex h-screen bg-white text-[#333] font-sans overflow-hidden select-none relative">
+      {/* Notification Toast */}
+      <AnimatePresence>
+        {notification && (
+          <motion.div 
+            initial={{ y: -100, opacity: 0 }}
+            animate={{ y: 20, opacity: 1 }}
+            exit={{ y: -100, opacity: 0 }}
+            className="fixed top-0 left-4 right-4 z-[200] flex justify-center pointer-events-none"
+          >
+            <div className={`px-6 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 pointer-events-auto ${notification.type === 'success' ? 'bg-green-600 text-white' : 'bg-blue-600 text-white'}`}>
+              <Bell size={18} className="animate-bounce" />
+              <span className="text-sm font-bold">{notification.message}</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Mobile Sidebar Navigation */}
       <aside className="flex w-20 bg-gray-50 border-r border-gray-100 flex-col py-4 z-10 overflow-y-auto no-scrollbar">
         <div className="flex flex-col space-y-2">
@@ -392,9 +555,35 @@ export default function App() {
       <main className="flex-1 flex flex-col relative overflow-hidden bg-white">
         {/* Mobile Header */}
         <div className="h-14 flex items-center justify-between px-4 bg-white border-b border-gray-50 z-20">
-          <div className="w-8" />
-          <h1 className="text-lg font-black tracking-tight text-gray-900">PIAD 点餐</h1>
-          <Search size={20} className="text-gray-900" />
+          <div className="w-8">
+            {user?.email === 'yujianfei2016@gmail.com' && (
+              <button 
+                onClick={() => setIsAdminOpen(true)}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"
+              >
+                <Settings size={20} />
+              </button>
+            )}
+          </div>
+          <h1 className="text-lg font-black tracking-tight text-gray-900">{appSettings.restaurantName}</h1>
+          <div className="flex items-center space-x-2">
+            {!user ? (
+              <button 
+                onClick={handleLogin}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"
+              >
+                <LogIn size={20} />
+              </button>
+            ) : (
+              <button 
+                onClick={handleLogout}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"
+              >
+                <LogOut size={20} />
+              </button>
+            )}
+            <Search size={20} className="text-gray-900" />
+          </div>
         </div>
 
         {/* Mobile Search Bar */}
@@ -428,8 +617,15 @@ export default function App() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-white overflow-hidden transition-all duration-500 group relative flex"
+                  className={`bg-white overflow-hidden transition-all duration-500 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : ''}`}
                 >
+                  {dish.isSoldOut && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/40 backdrop-blur-[1px]">
+                      <div className="bg-gray-800 text-white px-3 py-1 rounded-full text-[0.65rem] font-black uppercase tracking-widest shadow-xl">
+                        已估清 Sold Out
+                      </div>
+                    </div>
+                  )}
                   <div className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl">
                     <img 
                       src={getOptimizedImage(dish.image)} 
@@ -449,22 +645,32 @@ export default function App() {
                     <div>
                       <div className="flex items-start justify-between mb-1">
                         <h3 className="text-base font-black text-gray-900 group-hover:text-red-600 transition-colors line-clamp-1">
-                          {dish.name}
+                          {getLocalizedName(dish)}
                         </h3>
                       </div>
+                      <p className="text-[0.65rem] text-gray-400 line-clamp-1">{getLocalizedDesc(dish) || '精选食材，匠心制作'}</p>
                     </div>
 
                     <div className="flex items-center justify-between mt-auto">
                       <div className="flex flex-col">
-                        <span className="text-red-600 text-lg font-black">{formatPrice(dish.price)}</span>
+                        <span className="text-red-600 text-lg font-black">{formatPrice(dish.price, appSettings.currency)}</span>
                       </div>
                       
                       <div className="flex items-center space-x-2">
                         <button 
-                          onClick={() => addToCart(dish)}
-                          className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center text-white shadow-lg shadow-green-100 hover:scale-110 active:scale-95 transition-all"
+                          onClick={() => handleAddToCart(dish)}
+                          disabled={dish.isSoldOut}
+                          className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 ${
+                            dish.isSoldOut 
+                              ? 'bg-gray-100 text-gray-300' 
+                              : 'bg-green-500 text-white shadow-green-100'
+                          }`}
                         >
-                          <Plus size={20} />
+                          {dish.modifiers && dish.modifiers.length > 0 ? (
+                            <span className="text-[0.65rem] font-black">选</span>
+                          ) : (
+                            <Plus size={20} />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -509,7 +715,7 @@ export default function App() {
               </div>
               <div className="flex flex-col">
                 <div className="flex items-baseline space-x-1">
-                  <span className="text-white text-lg font-black">{formatPrice(totalAmount)}</span>
+                  <span className="text-white text-lg font-black">{formatPrice(totalAmount, appSettings.currency)}</span>
                 </div>
                 <span className="text-[0.6rem] text-gray-400 font-bold">已点 {totalItems} 件</span>
               </div>
@@ -636,19 +842,29 @@ export default function App() {
                                 </div>
                               </div>
                               <div className="flex-1 flex flex-col">
-                                <h4 className="font-black text-base text-gray-900 mb-1 line-clamp-1">{item.name}</h4>
-                                <div className="text-red-600 text-sm font-black mb-4">{formatPrice(item.price)}</div>
+                                <h4 className="font-black text-base text-gray-900 mb-1 line-clamp-1">{getLocalizedName(item)}</h4>
+                                <div className="text-red-600 text-sm font-black mb-4">{formatPrice(item.price, appSettings.currency)}</div>
+                                
+                                {item.modifiers && item.modifiers.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mb-2">
+                                    {item.modifiers.map((m, idx) => (
+                                      <span key={idx} className="text-[0.5rem] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-md font-bold">
+                                        {getLocalizedModifierName(m)}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
                                 
                                 <div className="mt-auto flex items-center justify-between bg-gray-50 p-1.5 rounded-2xl">
                                   <button 
-                                    onClick={() => removeFromCart(item.id)} 
+                                    onClick={() => removeFromCart(item)} 
                                     className="w-8 h-8 rounded-xl bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-red-600 hover:border-red-100 transition-all shadow-sm active:scale-90"
                                   >
                                     <Minus size={14} />
                                   </button>
                                   <span className="font-black text-base text-gray-900">{item.quantity}</span>
                                   <button 
-                                    onClick={() => addToCart(item)} 
+                                    onClick={() => handleAddToCart(item)} 
                                     className="w-8 h-8 rounded-xl bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-100 hover:bg-red-500 transition-all active:scale-90"
                                   >
                                     <Plus size={14} />
@@ -668,7 +884,7 @@ export default function App() {
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex flex-col">
                         <span className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-1">应付总额</span>
-                        <span className="text-3xl font-black text-red-600">{formatPrice(totalAmount)}</span>
+                        <span className="text-3xl font-black text-red-600">{formatPrice(totalAmount, appSettings.currency)}</span>
                       </div>
                       {selectedTable && (
                         <div className="bg-red-50 px-4 py-2 rounded-2xl border border-red-100">
@@ -712,7 +928,10 @@ export default function App() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setSelectedDishForSpecs(null)}
+              onClick={() => {
+                setSelectedDishForSpecs(null);
+                setSelectedModifiers([]);
+              }}
               className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
             />
             <motion.div 
@@ -720,7 +939,7 @@ export default function App() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 h-[65vh] bg-white rounded-t-[2rem] z-[70] flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.2)] overflow-hidden"
+              className="fixed bottom-0 left-0 right-0 h-[70vh] bg-white rounded-t-[2rem] z-[70] flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.2)] overflow-hidden"
             >
               <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mt-3 mb-1" />
               
@@ -728,61 +947,63 @@ export default function App() {
                 <div className="flex items-center space-x-4">
                   <img src={selectedDishForSpecs.image} className="w-16 h-16 rounded-xl object-cover" alt="" />
                   <div>
-                    <h3 className="text-lg font-black text-gray-900">{selectedDishForSpecs.name}</h3>
-                    <p className="text-red-600 font-black">{formatPrice(selectedDishForSpecs.price)}</p>
+                    <h3 className="text-lg font-black text-gray-900">{getLocalizedName(selectedDishForSpecs)}</h3>
+                    <p className="text-red-600 font-black">{formatPrice(selectedDishForSpecs.price, appSettings.currency)}</p>
                   </div>
                 </div>
                 <button 
-                  onClick={() => setSelectedDishForSpecs(null)}
+                  onClick={() => {
+                    setSelectedDishForSpecs(null);
+                    setSelectedModifiers([]);
+                  }}
                   className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400"
                 >
                   <X size={18} />
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
                 <section>
-                  <h4 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-widest">辣度选择</h4>
-                  <div className="flex flex-wrap gap-3">
-                    {['不辣', '微辣', '中辣', '特辣'].map(level => (
-                      <button 
-                        key={level}
-                        className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all border-2 ${
-                          level === '微辣' 
-                          ? 'bg-red-50 border-red-500 text-red-600' 
-                          : 'bg-white border-gray-100 text-gray-500'
-                        }`}
-                      >
-                        {level}
-                      </button>
-                    ))}
-                  </div>
-                </section>
-
-                <section>
-                  <h4 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-widest">份量</h4>
-                  <div className="flex flex-wrap gap-3">
-                    {['标准份', '大份 (+₩10,000)'].map(size => (
-                      <button 
-                        key={size}
-                        className={`px-6 py-2.5 rounded-xl font-bold text-sm transition-all border-2 ${
-                          size === '标准份' 
-                          ? 'bg-red-50 border-red-500 text-red-600' 
-                          : 'bg-white border-gray-100 text-gray-500'
-                        }`}
-                      >
-                        {size}
-                      </button>
-                    ))}
+                  <h4 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-widest">选择规格/加料</h4>
+                  <div className="grid grid-cols-2 gap-3">
+                    {selectedDishForSpecs.modifiers?.map((mod, idx) => {
+                      const isSelected = selectedModifiers.some(m => m.name === mod.name);
+                      return (
+                        <button 
+                          key={idx}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedModifiers(prev => prev.filter(m => m.name !== mod.name));
+                            } else {
+                              setSelectedModifiers(prev => [...prev, mod]);
+                            }
+                          }}
+                          className={`p-3 rounded-xl border-2 text-left transition-all ${
+                            isSelected 
+                              ? 'border-red-600 bg-red-50 text-red-600' 
+                              : 'border-gray-100 bg-gray-50 text-gray-500'
+                          }`}
+                        >
+                          <div className="text-xs font-black mb-0.5">{getLocalizedModifierName(mod)}</div>
+                          <div className="text-[0.65rem] font-bold opacity-60">+{formatPrice(mod.price, appSettings.currency)}</div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </section>
               </div>
 
               <div className="p-6 bg-gray-50 border-t border-gray-100">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-xs text-gray-400 font-bold">已选：{selectedModifiers.length > 0 ? selectedModifiers.map(m => getLocalizedModifierName(m)).join(', ') : '无'}</div>
+                  <div className="text-lg font-black text-red-600">
+                    {formatPrice(selectedDishForSpecs.price + selectedModifiers.reduce((acc, m) => acc + m.price, 0), appSettings.currency)}
+                  </div>
+                </div>
                 <button 
                   onClick={() => {
-                    addToCart(selectedDishForSpecs);
-                    setSelectedDishForSpecs(null);
+                    handleAddWithModifiers(selectedDishForSpecs, selectedModifiers);
+                    setSelectedModifiers([]);
                   }}
                   className="w-full py-4 bg-red-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-red-200 active:scale-95 transition-all"
                 >

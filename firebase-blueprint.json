@@ -19,7 +19,15 @@
       "properties": {
         "name": {
           "type": "string",
-          "description": "Dish name"
+          "description": "Dish name (default/Chinese)"
+        },
+        "name_en": {
+          "type": "string",
+          "description": "Dish name in English"
+        },
+        "name_ko": {
+          "type": "string",
+          "description": "Dish name in Korean"
         },
         "price": {
           "type": "number",
@@ -37,6 +45,14 @@
           "type": "string",
           "description": "Dish description"
         },
+        "description_en": {
+          "type": "string",
+          "description": "Dish description in English"
+        },
+        "description_ko": {
+          "type": "string",
+          "description": "Dish description in Korean"
+        },
         "tags": {
           "type": "array",
           "items": { "type": "string" },
@@ -45,6 +61,10 @@
         "isRecommended": {
           "type": "boolean",
           "description": "Whether the dish is recommended"
+        },
+        "isSoldOut": {
+          "type": "boolean",
+          "description": "Whether the dish is sold out"
         },
         "order": {
           "type": "number",
@@ -58,11 +78,33 @@
       "description": "Global application settings",
       "type": "object",
       "properties": {
-        "gridColumns": {
-          "type": "number",
-          "description": "Number of columns for dish cards on the homepage"
+        "currency": {
+          "type": "string",
+          "enum": ["KRW", "CNY", "USD"],
+          "description": "Current currency"
+        },
+        "language": {
+          "type": "string",
+          "enum": ["zh", "en", "ko"],
+          "description": "Default language"
+        },
+        "restaurantName": {
+          "type": "string",
+          "description": "Name of the restaurant"
         }
       }
+    },
+    "Table": {
+      "title": "Table",
+      "description": "Restaurant tables and QR sessions",
+      "type": "object",
+      "properties": {
+        "number": { "type": "string" },
+        "status": { "type": "string", "enum": ["idle", "active"] },
+        "sessionToken": { "type": "string" },
+        "lastOrderAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["number", "status"]
     },
     "Order": {
       "title": "Order",
@@ -84,9 +126,20 @@
         },
         "totalPrice": { "type": "number" },
         "status": { "type": "string", "enum": ["pending", "preparing", "served", "completed", "cancelled"] },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "sessionToken": { "type": "string" }
       },
       "required": ["tableNumber", "items", "totalPrice", "status", "createdAt"]
+    },
+    "Staff": {
+      "title": "Staff",
+      "description": "Restaurant staff members",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["owner", "manager", "waiter"] }
+      },
+      "required": ["email", "role"]
     }
   },
   "firestore": {
@@ -105,6 +158,10 @@
     "/orders": {
       "schema": "Order",
       "description": "Collection of customer orders"
+    },
+    "/staff": {
+      "schema": "Staff",
+      "description": "Collection of staff members"
     }
   }
 }

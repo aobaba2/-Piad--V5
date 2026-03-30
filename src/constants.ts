@@ -1,17 +1,51 @@
+export interface DishModifier {
+  name: string;
+  name_en?: string;
+  name_ko?: string;
+  price: number;
+}
+
 export interface Dish {
   id: string;
   name: string;
+  name_en?: string;
+  name_ko?: string;
   price: number;
   image: string;
   category: string;
   description?: string;
+  description_en?: string;
+  description_ko?: string;
   tags?: string[];
   isRecommended?: boolean;
   order?: number;
+  isSoldOut?: boolean;
+  clickCount?: number;
+  modifiers?: DishModifier[];
 }
 
-export const formatPrice = (price: number) => {
-  return `₩${Math.round(price).toLocaleString()}`;
+export interface Settings {
+  currency: 'KRW' | 'CNY' | 'USD';
+  language: 'zh' | 'en' | 'ko';
+  restaurantName: string;
+}
+
+export interface Table {
+  id: string;
+  number: string;
+  status: 'idle' | 'active';
+  sessionToken?: string;
+  lastOrderAt?: string;
+}
+
+export const formatPrice = (price: number, currency: string = 'KRW') => {
+  const symbols: Record<string, string> = {
+    'KRW': '₩',
+    'CNY': '¥',
+    'USD': '$'
+  };
+  const symbol = symbols[currency] || '₩';
+  return `${symbol}${Math.round(price).toLocaleString()}`;
 };
 
 export const CATEGORIES = [
