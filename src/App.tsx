@@ -107,20 +107,44 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 // New Components for Enhanced UI/UX
 const DishImage = ({ src, alt }: { src: string; alt: string }) => {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isInView, setIsInView] = useState(false);
+  const imgRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '100px' }
+    );
+
+    if (imgRef.current) {
+      observer.observe(imgRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="relative w-full h-full">
+    <div ref={imgRef} className="relative w-full h-full bg-piad-primary/5">
       {!isLoaded && (
-        <div className="absolute inset-0 bg-gray-100 animate-pulse flex items-center justify-center">
-          <UtensilsCrossed className="text-gray-200" size={24} />
+        <div className="absolute inset-0 bg-piad-primary/5 animate-pulse flex items-center justify-center">
+          <UtensilsCrossed className="text-piad-subtext/20" size={24} />
         </div>
       )}
-      <img
-        src={src}
-        alt={alt}
-        onLoad={() => setIsLoaded(true)}
-        className={`w-full h-full object-cover transition-all duration-700 ${isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}
-        referrerPolicy="no-referrer"
-      />
+      {isInView && (
+        <img
+          src={src}
+          alt={alt}
+          onLoad={() => setIsLoaded(true)}
+          className={`w-full h-full object-cover transition-all duration-700 ${isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}
+          referrerPolicy="no-referrer"
+          loading="lazy"
+        />
+      )}
     </div>
   );
 };
@@ -1464,7 +1488,7 @@ export default function App() {
                               className="flex items-center bg-piad-card p-3 rounded-2xl shadow-piad border border-piad-primary/5"
                             >
                               <div className="w-16 h-16 shrink-0 rounded-xl overflow-hidden mr-4 bg-piad-primary/5">
-                                <img src={getOptimizedImage(item.image)} alt={item.name} className="w-full h-full object-cover" />
+                                <DishImage src={getOptimizedImage(item.image)} alt={item.name} />
                               </div>
                               <div className="flex-1 min-w-0 mr-4">
                                 <h4 className="font-bold text-base text-piad-text truncate">{getLocalizedName(item)}</h4>
@@ -1509,7 +1533,7 @@ export default function App() {
                           {dishes.filter(d => d.category === '酒水类' && !cart.some(ci => ci.id === d.id)).slice(0, 4).map(dish => (
                             <div key={dish.id} className="shrink-0 w-32 bg-piad-primary/5 rounded-2xl p-2 border border-piad-primary/5">
                               <div className="w-full aspect-square rounded-xl overflow-hidden mb-2">
-                                <img src={getOptimizedImage(dish.image)} className="w-full h-full object-cover" alt="" />
+                                <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
                               </div>
                               <h5 className="text-[0.7rem] font-bold text-piad-text line-clamp-1 mb-1">{getLocalizedName(dish)}</h5>
                               <div className="flex items-center justify-between">
@@ -1617,7 +1641,9 @@ export default function App() {
               
               <div className="px-6 py-4 flex items-center justify-between border-b border-piad-primary/5">
                 <div className="flex items-center space-x-4">
-                  <img src={selectedDishForSpecs.image} className="w-16 h-16 rounded-xl object-cover bg-piad-primary/5" alt="" />
+                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-piad-primary/5">
+                    <DishImage src={selectedDishForSpecs.image} alt={selectedDishForSpecs.name} />
+                  </div>
                   <div>
                     <h3 className="text-lg font-black text-piad-text">{getLocalizedName(selectedDishForSpecs)}</h3>
                     <p className="text-piad-primary font-black">{formatPrice(selectedDishForSpecs.price, appSettings.currency)}</p>

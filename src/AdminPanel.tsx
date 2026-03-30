@@ -154,7 +154,11 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     currency: 'KRW',
     language: 'zh',
     restaurantName: 'PIAD 点餐',
-    searchPlaceholders: []
+    searchPlaceholders: [],
+    coverHistory: '',
+    coverAddress: '',
+    coverPhone: '',
+    coverImage: ''
   });
   const [localRestaurantName, setLocalRestaurantName] = useState('PIAD 点餐');
   const lastOrderCountRef = useRef(0);
@@ -231,7 +235,11 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           language: data.language || 'zh',
           restaurantName: data.restaurantName || 'PIAD 点餐',
           theme: data.theme || 'default',
-          searchPlaceholders: data.searchPlaceholders || []
+          searchPlaceholders: data.searchPlaceholders || [],
+          coverHistory: data.coverHistory || '',
+          coverAddress: data.coverAddress || '',
+          coverPhone: data.coverPhone || '',
+          coverImage: data.coverImage || ''
         };
         setAppSettings(newSettings);
         setLocalRestaurantName(data.restaurantName || 'PIAD 点餐');
@@ -1680,6 +1688,86 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                     >
                       <Plus size={14} className="mr-1" /> 添加新字幕
                     </button>
+                  </div>
+                </div>
+
+                {/* Cover Page Management */}
+                <div className="space-y-4 border-t border-piad-primary/5 pt-4">
+                  <h3 className="font-black text-sm text-piad-text flex items-center">
+                    <ImageIcon size={16} className="mr-2 text-piad-primary" />
+                    品牌首页/封面设置
+                  </h3>
+                  
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="text-[0.65rem] font-black text-piad-subtext uppercase tracking-wider">封面背景图 URL</label>
+                      <input
+                        type="text"
+                        value={appSettings.coverImage || ''}
+                        placeholder="https://images.unsplash.com/..."
+                        onChange={(e) => setAppSettings(prev => ({ ...prev, coverImage: e.target.value }))}
+                        onBlur={async () => {
+                          try {
+                            await setDoc(doc(db, 'settings', 'global'), { coverImage: appSettings.coverImage || '' }, { merge: true });
+                          } catch (error) {
+                            handleFirestoreError(error, OperationType.UPDATE, 'settings/global');
+                          }
+                        }}
+                        className="w-full bg-piad-primary/5 border border-piad-primary/10 rounded-xl px-4 py-2 text-sm outline-none text-piad-text"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[0.65rem] font-black text-piad-subtext uppercase tracking-wider">品牌故事/特色 (约100字)</label>
+                      <textarea
+                        value={appSettings.coverHistory || ''}
+                        onChange={(e) => setAppSettings(prev => ({ ...prev, coverHistory: e.target.value }))}
+                        onBlur={async () => {
+                          try {
+                            await setDoc(doc(db, 'settings', 'global'), { coverHistory: appSettings.coverHistory || '' }, { merge: true });
+                          } catch (error) {
+                            handleFirestoreError(error, OperationType.UPDATE, 'settings/global');
+                          }
+                        }}
+                        rows={4}
+                        className="w-full bg-piad-primary/5 border border-piad-primary/10 rounded-xl px-4 py-2 text-sm outline-none text-piad-text resize-none"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[0.65rem] font-black text-piad-subtext uppercase tracking-wider">店铺地址</label>
+                        <input
+                          type="text"
+                          value={appSettings.coverAddress || ''}
+                          onChange={(e) => setAppSettings(prev => ({ ...prev, coverAddress: e.target.value }))}
+                          onBlur={async () => {
+                            try {
+                              await setDoc(doc(db, 'settings', 'global'), { coverAddress: appSettings.coverAddress || '' }, { merge: true });
+                            } catch (error) {
+                              handleFirestoreError(error, OperationType.UPDATE, 'settings/global');
+                            }
+                          }}
+                          className="w-full bg-piad-primary/5 border border-piad-primary/10 rounded-xl px-4 py-2 text-sm outline-none text-piad-text"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[0.65rem] font-black text-piad-subtext uppercase tracking-wider">联系电话</label>
+                        <input
+                          type="text"
+                          value={appSettings.coverPhone || ''}
+                          onChange={(e) => setAppSettings(prev => ({ ...prev, coverPhone: e.target.value }))}
+                          onBlur={async () => {
+                            try {
+                              await setDoc(doc(db, 'settings', 'global'), { coverPhone: appSettings.coverPhone || '' }, { merge: true });
+                            } catch (error) {
+                              handleFirestoreError(error, OperationType.UPDATE, 'settings/global');
+                            }
+                          }}
+                          className="w-full bg-piad-primary/5 border border-piad-primary/10 rounded-xl px-4 py-2 text-sm outline-none text-piad-text"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 

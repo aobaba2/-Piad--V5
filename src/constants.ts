@@ -33,6 +33,10 @@ export interface Settings {
   restaurantName: string;
   theme?: 'default' | 'luxury' | 'nature' | 'sweet';
   searchPlaceholders?: string[];
+  coverHistory?: string;
+  coverAddress?: string;
+  coverPhone?: string;
+  coverImage?: string;
 }
 
 export interface Table {
