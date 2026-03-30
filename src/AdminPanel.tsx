@@ -605,57 +605,45 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                     <motion.div 
                       key={order.id} 
                       layout
-                      initial={{ opacity: 0, y: 20 }}
+                      initial={{ opacity: 0, y: 10 }}
                       animate={{ 
                         opacity: 1, 
                         y: 0,
-                        boxShadow: order.status === 'pending' ? '0 0 15px rgba(239, 68, 68, 0.3)' : '0 1px 3px rgba(0,0,0,0.1)'
                       }}
-                      className={`bg-white rounded-2xl p-4 border transition-all ${order.status === 'pending' ? 'border-red-200 animate-pulse-subtle' : 'border-gray-100'}`}
+                      className={`bg-white rounded-3xl p-6 border transition-all flex items-center justify-between ${
+                        order.status === 'pending' ? 'border-red-200 shadow-sm' : 'border-gray-100'
+                      }`}
                     >
-                      <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center space-x-3">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-lg ${
-                            order.status === 'pending' 
-                              ? 'bg-red-600 text-white shadow-lg shadow-red-200 animate-pulse' 
-                              : 'bg-gray-100 text-gray-600'
-                          }`}>
-                            {order.tableNumber}
-                          </div>
-                          <div>
-                            <h3 className="font-black text-sm text-gray-800">桌号 {order.tableNumber}</h3>
-                            <p className="text-[0.65rem] text-gray-400">{new Date(order.createdAt).toLocaleTimeString()}</p>
-                          </div>
-                        </div>
-                        <div className={`px-3 py-1 rounded-full text-[0.65rem] font-bold ${
-                          order.status === 'pending' ? 'bg-red-50 text-red-600' :
-                          order.status === 'preparing' ? 'bg-orange-50 text-orange-600' :
-                          order.status === 'served' ? 'bg-blue-50 text-blue-600' :
-                          'bg-green-50 text-green-600'
+                      <div className="flex items-center space-x-6">
+                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-black text-2xl ${
+                          order.status === 'pending' 
+                            ? 'bg-red-600 text-white shadow-lg shadow-red-200' 
+                            : 'bg-gray-100 text-gray-600'
                         }`}>
-                          {order.status === 'pending' ? '待处理' : 
-                           order.status === 'preparing' ? '制作中' : 
-                           order.status === 'served' ? '待配送' : '已完成'}
+                          {order.tableNumber}
+                        </div>
+                        <div>
+                          <h3 className="font-black text-lg text-gray-900">桌号 {order.tableNumber}</h3>
+                          <p className="text-sm text-gray-500">{new Date(order.createdAt).toLocaleTimeString()}</p>
                         </div>
                       </div>
 
-                      <div className="space-y-2 mb-4">
-                        {order.items.map((item, idx) => (
-                          <div key={idx} className="flex justify-between text-xs">
-                            <span className="text-gray-600 font-medium">
-                              {item.name} x{item.quantity}
-                              {item.modifiers && item.modifiers.length > 0 && (
-                                <span className="text-[0.65rem] text-gray-400 ml-1">
-                                  ({item.modifiers.map(m => m.name).join(', ')})
-                                </span>
-                              )}
-                            </span>
-                            <span className="text-gray-400">{formatPrice(item.price * item.quantity)}</span>
-                          </div>
-                        ))}
+                      <div className="text-lg font-black text-gray-900">
+                        {formatPrice(order.totalPrice)}
                       </div>
 
-                      <div className="flex items-center justify-between pt-3 border-t border-gray-50">
+                      <div className={`px-4 py-2 rounded-full text-sm font-bold ${
+                        order.status === 'pending' ? 'bg-red-100 text-red-700' :
+                        order.status === 'preparing' ? 'bg-orange-100 text-orange-700' :
+                        order.status === 'served' ? 'bg-blue-100 text-blue-700' :
+                        'bg-green-100 text-green-700'
+                      }`}>
+                        {order.status === 'pending' ? '待处理' : 
+                         order.status === 'preparing' ? '制作中' : 
+                         order.status === 'served' ? '待配送' : '已完成'}
+                      </div>
+
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-50 mt-4">
                         <div className="text-sm font-black text-red-600">
                           {formatPrice(order.totalPrice)}
                         </div>
@@ -694,6 +682,22 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                             <Trash2 size={16} />
                           </button>
                         </div>
+                      </div>
+
+                      <div className="space-y-2 mt-4">
+                        {order.items.map((item, idx) => (
+                          <div key={idx} className="flex justify-between text-xs">
+                            <span className="text-gray-600 font-medium">
+                              {item.name} x{item.quantity}
+                              {item.modifiers && item.modifiers.length > 0 && (
+                                <span className="text-[0.65rem] text-gray-400 ml-1">
+                                  ({item.modifiers.map(m => m.name).join(', ')})
+                                </span>
+                              )}
+                            </span>
+                            <span className="text-gray-400">{formatPrice(item.price * item.quantity)}</span>
+                          </div>
+                        ))}
                       </div>
                     </motion.div>
                   ))}
@@ -869,58 +873,58 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                 <p className="text-gray-400 text-[0.65rem] mt-0.5">实时监控营业额、客单价及菜品热度</p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 mb-6">
-                <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <div className="p-1.5 bg-red-50 text-red-600 rounded-lg">
-                      <DollarSign size={14} />
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="p-3 bg-red-50 text-red-600 rounded-2xl">
+                      <DollarSign size={24} />
                     </div>
-                    <span className="text-[0.65rem] font-bold text-gray-400">今日营收</span>
+                    <span className="text-sm font-bold text-gray-500">今日营收</span>
                   </div>
-                  <div className="text-lg font-black text-gray-800">
+                  <div className="text-4xl font-black text-gray-900">
                     {formatPrice(orders.filter(o => o.status === 'completed').reduce((acc, o) => acc + o.totalPrice, 0))}
                   </div>
-                  <div className="text-[0.5rem] text-green-500 font-bold mt-1">↑ 12% 较昨日</div>
+                  <div className="text-xs text-green-500 font-bold mt-2">↑ 12% 较昨日</div>
                 </div>
-                <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
-                      <TrendingUp size={14} />
+                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+                      <TrendingUp size={24} />
                     </div>
-                    <span className="text-[0.65rem] font-bold text-gray-400">平均客单价</span>
+                    <span className="text-sm font-bold text-gray-500">平均客单价</span>
                   </div>
-                  <div className="text-lg font-black text-gray-800">
+                  <div className="text-4xl font-black text-gray-900">
                     {formatPrice(orders.filter(o => o.status === 'completed').length > 0 
                       ? orders.filter(o => o.status === 'completed').reduce((acc, o) => acc + o.totalPrice, 0) / orders.filter(o => o.status === 'completed').length 
                       : 0)}
                   </div>
-                  <div className="text-[0.5rem] text-blue-500 font-bold mt-1">实时计算中</div>
+                  <div className="text-xs text-blue-500 font-bold mt-2">实时计算中</div>
                 </div>
-                <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <div className="p-1.5 bg-orange-50 text-orange-600 rounded-lg">
-                      <ClipboardList size={14} />
+                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="p-3 bg-orange-50 text-orange-600 rounded-2xl">
+                      <ClipboardList size={24} />
                     </div>
-                    <span className="text-[0.65rem] font-bold text-gray-400">今日订单</span>
+                    <span className="text-sm font-bold text-gray-500">今日订单</span>
                   </div>
-                  <div className="text-lg font-black text-gray-800">
-                    {orders.length} <span className="text-[0.65rem] font-normal text-gray-400">单</span>
+                  <div className="text-4xl font-black text-gray-900">
+                    {orders.length} <span className="text-sm font-normal text-gray-400">单</span>
                   </div>
-                  <div className="text-[0.5rem] text-orange-500 font-bold mt-1">
+                  <div className="text-xs text-orange-500 font-bold mt-2">
                     {orders.filter(o => o.status === 'pending').length} 单待处理
                   </div>
                 </div>
-                <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <div className="p-1.5 bg-purple-50 text-purple-600 rounded-lg">
-                      <Users size={14} />
+                <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                  <div className="flex items-center space-x-3 mb-4">
+                    <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl">
+                      <Users size={24} />
                     </div>
-                    <span className="text-[0.65rem] font-bold text-gray-400">活跃桌位</span>
+                    <span className="text-sm font-bold text-gray-500">活跃桌位</span>
                   </div>
-                  <div className="text-lg font-black text-gray-800">
-                    {tables.filter(t => t.status === 'active').length} <span className="text-[0.65rem] font-normal text-gray-400">桌</span>
+                  <div className="text-4xl font-black text-gray-900">
+                    {tables.filter(t => t.status === 'active').length} <span className="text-sm font-normal text-gray-400">桌</span>
                   </div>
-                  <div className="text-[0.5rem] text-purple-500 font-bold mt-1">共 {tables.length} 个桌位</div>
+                  <div className="text-xs text-purple-500 font-bold mt-2">共 {tables.length} 个桌位</div>
                 </div>
               </div>
 
