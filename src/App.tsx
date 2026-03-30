@@ -832,14 +832,7 @@ export default function App() {
         {/* Mobile Header */}
         <div className="h-14 flex items-center justify-between px-4 bg-white border-b border-gray-50 z-20">
           <div className="w-8">
-            {user?.email === 'yujianfei2016@gmail.com' && (
-              <button 
-                onClick={() => setIsAdminOpen(true)}
-                className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"
-              >
-                <Settings size={20} />
-              </button>
-            )}
+            {/* Admin button removed as per user request */}
           </div>
           <h1 className="text-lg font-black tracking-tight text-gray-900">{appSettings.restaurantName}</h1>
           <div className="flex items-center space-x-2">
@@ -847,9 +840,7 @@ export default function App() {
               onClick={() => setLocalLanguage(currentLanguage === 'zh' ? 'ko' : 'zh')}
               className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors flex items-center space-x-1"
             >
-              <span>{currentLanguage === 'zh' ? '🇨🇳 中文' : '🇰🇷 한국어'}</span>
-              <span className="text-gray-400 mx-1">|</span>
-              <span className="text-gray-400">{currentLanguage === 'zh' ? 'KO' : 'ZH'}</span>
+              <span>{currentLanguage === 'zh' ? '🇨🇳 CN' : '🇰🇷 KO'}</span>
             </button>
             {!user ? (
               <button 
@@ -866,7 +857,6 @@ export default function App() {
                 <LogOut size={20} />
               </button>
             )}
-            <Search size={20} className="text-gray-900" />
           </div>
         </div>
 
