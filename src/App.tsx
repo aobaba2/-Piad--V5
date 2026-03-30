@@ -37,7 +37,8 @@ import {
   setDoc, 
   doc,
   getDocFromServer,
-  updateDoc
+  updateDoc,
+  serverTimestamp
 } from 'firebase/firestore';
 import { 
   signInWithPopup, 
@@ -853,7 +854,7 @@ export default function App() {
       })),
       totalPrice: totalAmount,
       status: 'pending',
-      createdAt: new Date().toISOString(),
+      createdAt: serverTimestamp(),
       sessionToken: sessionInfo?.token || ''
     };
 

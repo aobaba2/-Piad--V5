@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence, Reorder } from 'motion/react';
 import { 
   Plus, 
@@ -52,7 +52,8 @@ import {
   orderBy,
   setDoc,
   getDocs,
-  getDoc
+  getDoc,
+  serverTimestamp
 } from 'firebase/firestore';
 
 interface AdminPanelProps {
@@ -155,7 +156,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     restaurantName: 'PIAD 点餐'
   });
   const [localRestaurantName, setLocalRestaurantName] = useState('PIAD 点餐');
-  const [lastOrderCount, setLastOrderCount] = useState(0);
+  const lastOrderCountRef = useRef(0);
 
   // Auth State
   const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
@@ -297,7 +298,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         ...doc.data()
       })) as Order[];
       
-      if (ordersData.length > lastOrderCount && lastOrderCount !== 0) {
+      if (ordersData.length > lastOrderCountRef.current && lastOrderCountRef.current !== 0) {
         setShowNewOrderAlert(true);
         // Voice reminder
         try {
@@ -309,7 +310,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           console.log('Voice synthesis failed');
         }
       }
-      setLastOrderCount(ordersData.length);
+      lastOrderCountRef.current = ordersData.length;
       setOrders(ordersData);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'orders');
@@ -334,7 +335,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       unsubscribeTables();
       unsubscribeStaff();
     };
-  }, [lastOrderCount]);
+  }, [user]);
 
   const handleUpdateGridColumns = async (cols: number) => {
     try {
@@ -709,7 +710,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       ) : (
         <>
           {/* Admin Header */}
-      <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-4 shadow-sm flex-shrink-0">
+      <header className="h-14 bg-white/80 backdrop-blur-md border-b border-gray-100 flex items-center justify-between px-4 shadow-sm flex-shrink-0 sticky top-0 z-50">
         <div className="flex items-center space-x-3">
           <button 
             onClick={onClose}
@@ -749,7 +750,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
 
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Mobile Admin Navigation - Horizontal Scroll */}
-        <nav className="bg-white border-b border-gray-100 px-4 py-2 flex items-center space-x-2 overflow-x-auto no-scrollbar flex-shrink-0">
+        <nav className="bg-white/80 backdrop-blur-md border-b border-gray-100 px-4 py-2 flex items-center space-x-2 overflow-x-auto no-scrollbar flex-shrink-0 sticky top-0 z-40">
           <button 
             onClick={() => setView('orders')}
             className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'orders' ? 'bg-red-600 text-white shadow-lg shadow-red-100' : 'text-gray-600 bg-gray-50'}`}
@@ -847,7 +848,13 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                           </div>
                           <div>
                             <h3 className="font-black text-base text-gray-900">桌号 {order.tableNumber}</h3>
-                            <p className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleTimeString()}</p>
+                            <p className="text-xs text-gray-500">
+                              {order.createdAt ? (
+                                typeof order.createdAt === 'string' 
+                                  ? new Date(order.createdAt).toLocaleTimeString()
+                                  : (order.createdAt as any).toDate?.().toLocaleTimeString() || ''
+                              ) : '刚刚'}
+                            </p>
                           </div>
                         </div>
                         <div className={`px-3 py-1 rounded-full text-xs font-bold ${
