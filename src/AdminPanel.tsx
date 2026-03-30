@@ -386,12 +386,14 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
 
     try {
       // Map username to email for Firebase Auth
-      const email = adminUsername.includes('@') ? adminUsername : `${adminUsername}@admin.com`;
+      const normalizedUsername = adminUsername.trim().toLowerCase();
+      const email = normalizedUsername.includes('@') ? normalizedUsername : `${normalizedUsername}@admin.com`;
+      
       try {
         await signInWithEmailAndPassword(auth, email, adminPassword);
       } catch (err: any) {
         // If user not found and it's the requested super admin, try to create it
-        if (err.code === 'auth/user-not-found' && adminUsername === 'aoba2026') {
+        if (err.code === 'auth/user-not-found' && normalizedUsername === 'aoba2026') {
           const { createUserWithEmailAndPassword } = await import('firebase/auth');
           await createUserWithEmailAndPassword(auth, email, adminPassword);
           showToast('管理员账号已自动创建并登录', 'success');
@@ -406,8 +408,12 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         setLoginError('用户名或密码错误');
       } else if (error.code === 'auth/invalid-email') {
         setLoginError('无效的用户名格式');
+      } else if (error.code === 'auth/operation-not-allowed') {
+        setLoginError('登录方式未启用：请在 Firebase 控制台启用 邮箱/密码 登录');
+      } else if (error.code === 'auth/unauthorized-domain') {
+        setLoginError('域名未授权：请在 Firebase 控制台将 piad5.vercel.app 添加到授权域名列表');
       } else {
-        setLoginError('登录失败，请稍后再试');
+        setLoginError(`登录失败: ${error.message || '请稍后再试'}`);
       }
     } finally {
       setIsLoggingIn(false);
