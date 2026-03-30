@@ -148,6 +148,25 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   });
   const [localRestaurantName, setLocalRestaurantName] = useState('PIAD 点餐');
   const [lastOrderCount, setLastOrderCount] = useState(0);
+
+  // Audio notification for pending orders
+  useEffect(() => {
+    const hasPendingOrders = orders.some(o => o.status === 'pending');
+    let audio: HTMLAudioElement | null = null;
+    
+    if (hasPendingOrders) {
+      audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+      audio.loop = true;
+      audio.play().catch(e => console.error('Audio play failed:', e));
+    }
+
+    return () => {
+      if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+      }
+    };
+  }, [orders]);
   const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
   const [userRole, setUserRole] = useState<'owner' | 'manager' | 'waiter'>('owner');
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
@@ -599,105 +618,104 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 <AnimatePresence mode="popLayout">
                   {orders.map(order => (
                     <motion.div 
                       key={order.id} 
                       layout
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ 
-                        opacity: 1, 
-                        y: 0,
-                      }}
-                      className={`bg-white rounded-3xl p-6 border transition-all flex items-center justify-between ${
-                        order.status === 'pending' ? 'border-red-200 shadow-sm' : 'border-gray-100'
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className={`bg-white rounded-3xl p-5 border transition-all flex flex-col ${
+                        order.status === 'pending' ? 'border-red-200 shadow-md ring-2 ring-red-100' : 'border-gray-100 shadow-sm'
                       }`}
                     >
-                      <div className="flex items-center space-x-6">
-                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center font-black text-2xl ${
-                          order.status === 'pending' 
-                            ? 'bg-red-600 text-white shadow-lg shadow-red-200' 
-                            : 'bg-gray-100 text-gray-600'
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center space-x-3">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl ${
+                            order.status === 'pending' 
+                              ? 'bg-red-600 text-white shadow-lg shadow-red-200' 
+                              : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {order.tableNumber}
+                          </div>
+                          <div>
+                            <h3 className="font-black text-base text-gray-900">桌号 {order.tableNumber}</h3>
+                            <p className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleTimeString()}</p>
+                          </div>
+                        </div>
+                        <div className={`px-3 py-1 rounded-full text-xs font-bold ${
+                          order.status === 'pending' ? 'bg-red-100 text-red-700' :
+                          order.status === 'preparing' ? 'bg-orange-100 text-orange-700' :
+                          order.status === 'served' ? 'bg-blue-100 text-blue-700' :
+                          'bg-green-100 text-green-700'
                         }`}>
-                          {order.tableNumber}
-                        </div>
-                        <div>
-                          <h3 className="font-black text-lg text-gray-900">桌号 {order.tableNumber}</h3>
-                          <p className="text-sm text-gray-500">{new Date(order.createdAt).toLocaleTimeString()}</p>
+                          {order.status === 'pending' ? '待处理' : 
+                           order.status === 'preparing' ? '制作中' : 
+                           order.status === 'served' ? '待配送' : '已完成'}
                         </div>
                       </div>
 
-                      <div className="text-lg font-black text-gray-900">
-                        {formatPrice(order.totalPrice)}
+                      {/* Order items list */}
+                      <div className="flex-1 bg-gray-50 rounded-2xl p-3 mb-4 space-y-2 overflow-y-auto max-h-40 no-scrollbar">
+                        {order.items.map((item, idx) => (
+                          <div key={idx} className="flex justify-between text-sm">
+                            <div className="flex-1">
+                              <span className="font-bold text-gray-900">{item.name}</span>
+                              {item.modifiers && item.modifiers.length > 0 && (
+                                <div className="text-xs text-gray-500 mt-0.5">
+                                  {item.modifiers.map(m => m.name).join(', ')}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center space-x-3 ml-2">
+                              <span className="text-gray-500 font-medium">x{item.quantity}</span>
+                              <span className="font-bold text-gray-900 w-16 text-right">{formatPrice(item.price * item.quantity)}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
 
-                      <div className={`px-4 py-2 rounded-full text-sm font-bold ${
-                        order.status === 'pending' ? 'bg-red-100 text-red-700' :
-                        order.status === 'preparing' ? 'bg-orange-100 text-orange-700' :
-                        order.status === 'served' ? 'bg-blue-100 text-blue-700' :
-                        'bg-green-100 text-green-700'
-                      }`}>
-                        {order.status === 'pending' ? '待处理' : 
-                         order.status === 'preparing' ? '制作中' : 
-                         order.status === 'served' ? '待配送' : '已完成'}
-                      </div>
-
-                      <div className="flex items-center justify-between pt-3 border-t border-gray-50 mt-4">
-                        <div className="text-sm font-black text-red-600">
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                        <div className="text-lg font-black text-red-600">
                           {formatPrice(order.totalPrice)}
                         </div>
                         <div className="flex space-x-2">
                           {order.status === 'pending' && (
                             <button 
                               onClick={() => handleUpdateOrderStatus(order.id, 'preparing')}
-                              className="bg-orange-500 text-white px-4 py-2 rounded-xl text-[0.65rem] font-black shadow-lg shadow-orange-100 active:scale-95 transition-all flex items-center"
+                              className="bg-orange-500 text-white px-4 py-2.5 rounded-xl text-sm font-black shadow-lg shadow-orange-100 active:scale-95 transition-all flex items-center"
                             >
-                              <ChefHat size={14} className="mr-1.5" />
+                              <ChefHat size={16} className="mr-1.5" />
                               开始制作
                             </button>
                           )}
                           {order.status === 'preparing' && (
                             <button 
                               onClick={() => handleUpdateOrderStatus(order.id, 'served')}
-                              className="bg-blue-500 text-white px-4 py-2 rounded-xl text-[0.65rem] font-black shadow-lg shadow-blue-100 active:scale-95 transition-all flex items-center"
+                              className="bg-blue-500 text-white px-4 py-2.5 rounded-xl text-sm font-black shadow-lg shadow-blue-100 active:scale-95 transition-all flex items-center"
                             >
-                              <Bell size={14} className="mr-1.5" />
+                              <Bell size={16} className="mr-1.5" />
                               呼叫配送
                             </button>
                           )}
                           {order.status === 'served' && (
                             <button 
                               onClick={() => handleUpdateOrderStatus(order.id, 'completed')}
-                              className="bg-green-600 text-white px-4 py-2 rounded-xl text-[0.65rem] font-black shadow-lg shadow-green-100 active:scale-95 transition-all flex items-center"
+                              className="bg-green-600 text-white px-4 py-2.5 rounded-xl text-sm font-black shadow-lg shadow-green-100 active:scale-95 transition-all flex items-center"
                             >
-                              <CheckCircle2 size={14} className="mr-1.5" />
+                              <CheckCircle2 size={16} className="mr-1.5" />
                               完成订单
                             </button>
                           )}
                           <button 
                             onClick={() => setItemToDelete({ id: order.id, name: `桌号 ${order.tableNumber} 的订单`, type: 'order' })}
-                            className="p-2 text-gray-300 hover:text-red-600 transition-colors"
+                            className="p-2.5 bg-gray-100 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                           >
                             <Trash2 size={16} />
                           </button>
                         </div>
-                      </div>
-
-                      <div className="space-y-2 mt-4">
-                        {order.items.map((item, idx) => (
-                          <div key={idx} className="flex justify-between text-xs">
-                            <span className="text-gray-600 font-medium">
-                              {item.name} x{item.quantity}
-                              {item.modifiers && item.modifiers.length > 0 && (
-                                <span className="text-[0.65rem] text-gray-400 ml-1">
-                                  ({item.modifiers.map(m => m.name).join(', ')})
-                                </span>
-                              )}
-                            </span>
-                            <span className="text-gray-400">{formatPrice(item.price * item.quantity)}</span>
-                          </div>
-                        ))}
                       </div>
                     </motion.div>
                   ))}
@@ -777,89 +795,87 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                 axis="y" 
                 values={filteredDishes} 
                 onReorder={handleReorderDishes}
-                className="space-y-3"
+                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
               >
                 {filteredDishes.map(dish => (
                   <Reorder.Item 
                     key={dish.id} 
                     value={dish}
-                    className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group active:scale-[0.98] transition-all cursor-grab active:cursor-grabbing flex items-center p-3"
+                    className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group active:scale-[0.98] transition-all cursor-grab active:cursor-grabbing flex flex-col"
                   >
-                    <div className="flex-shrink-0 w-16 aspect-square rounded-xl overflow-hidden mr-4">
-                      <img src={dish.image} alt={dish.name} className="w-full h-full object-cover" />
+                    <div className="relative w-full aspect-square overflow-hidden bg-gray-50">
+                      <img src={dish.image} alt={dish.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      {dish.isRecommended && (
+                        <div className="absolute top-2 left-2 bg-red-600 text-white text-[0.65rem] font-black px-2 py-1 rounded-lg shadow-md">
+                          推荐
+                        </div>
+                      )}
+                      {dish.isSoldOut && (
+                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[2px]">
+                          <span className="bg-gray-900 text-white px-3 py-1.5 rounded-xl text-sm font-black shadow-xl">已估清</span>
+                        </div>
+                      )}
+                      <div className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-md rounded-lg text-gray-400 shadow-sm cursor-grab active:cursor-grabbing">
+                        <GripVertical size={14} />
+                      </div>
                     </div>
                     
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-0.5">
-                        <div className="flex items-center space-x-1.5">
-                          <h3 className="font-black text-gray-800 text-sm truncate">{dish.name}</h3>
-                          {dish.isRecommended && (
-                            <span className="bg-red-600 text-white text-[0.5rem] font-bold px-1.5 py-0.5 rounded-md">推荐</span>
-                          )}
-                        </div>
-                        <span className="text-red-600 font-black text-sm">{formatPrice(dish.price)}</span>
+                    <div className="p-3 flex-1 flex flex-col">
+                      <h3 className="font-black text-gray-900 text-sm line-clamp-1 mb-1">{dish.name}</h3>
+                      <span className="text-red-600 font-black text-sm mb-2">{formatPrice(dish.price)}</span>
+                      
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        <span className="text-[0.65rem] bg-gray-50 text-gray-500 px-1.5 py-0.5 rounded-md font-bold">
+                          {dish.category}
+                        </span>
+                        {dish.modifiers && dish.modifiers.length > 0 && (
+                          <span className="text-[0.65rem] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md font-bold">
+                            {dish.modifiers.length} 个规格
+                          </span>
+                        )}
                       </div>
                       
-                      <div className="flex items-center justify-between">
-                        <div className="flex flex-wrap gap-1">
-                          <span className="text-[0.5rem] bg-gray-50 text-gray-400 px-1.5 py-0.5 rounded-md font-bold">
-                            {dish.category}
-                          </span>
-                          {dish.isSoldOut && (
-                            <span className="text-[0.5rem] bg-gray-800 text-white px-1.5 py-0.5 rounded-md font-bold">已估清</span>
-                          )}
-                          {dish.modifiers && dish.modifiers.length > 0 && (
-                            <span className="text-[0.5rem] bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded-md font-bold">
-                              {dish.modifiers.length} 个规格
-                            </span>
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center space-x-1">
+                      <div className="mt-auto flex items-center justify-end space-x-1 pt-2 border-t border-gray-50">
+                        <button 
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            if (userRole === 'waiter') {
+                              showToast('权限不足：服务员无法修改估清状态', 'error');
+                              return;
+                            }
+                            try {
+                              await updateDoc(doc(db, 'dishes', dish.id), { isSoldOut: !dish.isSoldOut });
+                            } catch (error) {
+                              handleFirestoreError(error, OperationType.UPDATE, `dishes/${dish.id}`);
+                            }
+                          }}
+                          className={`p-1.5 rounded-lg transition-colors ${dish.isSoldOut ? 'text-red-600 bg-red-50' : 'text-gray-400 hover:bg-gray-100'}`}
+                          title={dish.isSoldOut ? "取消估清" : "设为估清"}
+                        >
+                          <Ban size={14} />
+                        </button>
+                        {userRole !== 'waiter' && (
                           <button 
-                            onClick={async (e) => {
+                            onClick={(e) => {
                               e.stopPropagation();
-                              if (userRole === 'waiter') {
-                                showToast('权限不足：服务员无法修改估清状态', 'error');
-                                return;
-                              }
-                              try {
-                                await updateDoc(doc(db, 'dishes', dish.id), { isSoldOut: !dish.isSoldOut });
-                              } catch (error) {
-                                handleFirestoreError(error, OperationType.UPDATE, `dishes/${dish.id}`);
-                              }
+                              setEditingDish(dish);
                             }}
-                            className={`p-1.5 rounded-lg transition-colors ${dish.isSoldOut ? 'text-red-600 bg-red-50' : 'text-gray-400 hover:bg-gray-100'}`}
-                            title={dish.isSoldOut ? "取消估清" : "设为估清"}
+                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           >
-                            <Ban size={14} />
+                            <Edit2 size={14} />
                           </button>
-                          {userRole !== 'waiter' && (
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingDish(dish);
-                              }}
-                              className="p-1.5 text-gray-400 hover:text-blue-600"
-                            >
-                              <Edit2 size={14} />
-                            </button>
-                          )}
-                          {userRole !== 'waiter' && (
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setItemToDelete({ id: dish.id, name: dish.name, type: 'dish' });
-                              }}
-                              className="p-1.5 text-gray-400 hover:text-red-600"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-                          <div className="p-1.5 text-gray-200">
-                            <GripVertical size={16} />
-                          </div>
-                        </div>
+                        )}
+                        {userRole !== 'waiter' && (
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setItemToDelete({ id: dish.id, name: dish.name, type: 'dish' });
+                            }}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   </Reorder.Item>

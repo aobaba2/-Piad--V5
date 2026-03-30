@@ -121,6 +121,8 @@ export default function App() {
     language: 'zh',
     restaurantName: 'PIAD 点餐'
   });
+  const [localLanguage, setLocalLanguage] = useState<'zh' | 'ko' | null>(null);
+  const currentLanguage = localLanguage || appSettings.language;
   const [sessionInfo, setSessionInfo] = useState<{ table: string, token: string } | null>(null);
   const [isSessionValid, setIsSessionValid] = useState<boolean | null>(null);
   const [notification, setNotification] = useState<{ message: string, type: 'info' | 'success' } | null>(null);
@@ -271,20 +273,20 @@ export default function App() {
   }, [isAuthReady, user, lastOrderCount, sessionInfo]);
 
   const getLocalizedName = (dish: Dish) => {
-    if (appSettings.language === 'en' && dish.name_en) return dish.name_en;
-    if (appSettings.language === 'ko' && dish.name_ko) return dish.name_ko;
+    if (currentLanguage === 'en' && dish.name_en) return dish.name_en;
+    if (currentLanguage === 'ko' && dish.name_ko) return dish.name_ko;
     return dish.name;
   };
 
   const getLocalizedDesc = (dish: Dish) => {
-    if (appSettings.language === 'en' && dish.description_en) return dish.description_en;
-    if (appSettings.language === 'ko' && dish.description_ko) return dish.description_ko;
+    if (currentLanguage === 'en' && dish.description_en) return dish.description_en;
+    if (currentLanguage === 'ko' && dish.description_ko) return dish.description_ko;
     return dish.description;
   };
 
   const getLocalizedModifierName = (mod: DishModifier) => {
-    if (appSettings.language === 'en' && mod.name_en) return mod.name_en;
-    if (appSettings.language === 'ko' && mod.name_ko) return mod.name_ko;
+    if (currentLanguage === 'en' && mod.name_en) return mod.name_en;
+    if (currentLanguage === 'ko' && mod.name_ko) return mod.name_ko;
     return mod.name;
   };
 
@@ -567,6 +569,12 @@ export default function App() {
           </div>
           <h1 className="text-lg font-black tracking-tight text-gray-900">{appSettings.restaurantName}</h1>
           <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setLocalLanguage(currentLanguage === 'zh' ? 'ko' : 'zh')}
+              className="px-2 py-1 text-xs font-bold rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+            >
+              {currentLanguage === 'zh' ? '中文' : '한국어'}
+            </button>
             {!user ? (
               <button 
                 onClick={handleLogin}
