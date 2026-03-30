@@ -272,22 +272,296 @@ export default function App() {
     };
   }, [isAuthReady, user, lastOrderCount, sessionInfo]);
 
+  const t = {
+    zh: {
+      searchPlaceholder: '搜索菜品...',
+      all: '全部',
+      soldOut: '已估清 Sold Out',
+      recommended: '店长推荐',
+      selectSpecs: '选',
+      addToCart: '加入',
+      myOrder: '我的点餐单',
+      clearAll: '清空全部',
+      emptyCartTitle: '购物车还是空的',
+      emptyCartDesc: '快去挑选您心仪的美味吧',
+      itemsSelected: (count: number) => `共选择了 ${count} 件菜品`,
+      selectTable: '选择餐桌号',
+      required: '* 必选',
+      totalAmount: '应付总额',
+      noTableSelected: '未选桌号',
+      confirmOrder: (table: string) => `确认下单 (${table}号桌)`,
+      confirmOrderNoTable: '请先选择餐桌号',
+      submitting: '提交中...',
+      specSelection: '选择规格/加料',
+      specRequired: '必选',
+      specOptional: '可选',
+      specMax: (max: number) => `最多选 ${max} 项`,
+      tableNumber: (num: string) => `${num} 号桌`,
+      currency: '₩',
+      adminPanel: '后台管理',
+      login: '登录',
+      logout: '退出',
+      scanQr: '扫码点餐',
+      scanDesc: '请使用微信或相机扫描桌台二维码',
+      close: '关闭',
+      confirm: '确认',
+      cancel: '取消',
+      defaultDesc: '精选食材，匠心制作',
+      selected: '已选：',
+      none: '无',
+      checkout: '去结算',
+      confirmAddToCart: '确认加入购物车',
+      hotRecommended: '热门推荐',
+      invalidQr: '二维码已失效',
+      invalidQrDesc: '该桌位的用餐会话已结束或二维码已过期，请重新扫码或联系服务员。',
+      reload: '重新加载',
+      orderedItems: (count: number) => `已点 ${count} 件`,
+      orderSuccessTitle: '下单成功！',
+      orderSuccessDesc: (table: string) => `餐桌 ${table} 的美味正在准备中`,
+      kitchenNotified: '已实时通知后厨',
+      newOrderTitle: '收到新订单！',
+      newOrderDesc: '请立即前往后台处理',
+      viewNow: '立即查看',
+      categories: {
+        "招牌烤鱼": "招牌烤鱼",
+        "东北菜": "东北菜",
+        "川菜": "川菜",
+        "肉菜类": "肉菜类",
+        "素菜类": "素菜类",
+        "海鲜类": "海鲜类",
+        "主食类": "主食类",
+        "酒水类": "酒水类",
+        "啤酒菜": "啤酒菜"
+      },
+      dishes: {
+        "巫山招牌香辣烤鱼": "巫山招牌香辣烤鱼",
+        "金牌蒜香烤鱼": "金牌蒜香烤鱼",
+        "东北锅包肉": "东北锅包肉",
+        "小鸡炖蘑菇": "小鸡炖蘑菇",
+        "四川毛血旺": "四川毛血旺",
+        "鱼香肉丝": "鱼香肉丝",
+        "辣炒花蛤": "辣炒花蛤",
+        "椒盐皮皮虾": "椒盐皮皮虾",
+        "红烧肉": "红烧肉",
+        "清炒时蔬": "清炒时蔬",
+        "扬州炒饭": "扬州炒饭",
+        "青岛原浆啤酒": "青岛原浆啤酒"
+      },
+      dishDesc: {
+        "选用3斤以上活草鱼，秘制红油炒制，外焦里嫩。": "选用3斤以上活草鱼，秘制红油炒制，外焦里嫩。",
+        "浓郁蒜香，不辣首选，汤汁拌饭一绝。": "浓郁蒜香，不辣首选，汤汁拌饭一绝。",
+        "经典老式做法，酸甜适口，酥脆掉渣。": "经典老式做法，酸甜适口，酥脆掉渣。",
+        "选用长白山榛蘑，鸡肉鲜嫩入味。": "选用长白山榛蘑，鸡肉鲜嫩入味。",
+        "麻辣鲜香，配料丰富，正宗川味。": "麻辣鲜香，配料丰富，正宗川味。",
+        "酸辣甜咸四味俱全，下饭神器。": "酸辣甜咸四味俱全，下饭神器。",
+        "鲜活花蛤，爆炒入味，下酒必备。": "鲜活花蛤，爆炒入味，下酒必备。",
+        "外酥里嫩，椒香浓郁。": "外酥里嫩，椒香浓郁。",
+        "肥而不腻，入口即化。": "肥而不腻，入口即化。",
+        "时令鲜菜，清脆爽口。": "时令鲜菜，清脆爽口。",
+        "粒粒分明，配料丰富。": "粒粒分明，配料丰富。",
+        "新鲜原浆，口感醇厚。": "新鲜原浆，口感醇厚。"
+      }
+    },
+    ko: {
+      searchPlaceholder: '메뉴 검색...',
+      all: '전체',
+      soldOut: '품절 Sold Out',
+      recommended: '추천 메뉴',
+      selectSpecs: '옵션',
+      addToCart: '담기',
+      myOrder: '내 주문',
+      clearAll: '전체 삭제',
+      emptyCartTitle: '장바구니가 비어 있습니다',
+      emptyCartDesc: '원하시는 메뉴를 선택해주세요',
+      itemsSelected: (count: number) => `총 ${count}개 메뉴 선택`,
+      selectTable: '테이블 번호 선택',
+      required: '* 필수',
+      totalAmount: '총 결제 금액',
+      noTableSelected: '테이블 미선택',
+      confirmOrder: (table: string) => `주문하기 (${table}번 테이블)`,
+      confirmOrderNoTable: '테이블 번호를 선택해주세요',
+      submitting: '제출 중...',
+      specSelection: '옵션/추가 선택',
+      specRequired: '필수',
+      specOptional: '선택',
+      specMax: (max: number) => `최대 ${max}개 선택 가능`,
+      tableNumber: (num: string) => `${num}번 테이블`,
+      currency: '₩',
+      adminPanel: '관리자 패널',
+      login: '로그인',
+      logout: '로그아웃',
+      scanQr: 'QR 주문',
+      scanDesc: '위챗이나 카메라로 테이블 QR을 스캔해주세요',
+      close: '닫기',
+      confirm: '확인',
+      cancel: '취소',
+      defaultDesc: '신선한 재료로 정성껏 만들었습니다',
+      selected: '선택됨: ',
+      none: '없음',
+      checkout: '결제하기',
+      confirmAddToCart: '장바구니 담기 확인',
+      hotRecommended: '인기 추천',
+      invalidQr: 'QR 코드가 만료되었습니다',
+      invalidQrDesc: '해당 테이블의 식사 세션이 종료되었거나 QR 코드가 만료되었습니다. 다시 스캔하거나 직원에게 문의해주세요.',
+      reload: '새로고침',
+      orderedItems: (count: number) => `총 ${count}개 주문`,
+      orderSuccessTitle: '주문 완료!',
+      orderSuccessDesc: (table: string) => `${table}번 테이블의 맛있는 요리가 준비 중입니다`,
+      kitchenNotified: '주방에 실시간으로 전달되었습니다',
+      newOrderTitle: '새 주문이 접수되었습니다!',
+      newOrderDesc: '관리자 페이지에서 확인해주세요',
+      viewNow: '지금 확인',
+      categories: {
+        "招牌烤鱼": "시그니처 생선구이",
+        "东北菜": "동북 요리",
+        "川菜": "사천 요리",
+        "肉菜类": "고기류",
+        "素菜类": "채소류",
+        "海鲜类": "해산물",
+        "主食类": "식사류",
+        "酒水类": "주류/음료",
+        "啤酒菜": "맥주 안주"
+      },
+      dishes: {
+        "巫山招牌香辣烤鱼": "우산 시그니처 마라 생선구이",
+        "金牌蒜香烤鱼": "골드 마늘 생선구이",
+        "东北锅包肉": "동북 꿔바로우",
+        "小鸡炖蘑菇": "닭고기 버섯 조림",
+        "四川毛血旺": "사천 마오쉐왕",
+        "鱼香肉丝": "어향육사",
+        "辣炒花蛤": "매운 바지락 볶음",
+        "椒盐皮皮虾": "소금후추 쏙새우 튀김",
+        "红烧肉": "홍샤오로우",
+        "清炒时蔬": "제철 채소 볶음",
+        "扬州炒饭": "양저우 볶음밥",
+        "青岛原浆啤酒": "칭다오 생맥주"
+      },
+      dishDesc: {
+        "选用3斤以上活草鱼，秘制红油炒制，外焦里嫩。": "1.5kg 이상의 활어를 사용하여 비법 고추기름으로 볶아 겉은 바삭하고 속은 촉촉합니다.",
+        "浓郁蒜香，不辣首选，汤汁拌饭一绝。": "진한 마늘향, 맵지 않은 최고의 선택, 국물에 밥을 비벼 먹으면 일품입니다.",
+        "经典老式做法，酸甜适口，酥脆掉渣。": "전통 방식 그대로, 새콤달콤하고 바삭바삭합니다.",
+        "选用长白山榛蘑，鸡肉鲜嫩入味。": "백두산 개암버섯을 사용하여 닭고기가 부드럽고 간이 잘 배어 있습니다.",
+        "麻辣鲜香，配料丰富，正宗川味。": "마라의 매콤하고 신선한 향, 풍부한 재료, 정통 사천의 맛.",
+        "酸辣甜咸四味俱全，下饭神器。": "새콤, 매콤, 달콤, 짭짤한 네 가지 맛이 어우러진 밥도둑.",
+        "鲜活花蛤，爆炒入味，下酒必备。": "신선한 바지락을 센 불에 볶아 술안주로 필수입니다.",
+        "外酥里嫩，椒香浓郁。": "겉은 바삭하고 속은 부드러우며, 산초향이 진합니다.",
+        "肥而不腻，入口即化。": "비계가 있지만 느끼하지 않고 입안에서 녹습니다.",
+        "时令鲜菜，清脆爽口。": "제철 신선한 채소로 아삭하고 상쾌합니다.",
+        "粒粒分明，配料丰富。": "밥알이 살아있고 재료가 풍부합니다.",
+        "新鲜原浆，口感醇厚。": "신선한 생맥주, 깊고 진한 맛."
+      }
+    }
+  }[currentLanguage as 'zh' | 'ko'] || {
+    searchPlaceholder: '搜索菜品...',
+    all: '全部',
+    soldOut: '已估清 Sold Out',
+    recommended: '店长推荐',
+    selectSpecs: '选',
+    addToCart: '加入',
+    myOrder: '我的点餐单',
+    clearAll: '清空全部',
+    emptyCartTitle: '购物车还是空的',
+    emptyCartDesc: '快去挑选您心仪的美味吧',
+    itemsSelected: (count: number) => `共选择了 ${count} 件菜品`,
+    selectTable: '选择餐桌号',
+    required: '* 必选',
+    totalAmount: '应付总额',
+    noTableSelected: '未选桌号',
+    confirmOrder: (table: string) => `确认下单 (${table}号桌)`,
+    confirmOrderNoTable: '请先选择餐桌号',
+    submitting: '提交中...',
+    specSelection: '选择规格/加料',
+    specRequired: '必选',
+    specOptional: '可选',
+    specMax: (max: number) => `最多选 ${max} 项`,
+    tableNumber: (num: string) => `${num} 号桌`,
+    currency: '₩',
+    adminPanel: '后台管理',
+    login: '登录',
+    logout: '退出',
+    scanQr: '扫码点餐',
+    scanDesc: '请使用微信或相机扫描桌台二维码',
+    close: '关闭',
+    confirm: '确认',
+    cancel: '取消',
+    defaultDesc: '精选食材，匠心制作',
+    selected: '已选：',
+    none: '无',
+    checkout: '去结算',
+    confirmAddToCart: '确认加入购物车',
+    hotRecommended: '热门推荐',
+    invalidQr: '二维码已失效',
+    invalidQrDesc: '该桌位的用餐会话已结束或二维码已过期，请重新扫码或联系服务员。',
+    reload: '重新加载',
+    orderedItems: (count: number) => `已点 ${count} 件`,
+    orderSuccessTitle: '下单成功！',
+    orderSuccessDesc: (table: string) => `餐桌 ${table} 的美味正在准备中`,
+    kitchenNotified: '已实时通知后厨',
+    newOrderTitle: '收到新订单！',
+    newOrderDesc: '请立即前往后台处理',
+    viewNow: '立即查看',
+    categories: {
+      "招牌烤鱼": "招牌烤鱼",
+      "东北菜": "东北菜",
+      "川菜": "川菜",
+      "肉菜类": "肉菜类",
+      "素菜类": "素菜类",
+      "海鲜类": "海鲜类",
+      "主食类": "主食类",
+      "酒水类": "酒水类",
+      "啤酒菜": "啤酒菜"
+    },
+    dishes: {
+      "巫山招牌香辣烤鱼": "巫山招牌香辣烤鱼",
+      "金牌蒜香烤鱼": "金牌蒜香烤鱼",
+      "东北锅包肉": "东北锅包肉",
+      "小鸡炖蘑菇": "小鸡炖蘑菇",
+      "四川毛血旺": "四川毛血旺",
+      "鱼香肉丝": "鱼香肉丝",
+      "辣炒花蛤": "辣炒花蛤",
+      "椒盐皮皮虾": "椒盐皮皮虾",
+      "红烧肉": "红烧肉",
+      "清炒时蔬": "清炒时蔬",
+      "扬州炒饭": "扬州炒饭",
+      "青岛原浆啤酒": "青岛原浆啤酒"
+    },
+    dishDesc: {
+      "选用3斤以上活草鱼，秘制红油炒制，外焦里嫩。": "选用3斤以上活草鱼，秘制红油炒制，外焦里嫩。",
+      "浓郁蒜香，不辣首选，汤汁拌饭一绝。": "浓郁蒜香，不辣首选，汤汁拌饭一绝。",
+      "经典老式做法，酸甜适口，酥脆掉渣。": "经典老式做法，酸甜适口，酥脆掉渣。",
+      "选用长白山榛蘑，鸡肉鲜嫩入味。": "选用长白山榛蘑，鸡肉鲜嫩入味。",
+      "麻辣鲜香，配料丰富，正宗川味。": "麻辣鲜香，配料丰富，正宗川味。",
+      "酸辣甜咸四味俱全，下饭神器。": "酸辣甜咸四味俱全，下饭神器。",
+      "鲜活花蛤，爆炒入味，下酒必备。": "鲜活花蛤，爆炒入味，下酒必备。",
+      "外酥里嫩，椒香浓郁。": "外酥里嫩，椒香浓郁。",
+      "肥而不腻，入口即化。": "肥而不腻，入口即化。",
+      "时令鲜菜，清脆爽口。": "时令鲜菜，清脆爽口。",
+      "粒粒分明，配料丰富。": "粒粒分明，配料丰富。",
+      "新鲜原浆，口感醇厚。": "新鲜原浆，口感醇厚。"
+    }
+  };
+
   const getLocalizedName = (dish: Dish) => {
     if (currentLanguage === 'en' && dish.name_en) return dish.name_en;
     if (currentLanguage === 'ko' && dish.name_ko) return dish.name_ko;
-    return dish.name;
+    return (t.dishes as Record<string, string>)[dish.name] || dish.name;
   };
 
   const getLocalizedDesc = (dish: Dish) => {
     if (currentLanguage === 'en' && dish.description_en) return dish.description_en;
     if (currentLanguage === 'ko' && dish.description_ko) return dish.description_ko;
-    return dish.description;
+    return (t.dishDesc as Record<string, string>)[dish.description || ''] || dish.description;
   };
 
   const getLocalizedModifierName = (mod: DishModifier) => {
     if (currentLanguage === 'en' && mod.name_en) return mod.name_en;
     if (currentLanguage === 'ko' && mod.name_ko) return mod.name_ko;
     return mod.name;
+  };
+
+  const getLocalizedCategory = (category: string) => {
+    if (category === '店长推荐') return t.hotRecommended;
+    return (t.categories as Record<string, string>)[category] || category;
   };
 
   const seedInitialData = async () => {
@@ -494,13 +768,13 @@ export default function App() {
         <div className="w-20 h-20 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-6">
           <X size={40} />
         </div>
-        <h1 className="text-2xl font-black text-gray-800 mb-2">二维码已失效</h1>
-        <p className="text-gray-500 text-sm mb-8">该桌位的用餐会话已结束或二维码已过期，请重新扫码或联系服务员。</p>
+        <h1 className="text-2xl font-black text-gray-800 mb-2">{t.invalidQr}</h1>
+        <p className="text-gray-500 text-sm mb-8">{t.invalidQrDesc}</p>
         <button 
           onClick={() => window.location.reload()}
           className="bg-red-600 text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-red-100 active:scale-95 transition-all"
         >
-          重新加载
+          {t.reload}
         </button>
       </div>
     );
@@ -535,7 +809,7 @@ export default function App() {
           >
             {activeCategory === '店长推荐' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-500 rounded-r-full" />}
             <span className="text-xl mb-1">{CATEGORY_ICONS['店长推荐']}</span>
-            <span className={`text-[0.65rem] font-bold ${activeCategory === '店长推荐' ? 'text-green-600' : 'text-gray-400'}`}>热门推荐</span>
+            <span className={`text-[0.65rem] font-bold ${activeCategory === '店长推荐' ? 'text-green-600' : 'text-gray-400'}`}>{t.hotRecommended}</span>
           </button>
           {categories.map(category => (
             <button
@@ -547,7 +821,7 @@ export default function App() {
             >
               {activeCategory === category && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-green-500 rounded-r-full" />}
               <span className="text-xl mb-1">{CATEGORY_ICONS[category] || '🍽️'}</span>
-              <span className={`text-[0.65rem] font-bold ${activeCategory === category ? 'text-green-600' : 'text-gray-400'}`}>{category}</span>
+              <span className={`text-[0.65rem] font-bold ${activeCategory === category ? 'text-green-600' : 'text-gray-400'}`}>{getLocalizedCategory(category)}</span>
             </button>
           ))}
         </div>
@@ -571,9 +845,11 @@ export default function App() {
           <div className="flex items-center space-x-2">
             <button
               onClick={() => setLocalLanguage(currentLanguage === 'zh' ? 'ko' : 'zh')}
-              className="px-2 py-1 text-xs font-bold rounded-md bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+              className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors flex items-center space-x-1"
             >
-              {currentLanguage === 'zh' ? '中文' : '한국어'}
+              <span>{currentLanguage === 'zh' ? '🇨🇳 中文' : '🇰🇷 한국어'}</span>
+              <span className="text-gray-400 mx-1">|</span>
+              <span className="text-gray-400">{currentLanguage === 'zh' ? 'KO' : 'ZH'}</span>
             </button>
             {!user ? (
               <button 
@@ -600,7 +876,7 @@ export default function App() {
             <Search size={16} className="text-gray-400 mr-2" />
             <input 
               type="text" 
-              placeholder="搜索菜品或首字母..." 
+              placeholder={t.searchPlaceholder}
               className="bg-transparent border-none outline-none text-sm w-full text-gray-700 placeholder-gray-400"
               value={searchQuery || ''}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -612,7 +888,7 @@ export default function App() {
         <div className="flex-1 overflow-y-auto px-4 pb-32 no-scrollbar bg-white">
           <div className="mb-6 flex items-center justify-between pt-4">
             <h2 className="text-lg font-black text-gray-900 flex items-center">
-              {activeCategory} {CATEGORY_ICONS[activeCategory]}
+              {getLocalizedCategory(activeCategory)} {CATEGORY_ICONS[activeCategory]}
             </h2>
           </div>
 
@@ -630,7 +906,7 @@ export default function App() {
                   {dish.isSoldOut && (
                     <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/40 backdrop-blur-[1px]">
                       <div className="bg-gray-800 text-white px-3 py-1 rounded-full text-[0.65rem] font-black uppercase tracking-widest shadow-xl">
-                        已估清 Sold Out
+                        {t.soldOut}
                       </div>
                     </div>
                   )}
@@ -644,7 +920,7 @@ export default function App() {
                     
                     {dish.isRecommended && (
                       <div className="absolute top-2 left-2 bg-red-600 text-white text-[0.5rem] font-bold px-1.5 py-0.5 rounded-md shadow-lg z-10">
-                        店长推荐
+                        {t.recommended}
                       </div>
                     )}
                   </div>
@@ -656,7 +932,7 @@ export default function App() {
                           {getLocalizedName(dish)}
                         </h3>
                       </div>
-                      <p className="text-[0.65rem] text-gray-400 line-clamp-1">{getLocalizedDesc(dish) || '精选食材，匠心制作'}</p>
+                      <p className="text-[0.65rem] text-gray-400 line-clamp-1">{getLocalizedDesc(dish) || t.defaultDesc}</p>
                     </div>
 
                     <div className="flex items-center justify-between mt-auto">
@@ -675,7 +951,7 @@ export default function App() {
                           }`}
                         >
                           {dish.modifiers && dish.modifiers.length > 0 ? (
-                            <span className="text-[0.65rem] font-black">选</span>
+                            <span className="text-[0.65rem] font-black">{t.selectSpecs}</span>
                           ) : (
                             <Plus size={20} />
                           )}
@@ -725,7 +1001,7 @@ export default function App() {
                 <div className="flex items-baseline space-x-1">
                   <span className="text-white text-lg font-black">{formatPrice(totalAmount, appSettings.currency)}</span>
                 </div>
-                <span className="text-[0.6rem] text-gray-400 font-bold">已点 {totalItems} 件</span>
+                <span className="text-[0.6rem] text-gray-400 font-bold">{t.orderedItems(totalItems)}</span>
               </div>
             </div>
 
@@ -747,7 +1023,7 @@ export default function App() {
               ) : (
                 <CheckCircle2 size={18} />
               )}
-              <span>{isOrdering ? '提交中...' : '去结算'}</span>
+              <span>{isOrdering ? t.submitting : t.checkout}</span>
             </button>
           </motion.div>
         </div>
@@ -777,10 +1053,10 @@ export default function App() {
                 <div className="px-6 py-4 flex items-center justify-between border-b border-gray-100 shrink-0">
                   <div className="flex items-center space-x-2">
                     <ShoppingCart size={20} className="text-red-600" />
-                    <h3 className="text-lg font-black text-gray-900">我的点餐单</h3>
+                    <h3 className="text-lg font-black text-gray-900">{t.myOrder}</h3>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <button onClick={clearCart} className="text-sm font-bold text-gray-400 hover:text-red-600">清空全部</button>
+                    <button onClick={clearCart} className="text-sm font-bold text-gray-400 hover:text-red-600">{t.clearAll}</button>
                     <button onClick={() => setIsCartOpen(false)} className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
                       <X size={16} />
                     </button>
@@ -793,14 +1069,14 @@ export default function App() {
                       <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center text-gray-200 mb-6">
                         <ShoppingCart size={48} />
                       </div>
-                      <h4 className="text-xl font-bold text-gray-800 mb-2">购物车还是空的</h4>
-                      <p className="text-gray-400">快去挑选您心仪的美味吧</p>
+                      <h4 className="text-xl font-bold text-gray-800 mb-2">{t.emptyCartTitle}</h4>
+                      <p className="text-gray-400">{t.emptyCartDesc}</p>
                     </div>
                   ) : (
                     <>
                       {/* Step 2: Sub-header */}
                       <div className="text-xs font-bold text-gray-400 mb-2">
-                        共选择了 {totalItems} 件菜品
+                        {t.itemsSelected(totalItems)}
                       </div>
                       
                       {/* Single Column List View for Cart Items */}
@@ -851,8 +1127,8 @@ export default function App() {
                       {/* Table Selection Section */}
                       <section className="mt-6 pt-6 border-t border-gray-100">
                         <div className="flex items-center justify-between mb-4">
-                          <h4 className="text-base font-bold text-gray-900">选择餐桌号</h4>
-                          <span className="text-xs text-red-600 font-medium">* 必选</span>
+                          <h4 className="text-base font-bold text-gray-900">{t.selectTable}</h4>
+                          <span className="text-xs text-red-600 font-medium">{t.required}</span>
                         </div>
                         <div className="flex overflow-x-auto gap-3 pb-2 no-scrollbar">
                           {Array.from({ length: 12 }, (_, i) => i + 1).map(num => (
@@ -879,11 +1155,11 @@ export default function App() {
                   <div className="p-6 bg-white border-t border-gray-100 shrink-0 shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-baseline gap-2">
-                        <span className="text-sm font-bold text-gray-900">应付总额</span>
+                        <span className="text-sm font-bold text-gray-900">{t.totalAmount}</span>
                         <span className="text-2xl font-black text-red-600">{formatPrice(totalAmount, appSettings.currency)}</span>
                       </div>
                       <div className="text-gray-500 text-sm font-medium">
-                        {selectedTable ? `${selectedTable}号桌` : '未选桌号'}
+                        {selectedTable ? t.tableNumber(selectedTable) : t.noTableSelected}
                       </div>
                     </div>
                     <button 
@@ -904,7 +1180,7 @@ export default function App() {
                       ) : (
                         <UtensilsCrossed size={20} />
                       )}
-                      <span>{isOrdering ? '提交中...' : selectedTable ? `确认下单 (${selectedTable}号桌)` : '请先选择餐桌号'}</span>
+                      <span>{isOrdering ? t.submitting : selectedTable ? t.confirmOrder(selectedTable) : t.confirmOrderNoTable}</span>
                     </button>
                   </div>
                 )}
@@ -958,7 +1234,7 @@ export default function App() {
 
               <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
                 <section>
-                  <h4 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-widest">选择规格/加料</h4>
+                  <h4 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-widest">{t.specSelection}</h4>
                   <div className="grid grid-cols-2 gap-3">
                     {selectedDishForSpecs.modifiers?.map((mod, idx) => {
                       const isSelected = selectedModifiers.some(m => m.name === mod.name);
@@ -989,7 +1265,7 @@ export default function App() {
 
               <div className="p-6 bg-gray-50 border-t border-gray-100">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="text-xs text-gray-400 font-bold">已选：{selectedModifiers.length > 0 ? selectedModifiers.map(m => getLocalizedModifierName(m)).join(', ') : '无'}</div>
+                  <div className="text-xs text-gray-400 font-bold">{t.selected}{selectedModifiers.length > 0 ? selectedModifiers.map(m => getLocalizedModifierName(m)).join(', ') : t.none}</div>
                   <div className="text-lg font-black text-red-600">
                     {formatPrice(selectedDishForSpecs.price + selectedModifiers.reduce((acc, m) => acc + m.price, 0), appSettings.currency)}
                   </div>
@@ -1001,7 +1277,7 @@ export default function App() {
                   }}
                   className="w-full py-4 bg-red-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-red-200 active:scale-95 transition-all"
                 >
-                  确认加入购物车
+                  {t.confirm}
                 </button>
               </div>
             </motion.div>
@@ -1045,11 +1321,11 @@ export default function App() {
             >
               <CheckCircle2 size={64} />
             </motion.div>
-            <h2 className="text-4xl font-black mb-2">下单成功！</h2>
-            <p className="text-xl text-white/80 font-bold">餐桌 {selectedTable} 的美味正在准备中</p>
+            <h2 className="text-4xl font-black mb-2">{t.orderSuccessTitle}</h2>
+            <p className="text-xl text-white/80 font-bold">{t.orderSuccessDesc(selectedTable || '')}</p>
             <div className="mt-12 flex items-center space-x-2 bg-white/10 px-6 py-3 rounded-2xl backdrop-blur-md border border-white/10">
               <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-              <span className="text-sm font-bold">已实时通知后厨</span>
+              <span className="text-sm font-bold">{t.kitchenNotified}</span>
             </div>
           </motion.div>
         )}
@@ -1068,8 +1344,8 @@ export default function App() {
               <Bell size={20} />
             </div>
             <div>
-              <h4 className="font-black">收到新订单！</h4>
-              <p className="text-xs text-white/80">请立即前往后台处理</p>
+              <h4 className="font-black">{t.newOrderTitle}</h4>
+              <p className="text-xs text-white/80">{t.newOrderDesc}</p>
             </div>
             <button 
               onClick={() => {
@@ -1078,7 +1354,7 @@ export default function App() {
               }}
               className="bg-white text-red-600 px-4 py-2 rounded-xl font-black text-xs hover:bg-gray-100 transition-colors"
             >
-              立即查看
+              {t.viewNow}
             </button>
             <button onClick={() => setShowNewOrderAlert(false)} className="text-white/60 hover:text-white">
               <X size={18} />
