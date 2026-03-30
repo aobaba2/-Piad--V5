@@ -477,12 +477,20 @@ export default function App() {
     };
   }, []);
 
+  const placeholders = useMemo(() => {
+    if (appSettings.searchPlaceholders && appSettings.searchPlaceholders.length > 0) {
+      return appSettings.searchPlaceholders;
+    }
+    return t.searchPlaceholders;
+  }, [appSettings.searchPlaceholders, t.searchPlaceholders]);
+
   useEffect(() => {
+    if (searchQuery) return;
     const interval = setInterval(() => {
-      setSearchPlaceholderIndex((prev) => (prev + 1) % t.searchPlaceholders.length);
+      setSearchPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
     }, 3000);
     return () => clearInterval(interval);
-  }, [t.searchPlaceholders]);
+  }, [placeholders, searchQuery]);
 
   const handleScroll = () => {
     if (isScrollingRef.current || searchQuery) return;
@@ -1017,19 +1025,33 @@ export default function App() {
           {/* Search Bar inside Sticky Header */}
           <div className="px-4 pb-3">
             <div className="bg-piad-primary/5 rounded-xl flex items-center px-4 py-2 border border-piad-primary/5">
-              <AnimatePresence mode="wait">
-                <motion.input 
-                  key={searchPlaceholderIndex}
-                  initial={{ opacity: 0, y: 5 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -5 }}
+              <Search size={18} className="text-piad-subtext mr-2 shrink-0" />
+              <div className="relative flex-1 h-6 overflow-hidden">
+                <AnimatePresence mode="wait">
+                  {!searchQuery && (
+                    <motion.div
+                      key={searchPlaceholderIndex}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute inset-0 flex items-center text-sm text-piad-subtext pointer-events-none"
+                    >
+                      {placeholders[searchPlaceholderIndex % placeholders.length]}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <input 
                   type="text" 
-                  placeholder={searchQuery ? '' : t.searchPlaceholders[searchPlaceholderIndex]}
-                  className="bg-transparent border-none outline-none text-sm w-full text-piad-text placeholder-piad-subtext"
+                  className="absolute inset-0 bg-transparent border-none outline-none text-sm w-full text-piad-text placeholder-transparent"
                   value={searchQuery || ''}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
-              </AnimatePresence>
+              </div>
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="ml-2 text-piad-subtext hover:text-piad-primary">
+                  <X size={16} />
+                </button>
+              )}
             </div>
           </div>
         </div>

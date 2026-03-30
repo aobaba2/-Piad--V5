@@ -32,6 +32,7 @@ export interface Settings {
   language: 'zh' | 'en' | 'ko';
   restaurantName: string;
   theme?: 'default' | 'luxury' | 'nature' | 'sweet';
+  searchPlaceholders?: string[];
 }
 
 export interface Table {

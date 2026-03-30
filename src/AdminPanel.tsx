@@ -153,7 +153,8 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   const [appSettings, setAppSettings] = useState<AppSettings>({
     currency: 'KRW',
     language: 'zh',
-    restaurantName: 'PIAD 点餐'
+    restaurantName: 'PIAD 点餐',
+    searchPlaceholders: []
   });
   const [localRestaurantName, setLocalRestaurantName] = useState('PIAD 点餐');
   const lastOrderCountRef = useRef(0);
@@ -229,7 +230,8 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           currency: data.currency || 'KRW',
           language: data.language || 'zh',
           restaurantName: data.restaurantName || 'PIAD 点餐',
-          theme: data.theme || 'default'
+          theme: data.theme || 'default',
+          searchPlaceholders: data.searchPlaceholders || []
         };
         setAppSettings(newSettings);
         setLocalRestaurantName(data.restaurantName || 'PIAD 点餐');
@@ -1620,6 +1622,64 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                         </span>
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                {/* Search Placeholders Management */}
+                <div className="space-y-3">
+                  <h3 className="font-black text-sm text-piad-text flex items-center">
+                    <Search size={16} className="mr-2 text-piad-primary" />
+                    搜索栏滚动字幕内容
+                  </h3>
+                  <div className="space-y-2">
+                    {(appSettings.searchPlaceholders || []).map((placeholder, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          value={placeholder}
+                          onChange={(e) => {
+                            const newList = [...(appSettings.searchPlaceholders || [])];
+                            newList[index] = e.target.value;
+                            setAppSettings(prev => ({ ...prev, searchPlaceholders: newList }));
+                          }}
+                          onBlur={async () => {
+                            try {
+                              await setDoc(doc(db, 'settings', 'global'), { searchPlaceholders: appSettings.searchPlaceholders }, { merge: true });
+                            } catch (error) {
+                              handleFirestoreError(error, OperationType.UPDATE, 'settings/global');
+                            }
+                          }}
+                          className="flex-1 bg-piad-primary/5 border border-piad-primary/10 rounded-xl px-4 py-2 text-sm focus:ring-2 focus:ring-piad-primary/20 outline-none text-piad-text"
+                        />
+                        <button
+                          onClick={async () => {
+                            const newList = (appSettings.searchPlaceholders || []).filter((_, i) => i !== index);
+                            try {
+                              await setDoc(doc(db, 'settings', 'global'), { searchPlaceholders: newList }, { merge: true });
+                              showToast('已删除字幕', 'success');
+                            } catch (error) {
+                              handleFirestoreError(error, OperationType.UPDATE, 'settings/global');
+                            }
+                          }}
+                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      onClick={async () => {
+                        const newList = [...(appSettings.searchPlaceholders || []), ''];
+                        try {
+                          await setDoc(doc(db, 'settings', 'global'), { searchPlaceholders: newList }, { merge: true });
+                        } catch (error) {
+                          handleFirestoreError(error, OperationType.UPDATE, 'settings/global');
+                        }
+                      }}
+                      className="w-full py-2 border-2 border-dashed border-piad-primary/20 rounded-xl text-piad-subtext text-xs font-black hover:border-piad-primary hover:text-piad-primary transition-all flex items-center justify-center"
+                    >
+                      <Plus size={14} className="mr-1" /> 添加新字幕
+                    </button>
                   </div>
                 </div>
 
