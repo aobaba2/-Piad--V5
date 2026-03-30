@@ -447,6 +447,23 @@ export default function App() {
   const [searchPlaceholderIndex, setSearchPlaceholderIndex] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isScrollingRef = useRef(false);
+  const [logoTapCount, setLogoTapCount] = useState(0);
+  const lastLogoTapTime = useRef(0);
+
+  const handleLogoTap = () => {
+    const now = Date.now();
+    if (now - lastLogoTapTime.current < 500) {
+      const newCount = logoTapCount + 1;
+      setLogoTapCount(newCount);
+      if (newCount >= 5) {
+        setIsAdminOpen(true);
+        setLogoTapCount(0);
+      }
+    } else {
+      setLogoTapCount(1);
+    }
+    lastLogoTapTime.current = now;
+  };
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -973,7 +990,12 @@ export default function App() {
           <div className="pt-[env(safe-area-inset-top)]">
             <div className="h-14 flex items-center justify-between px-4">
               <div className="w-8" />
-              <h1 className="text-lg font-black tracking-tight text-gray-900">{appSettings.restaurantName}</h1>
+              <h1 
+                className="text-lg font-black tracking-tight text-gray-900 cursor-pointer select-none active:scale-95 transition-transform"
+                onClick={handleLogoTap}
+              >
+                {appSettings.restaurantName}
+              </h1>
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => setLocalLanguage(currentLanguage === 'zh' ? 'ko' : 'zh')}

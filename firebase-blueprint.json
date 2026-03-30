@@ -140,6 +140,17 @@
         "role": { "type": "string", "enum": ["owner", "manager", "waiter"] }
       },
       "required": ["email", "role"]
+    },
+    "SuperAdmin": {
+      "title": "SuperAdmin",
+      "description": "Super administrator account for direct login",
+      "type": "object",
+      "properties": {
+        "username": { "type": "string" },
+        "password": { "type": "string" },
+        "role": { "type": "string", "enum": ["owner"] }
+      },
+      "required": ["username", "password", "role"]
     }
   },
   "firestore": {
@@ -162,6 +173,10 @@
     "/staff": {
       "schema": "Staff",
       "description": "Collection of staff members"
+    },
+    "/super_admins": {
+      "schema": "SuperAdmin",
+      "description": "Collection of super administrator accounts"
     }
   }
 }

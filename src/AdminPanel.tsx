@@ -32,6 +32,14 @@ import {
   LayoutGrid
 } from 'lucide-react';
 import { Dish, DishModifier, formatPrice, Table, Settings as AppSettings } from './constants';
+import { 
+  signInWithPopup, 
+  GoogleAuthProvider, 
+  onAuthStateChanged, 
+  signOut,
+  signInWithEmailAndPassword,
+  User as FirebaseUser
+} from 'firebase/auth';
 import { db, auth } from './firebase';
 import { 
   collection, 
@@ -149,7 +157,24 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   const [localRestaurantName, setLocalRestaurantName] = useState('PIAD 点餐');
   const [lastOrderCount, setLastOrderCount] = useState(0);
 
+  // Auth State
+  const [user, setUser] = useState<FirebaseUser | null>(auth.currentUser);
+
+  // Super Admin Login State
+  const [adminUsername, setAdminUsername] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
   // Audio notification for pending orders
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (u) => {
+      setUser(u);
+    });
+    return () => unsubscribe();
+  }, []);
+
   useEffect(() => {
     const hasPendingOrders = orders.some(o => o.status === 'pending');
     let audio: HTMLAudioElement | null = null;
@@ -184,7 +209,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       if (!auth.currentUser) return;
       
       // Default admin check
-      if (auth.currentUser.email === 'yujianfei2016@gmail.com') {
+      if (auth.currentUser.email === 'yujianfei2016@gmail.com' || auth.currentUser.email === 'aoba2026@admin.com') {
         setUserRole('owner');
         return;
       }
@@ -354,6 +379,61 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     handleReorderDishes(sorted);
   };
 
+  const handleSuperAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoggingIn(true);
+    setLoginError(null);
+
+    try {
+      // Map username to email for Firebase Auth
+      const email = adminUsername.includes('@') ? adminUsername : `${adminUsername}@admin.com`;
+      try {
+        await signInWithEmailAndPassword(auth, email, adminPassword);
+      } catch (err: any) {
+        // If user not found and it's the requested super admin, try to create it
+        if (err.code === 'auth/user-not-found' && adminUsername === 'aoba2026') {
+          const { createUserWithEmailAndPassword } = await import('firebase/auth');
+          await createUserWithEmailAndPassword(auth, email, adminPassword);
+          showToast('管理员账号已自动创建并登录', 'success');
+        } else {
+          throw err;
+        }
+      }
+      showToast('登录成功', 'success');
+    } catch (error: any) {
+      console.error('Login failed:', error);
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        setLoginError('用户名或密码错误');
+      } else if (error.code === 'auth/invalid-email') {
+        setLoginError('无效的用户名格式');
+      } else {
+        setLoginError('登录失败，请稍后再试');
+      }
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      showToast('登录成功', 'success');
+    } catch (error) {
+      console.error('Google login failed:', error);
+      showToast('登录失败', 'error');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      showToast('已退出登录', 'info');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
   const handleSaveDish = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingDish) return;
@@ -518,7 +598,102 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
 
   return (
     <div className="fixed inset-0 bg-[#f3f4f6] z-[100] flex flex-col overflow-hidden text-gray-800">
-      {/* Admin Header */}
+      {!user ? (
+        <div className="flex-1 flex items-center justify-center p-6 bg-gradient-to-br from-red-50 to-white">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl shadow-red-100 overflow-hidden border border-red-50"
+          >
+            <div className="p-10">
+              <div className="w-20 h-20 bg-red-600 rounded-3xl flex items-center justify-center mb-8 shadow-xl shadow-red-200 mx-auto">
+                <ShieldCheck className="text-white" size={40} />
+              </div>
+              <h2 className="text-3xl font-black text-center mb-2">后台管理登录</h2>
+              <p className="text-gray-400 text-center mb-10 font-medium">PIAD 点餐系统管理后台</p>
+
+              <form onSubmit={handleSuperAdminLogin} className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase ml-1">用户名</label>
+                  <div className="relative">
+                    <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input 
+                      type="text"
+                      required
+                      value={adminUsername}
+                      onChange={e => setAdminUsername(e.target.value)}
+                      placeholder="请输入管理员账号"
+                      className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-4 py-4 outline-none focus:border-red-600 focus:bg-white transition-all font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-gray-400 uppercase ml-1">密码</label>
+                  <div className="relative">
+                    <Zap className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input 
+                      type="password"
+                      required
+                      value={adminPassword}
+                      onChange={e => setAdminPassword(e.target.value)}
+                      placeholder="请输入登录密码"
+                      className="w-full bg-gray-50 border border-gray-100 rounded-2xl pl-12 pr-4 py-4 outline-none focus:border-red-600 focus:bg-white transition-all font-medium"
+                    />
+                  </div>
+                </div>
+
+                {loginError && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex items-center space-x-2 text-red-600 bg-red-50 p-4 rounded-xl text-sm font-bold"
+                  >
+                    <AlertTriangle size={16} />
+                    <span>{loginError}</span>
+                  </motion.div>
+                )}
+
+                <button 
+                  type="submit"
+                  disabled={isLoggingIn}
+                  className="w-full bg-red-600 text-white py-4 rounded-2xl font-black shadow-xl shadow-red-200 hover:bg-red-700 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center space-x-2"
+                >
+                  {isLoggingIn ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <span>立即登录</span>
+                      <ChevronRight size={18} />
+                    </>
+                  )}
+                </button>
+              </form>
+
+              <div className="mt-10 pt-8 border-t border-gray-50">
+                <p className="text-center text-[10px] text-gray-300 font-bold mb-4 uppercase tracking-widest">注意：请确保 Firebase 控制台已启用 邮箱/密码 登录方式</p>
+                <p className="text-center text-xs text-gray-400 font-bold mb-6 uppercase tracking-widest">或者使用</p>
+                <button 
+                  onClick={handleGoogleLogin}
+                  className="w-full bg-white border-2 border-gray-100 text-gray-600 py-4 rounded-2xl font-bold hover:bg-gray-50 active:scale-[0.98] transition-all flex items-center justify-center space-x-3"
+                >
+                  <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
+                  <span>Google 账号登录</span>
+                </button>
+              </div>
+            </div>
+          </motion.div>
+          
+          <button 
+            onClick={onClose}
+            className="fixed top-6 right-6 w-12 h-12 bg-white rounded-full shadow-lg flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X size={24} />
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* Admin Header */}
       <header className="h-14 bg-white border-b border-gray-100 flex items-center justify-between px-4 shadow-sm flex-shrink-0">
         <div className="flex items-center space-x-3">
           <button 
@@ -530,17 +705,31 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           <h1 className="text-base font-black flex items-center">
             <Settings className="mr-2 text-red-600" size={18} />
             后台管理
+            {user?.email === 'aoba2026@admin.com' && (
+              <span className="ml-2 bg-red-50 text-red-600 text-[0.6rem] px-2 py-0.5 rounded-full border border-red-100">
+                超级管理员
+              </span>
+            )}
           </h1>
         </div>
-        {view === 'menu' && (
+        <div className="flex items-center space-x-2">
+          {view === 'menu' && (
+            <button 
+              onClick={() => setEditingDish({ name: '', price: 0, category: categories[0]?.name || '', description: '', tags: [] })}
+              className="bg-red-600 text-white px-3 py-1.5 rounded-lg font-bold text-xs flex items-center shadow-md shadow-red-100 active:scale-95 transition-all"
+            >
+              <Plus size={14} className="mr-1" />
+              新增
+            </button>
+          )}
           <button 
-            onClick={() => setEditingDish({ name: '', price: 0, category: categories[0]?.name || '', description: '', tags: [] })}
-            className="bg-red-600 text-white px-3 py-1.5 rounded-lg font-bold text-xs flex items-center shadow-md shadow-red-100 active:scale-95 transition-all"
+            onClick={handleLogout}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 hover:text-red-600"
+            title="退出登录"
           >
-            <Plus size={14} className="mr-1" />
-            新增
+            <RotateCcw size={18} />
           </button>
-        )}
+        </div>
       </header>
 
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -1857,6 +2046,8 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           </motion.div>
         )}
       </AnimatePresence>
+        </>
+      )}
     </div>
   );
 }
