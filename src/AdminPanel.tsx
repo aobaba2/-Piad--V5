@@ -302,9 +302,16 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         setShowNewOrderAlert(true);
         // Voice reminder
         try {
-          const utterance = new SpeechSynthesisUtterance('您有新的订单，请及时处理');
+          const messages = [
+            '叮咚！新的美味订单来啦，请老板快快查看哦~',
+            '嘿！主人，又有客人下单啦，加油加油！',
+            '哇！一份热腾腾的订单飞过来啦，请查收~'
+          ];
+          const randomMsg = messages[Math.floor(Math.random() * messages.length)];
+          const utterance = new SpeechSynthesisUtterance(randomMsg);
           utterance.lang = 'zh-CN';
-          utterance.rate = 1.0;
+          utterance.rate = 1.1; // Slightly faster for a cuter tone
+          utterance.pitch = 1.2; // Slightly higher pitch for a cuter tone
           window.speechSynthesis.speak(utterance);
         } catch (e) {
           console.log('Voice synthesis failed');
