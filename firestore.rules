@@ -73,7 +73,7 @@ service cloud.firestore {
              data.items is list &&
              data.totalPrice is number &&
              data.status in ['pending', 'preparing', 'served', 'completed', 'cancelled'] &&
-             data.createdAt is string &&
+             (data.createdAt is string || data.createdAt is timestamp) &&
              (!('sessionToken' in data) || data.sessionToken is string);
     }
 
