@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   ShoppingCart, 
@@ -168,6 +168,271 @@ export default function App() {
   });
   const [localLanguage, setLocalLanguage] = useState<'zh' | 'ko' | null>(null);
   const currentLanguage = localLanguage || appSettings.language;
+  const t = useMemo(() => ({
+    zh: {
+      searchPlaceholder: '搜索菜品...',
+      all: '全部',
+      soldOut: '已估清 Sold Out',
+      recommended: '店长推荐',
+      selectSpecs: '选',
+      addToCart: '加入',
+      myOrder: '我的点餐单',
+      clearAll: '清空全部',
+      emptyCartTitle: '购物车还是空的',
+      emptyCartDesc: '快去挑选您心仪的美味吧',
+      itemsSelected: (count: number) => `共选择了 ${count} 件菜品`,
+      selectTable: '选择餐桌号',
+      required: '* 必选',
+      totalAmount: '应付总额',
+      noTableSelected: '未选桌号',
+      confirmOrder: (table: string) => `确认下单 (${table}号桌)`,
+      confirmOrderNoTable: '请先选择餐桌号',
+      submitting: '提交中...',
+      specSelection: '选择规格/加料',
+      specRequired: '必选',
+      specOptional: '可选',
+      specMax: (max: number) => `最多选 ${max} 项`,
+      tableNumber: (num: string) => `${num} 号桌`,
+      currency: '₩',
+      adminPanel: '后台管理',
+      login: '登录',
+      logout: '退出',
+      scanQr: '扫码点餐',
+      scanDesc: '请使用微信或相机扫描桌台二维码',
+      close: '关闭',
+      confirm: '确认',
+      cancel: '取消',
+      defaultDesc: '精选食材，匠心制作',
+      selected: '已选：',
+      none: '无',
+      checkout: '去结算',
+      confirmAddToCart: '确认加入购物车',
+      hotRecommended: '热门推荐',
+      invalidQr: '二维码已失效',
+      invalidQrDesc: '该桌位的用餐会话已结束或二维码已过期，请重新扫码或联系服务员。',
+      reload: '重新加载',
+      orderedItems: (count: number) => `已点 ${count} 件`,
+      orderSuccessTitle: '下单成功！',
+      orderSuccessDesc: (table: string) => `餐桌 ${table} 的美味正在准备中`,
+      kitchenNotified: '已实时通知后厨',
+      newOrderTitle: '收到新订单！',
+      newOrderDesc: '请立即前往后台处理',
+      viewNow: '立即查看',
+      categories: {
+        "招牌烤鱼": "招牌烤鱼",
+        "东北菜": "东北菜",
+        "川菜": "川菜",
+        "肉菜类": "肉菜类",
+        "素菜类": "素菜类",
+        "海鲜类": "海鲜类",
+        "主食类": "主食类",
+        "酒水类": "酒水类",
+        "啤酒菜": "啤酒菜"
+      },
+      dishes: {
+        "巫山招牌香辣烤鱼": "巫山招牌香辣烤鱼",
+        "金牌蒜香烤鱼": "金牌蒜香烤鱼",
+        "东北锅包肉": "东北锅包肉",
+        "小鸡炖蘑菇": "小鸡炖蘑菇",
+        "四川毛血旺": "四川毛血旺",
+        "鱼香肉丝": "鱼香肉丝",
+        "辣炒花蛤": "辣炒花蛤",
+        "椒盐皮皮虾": "椒盐皮皮虾",
+        "红烧肉": "红烧肉",
+        "清炒时蔬": "清炒时蔬",
+        "扬州炒饭": "扬州炒饭",
+        "青岛原浆啤酒": "青岛原浆啤酒"
+      },
+      dishDesc: {
+        "选用3斤以上活草鱼，秘制红油炒制，外焦里嫩。": "选用3斤以上活草鱼，秘制红油炒制，外焦里嫩。",
+        "浓郁蒜香，不辣首选，汤汁拌饭一绝。": "浓郁蒜香，不辣首选，汤汁拌饭一绝。",
+        "经典老式做法，酸甜适口，酥脆掉渣。": "经典老式做法，酸甜适口，酥脆掉渣。",
+        "选用长白山榛蘑，鸡肉鲜嫩入味。": "选用长白山榛蘑，鸡肉鲜嫩入味。",
+        "麻辣鲜香，配料丰富，正宗川味。": "麻辣鲜香，配料丰富，正宗川味。",
+        "酸辣甜咸四味俱全，下饭神器。": "酸辣甜咸四味俱全，下饭神器。",
+        "鲜活花蛤，爆炒入味，下酒必备。": "鲜活花蛤，爆炒入味，下酒必备。",
+        "外酥里嫩，椒香浓郁。": "外酥里嫩，椒香浓郁。",
+        "肥而不腻，入口即化。": "肥而不腻，入口即化。",
+        "时令鲜菜，清脆爽口。": "时令鲜菜，清脆爽口。",
+        "粒粒分明，配料丰富。": "粒粒分明，配料丰富。",
+        "新鲜原浆，口感醇厚。": "新鲜原浆，口感醇厚。"
+      },
+      stockLeft: (count: number) => `仅剩 ${count} 份`,
+      offlineTitle: '网络连接已断开',
+      offlineDesc: '请检查网络连接，以免影响下单',
+      upsellTitle: '超值加购',
+      upsellDesc: '再加一点，美味翻倍',
+      emptyCartHint: '肚子空空，快去点餐吧~',
+      searchPlaceholders: [
+        '想吃点辣的？',
+        '招牌烤鱼正在热销',
+        '东北锅包肉，酥脆酸甜',
+        '来杯冰镇啤酒解解腻？'
+      ]
+    },
+    ko: {
+      searchPlaceholder: '메뉴 검색...',
+      all: '전체',
+      soldOut: '품절 Sold Out',
+      recommended: '추천 메뉴',
+      selectSpecs: '옵션',
+      addToCart: '담기',
+      myOrder: '내 주문',
+      clearAll: '전체 삭제',
+      emptyCartTitle: '장바구니가 비어 있습니다',
+      emptyCartDesc: '원하시는 메뉴를 선택해주세요',
+      itemsSelected: (count: number) => `총 ${count}개 메뉴 선택`,
+      selectTable: '테이블 번호 선택',
+      required: '* 필수',
+      totalAmount: '총 결제 금액',
+      noTableSelected: '테이블 미선택',
+      confirmOrder: (table: string) => `주문하기 (${table}번 테이블)`,
+      confirmOrderNoTable: '테이블 번호를 선택해주세요',
+      submitting: '제출 중...',
+      specSelection: '옵션/추가 선택',
+      specRequired: '필수',
+      specOptional: '선택',
+      specMax: (max: number) => `최대 ${max}개 선택 가능`,
+      tableNumber: (num: string) => `${num}번 테이블`,
+      currency: '₩',
+      adminPanel: '관리자 패널',
+      login: '로그인',
+      logout: '로그아웃',
+      scanQr: 'QR 주문',
+      scanDesc: '위챗이나 카메라로 테이블 QR을 스캔해주세요',
+      close: '닫기',
+      confirm: '확인',
+      cancel: '취소',
+      defaultDesc: '신선한 재료로 정성껏 만들었습니다',
+      selected: '선택됨: ',
+      none: '없음',
+      checkout: '결제하기',
+      confirmAddToCart: '장바구니 담기 확인',
+      hotRecommended: '인기 추천',
+      invalidQr: 'QR 코드가 만료되었습니다',
+      invalidQrDesc: '해당 테이블의 식사 세션이 종료되었거나 QR 코드가 만료되었습니다. 다시 스캔하거나 직원에게 문의해주세요.',
+      reload: '새로고침',
+      orderedItems: (count: number) => `총 ${count}개 주문`,
+      orderSuccessTitle: '주문 완료!',
+      orderSuccessDesc: (table: string) => `${table}번 테이블의 맛있는 요리가 준비 중입니다`,
+      kitchenNotified: '주방에 실시간으로 전달되었습니다',
+      newOrderTitle: '새 주문이 접수되었습니다!',
+      newOrderDesc: '관리자 페이지에서 확인해주세요',
+      viewNow: '지금 확인',
+      stockLeft: (count: number) => `남은 수량 ${count}개`,
+      offlineTitle: '네트워크 연결 끊김',
+      offlineDesc: '주문 실패를 방지하기 위해 네트워크 연결을 확인해주세요',
+      upsellTitle: '가성비 추가',
+      upsellDesc: '조금만 더하면 맛이 두 배!',
+      emptyCartHint: '배가 비어있어요, 주문하러 가볼까요?~',
+      searchPlaceholders: [
+        '매운 음식이 당기나요?',
+        '시그니처 생선구이 인기 판매 중',
+        '동북 꿔바로우, 바삭하고 새콤달콤',
+        '시원한 맥주 한 잔 어떠세요?'
+      ],
+      categories: {
+        "招牌烤鱼": "시그니처 생선구이",
+        "东北菜": "동북 요리",
+        "川菜": "사천 요리",
+        "肉菜类": "고기류",
+        "素菜类": "채소류",
+        "海鲜类": "해산물",
+        "主食类": "식사류",
+        "酒水类": "주류/음료",
+        "啤酒菜": "맥주 안주"
+      },
+      dishes: {
+        "巫山招牌香辣烤鱼": "우산 시그니처 마라 생선구이",
+        "金牌蒜香烤鱼": "골드 마늘 생선구이",
+        "东北锅包肉": "동북 꿔바로우",
+        "小鸡炖蘑菇": "닭고기 버섯 조림",
+        "四川毛血旺": "사천 마오쉐왕",
+        "鱼香肉丝": "어향육사",
+        "辣炒花蛤": "매운 바지락 볶음",
+        "椒盐皮皮虾": "소금후추 쏙새우 튀김",
+        "红烧肉": "홍샤오로우",
+        "清炒时蔬": "제철 채소 볶음",
+        "扬州炒饭": "양저우 볶음밥",
+        "青岛原浆啤酒": "칭다오 생맥주"
+      },
+      dishDesc: {
+        "选用3斤以上活草鱼，秘制红油炒制，外焦里嫩。": "1.5kg 이상의 활어를 사용하여 비법 고추기름으로 볶아 겉은 바삭하고 속은 촉촉합니다.",
+        "浓郁蒜香，不辣首选，汤汁拌饭一绝。": "진한 마늘향, 맵지 않은 최고의 선택, 국물에 밥을 비벼 먹으면 일품입니다.",
+        "经典老式做法，酸甜适口，酥脆掉渣。": "전통 방식 그대로, 새콤달콤하고 바삭바삭합니다.",
+        "选用长白山榛蘑，鸡肉鲜嫩入味。": "백두산 개암버섯을 사용하여 닭고기가 부드럽고 간이 잘 배어 있습니다.",
+        "麻辣鲜香，配料丰富，正宗川味。": "마라의 매콤하고 신선한 향, 풍부한 재료, 정통 사천의 맛.",
+        "酸辣甜咸四味俱全，下饭神器。": "새콤, 매콤, 달콤, 짭짤한 네 가지 맛이 어우러진 밥도둑.",
+        "鲜活花蛤，爆炒入味，下酒必备。": "신선한 바지락을 센 불에 볶아 술안주로 필수입니다.",
+        "外酥里嫩，椒香浓郁。": "겉은 바삭하고 속은 부드러우며, 산초향이 진합니다.",
+        "肥而不腻，入口即化。": "비계가 있지만 느끼하지 않고 입안에서 녹습니다.",
+        "时令鲜菜，清脆爽口。": "제철 신선한 채소로 아삭하고 상쾌합니다.",
+        "粒粒分明，配料丰富。": "밥알이 살아있고 재료가 풍부합니다.",
+        "新鲜原浆，口感醇厚。": "신선한 생맥주, 깊고 진한 맛."
+      }
+    }
+  }[currentLanguage as 'zh' | 'ko'] || {
+    searchPlaceholder: '搜索菜品...',
+    all: '全部',
+    soldOut: '已估清 Sold Out',
+    recommended: '店长推荐',
+    selectSpecs: '选',
+    addToCart: '加入',
+    myOrder: '我的点餐单',
+    clearAll: '清空全部',
+    emptyCartTitle: '购物车还是空的',
+    emptyCartDesc: '快去挑选您心仪的美味吧',
+    itemsSelected: (count: number) => `共选择了 ${count} 件菜品`,
+    selectTable: '选择餐桌号',
+    required: '* 必选',
+    totalAmount: '应付总额',
+    noTableSelected: '未选桌号',
+    confirmOrder: (table: string) => `确认下单 (${table}号桌)`,
+    confirmOrderNoTable: '请先选择餐桌号',
+    submitting: '提交中...',
+    specSelection: '选择规格/加料',
+    specRequired: '必选',
+    specOptional: '可选',
+    specMax: (max: number) => `最多选 ${max} 项`,
+    tableNumber: (num: string) => `${num} 号桌`,
+    currency: '₩',
+    adminPanel: '后台管理',
+    login: '登录',
+    logout: '退出',
+    scanQr: '扫码点餐',
+    scanDesc: '请使用微信或相机扫描桌台二维码',
+    close: '关闭',
+    confirm: '确认',
+    cancel: '取消',
+    defaultDesc: '精选食材，匠心制作',
+    selected: '已选：',
+    none: '无',
+    checkout: '去结算',
+    confirmAddToCart: '确认加入购物车',
+    hotRecommended: '热门推荐',
+    invalidQr: '二维码已失效',
+    invalidQrDesc: '该桌位的用餐会话已结束或二维码已过期，请重新扫码或联系服务员。',
+    reload: '重新加载',
+    orderedItems: (count: number) => `已点 ${count} 件`,
+    orderSuccessTitle: '下单成功！',
+    orderSuccessDesc: (table: string) => `餐桌 ${table} 的美味正在准备中`,
+    kitchenNotified: '已实时通知后厨',
+    newOrderTitle: '收到新订单！',
+    newOrderDesc: '请立即前往后台处理',
+    viewNow: '立即查看',
+    stockLeft: (count: number) => `仅剩 ${count} 份`,
+    offlineTitle: '网络连接已断开',
+    offlineDesc: '请检查网络连接，以免影响下单',
+    upsellTitle: '超值加购',
+    upsellDesc: '再加一点，美味翻倍',
+    emptyCartHint: '肚子空空，快去点餐吧~',
+    searchPlaceholders: [
+      '想吃点辣的？',
+      '招牌烤鱼正在热销',
+      '东北锅包肉，酥脆酸甜',
+      '来杯冰镇啤酒解解腻？'
+    ]
+  }), [currentLanguage]);
   const [sessionInfo, setSessionInfo] = useState<{ table: string, token: string } | null>(null);
   const [isSessionValid, setIsSessionValid] = useState<boolean | null>(null);
   const [notification, setNotification] = useState<{ message: string, type: 'info' | 'success' } | null>(null);
@@ -179,6 +444,9 @@ export default function App() {
   const [selectedModifiers, setSelectedModifiers] = useState<DishModifier[]>([]);
   const [isCartPopping, setIsCartPopping] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [searchPlaceholderIndex, setSearchPlaceholderIndex] = useState(0);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isScrollingRef = useRef(false);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -190,6 +458,50 @@ export default function App() {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSearchPlaceholderIndex((prev) => (prev + 1) % t.searchPlaceholders.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [t.searchPlaceholders]);
+
+  const handleScroll = () => {
+    if (isScrollingRef.current || searchQuery) return;
+    
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const sections = container.querySelectorAll('.category-section');
+    let currentCategory = activeCategory;
+
+    sections.forEach((section) => {
+      const rect = section.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+      
+      // If the top of the section is near the top of the container
+      if (rect.top <= containerRect.top + 100) {
+        currentCategory = section.id.replace('category-', '');
+      }
+    });
+
+    if (currentCategory !== activeCategory) {
+      setActiveCategory(currentCategory);
+    }
+  };
+
+  const handleCategoryClick = (category: string) => {
+    setActiveCategory(category);
+    const element = document.getElementById(`category-${category}`);
+    if (element && scrollContainerRef.current) {
+      isScrollingRef.current = true;
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Reset the scrolling flag after animation
+      setTimeout(() => {
+        isScrollingRef.current = false;
+      }, 800);
+    }
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -315,10 +627,6 @@ export default function App() {
       }, (error) => {
         handleFirestoreError(error, OperationType.GET, 'orders');
       });
-    } else if (user?.email === 'yujianfei2016@gmail.com') {
-      // Admins can listen to all orders (optional, but AdminPanel does this anyway)
-      // For App.tsx, we only care about session-based notifications.
-      // So we don't need to listen to all orders here if not in a session.
     }
 
     return () => {
@@ -329,286 +637,6 @@ export default function App() {
     };
   }, [isAuthReady, user, lastOrderCount, sessionInfo]);
 
-  const t = {
-    zh: {
-      searchPlaceholder: '搜索菜品...',
-      all: '全部',
-      soldOut: '已估清 Sold Out',
-      recommended: '店长推荐',
-      selectSpecs: '选',
-      addToCart: '加入',
-      myOrder: '我的点餐单',
-      clearAll: '清空全部',
-      emptyCartTitle: '购物车还是空的',
-      emptyCartDesc: '快去挑选您心仪的美味吧',
-      itemsSelected: (count: number) => `共选择了 ${count} 件菜品`,
-      selectTable: '选择餐桌号',
-      required: '* 必选',
-      totalAmount: '应付总额',
-      noTableSelected: '未选桌号',
-      confirmOrder: (table: string) => `确认下单 (${table}号桌)`,
-      confirmOrderNoTable: '请先选择餐桌号',
-      submitting: '提交中...',
-      specSelection: '选择规格/加料',
-      specRequired: '必选',
-      specOptional: '可选',
-      specMax: (max: number) => `最多选 ${max} 项`,
-      tableNumber: (num: string) => `${num} 号桌`,
-      currency: '₩',
-      adminPanel: '后台管理',
-      login: '登录',
-      logout: '退出',
-      scanQr: '扫码点餐',
-      scanDesc: '请使用微信或相机扫描桌台二维码',
-      close: '关闭',
-      confirm: '确认',
-      cancel: '取消',
-      defaultDesc: '精选食材，匠心制作',
-      selected: '已选：',
-      none: '无',
-      checkout: '去结算',
-      confirmAddToCart: '确认加入购物车',
-      hotRecommended: '热门推荐',
-      invalidQr: '二维码已失效',
-      invalidQrDesc: '该桌位的用餐会话已结束或二维码已过期，请重新扫码或联系服务员。',
-      reload: '重新加载',
-      orderedItems: (count: number) => `已点 ${count} 件`,
-      orderSuccessTitle: '下单成功！',
-      orderSuccessDesc: (table: string) => `餐桌 ${table} 的美味正在准备中`,
-      kitchenNotified: '已实时通知后厨',
-      newOrderTitle: '收到新订单！',
-      newOrderDesc: '请立即前往后台处理',
-      viewNow: '立即查看',
-      categories: {
-        "招牌烤鱼": "招牌烤鱼",
-        "东北菜": "东北菜",
-        "川菜": "川菜",
-        "肉菜类": "肉菜类",
-        "素菜类": "素菜类",
-        "海鲜类": "海鲜类",
-        "主食类": "主食类",
-        "酒水类": "酒水类",
-        "啤酒菜": "啤酒菜"
-      },
-      dishes: {
-        "巫山招牌香辣烤鱼": "巫山招牌香辣烤鱼",
-        "金牌蒜香烤鱼": "金牌蒜香烤鱼",
-        "东北锅包肉": "东北锅包肉",
-        "小鸡炖蘑菇": "小鸡炖蘑菇",
-        "四川毛血旺": "四川毛血旺",
-        "鱼香肉丝": "鱼香肉丝",
-        "辣炒花蛤": "辣炒花蛤",
-        "椒盐皮皮虾": "椒盐皮皮虾",
-        "红烧肉": "红烧肉",
-        "清炒时蔬": "清炒时蔬",
-        "扬州炒饭": "扬州炒饭",
-        "青岛原浆啤酒": "青岛原浆啤酒"
-      },
-      dishDesc: {
-        "选用3斤以上活草鱼，秘制红油炒制，外焦里嫩。": "选用3斤以上活草鱼，秘制红油炒制，外焦里嫩。",
-        "浓郁蒜香，不辣首选，汤汁拌饭一绝。": "浓郁蒜香，不辣首选，汤汁拌饭一绝。",
-        "经典老式做法，酸甜适口，酥脆掉渣。": "经典老式做法，酸甜适口，酥脆掉渣。",
-        "选用长白山榛蘑，鸡肉鲜嫩入味。": "选用长白山榛蘑，鸡肉鲜嫩入味。",
-        "麻辣鲜香，配料丰富，正宗川味。": "麻辣鲜香，配料丰富，正宗川味。",
-        "酸辣甜咸四味俱全，下饭神器。": "酸辣甜咸四味俱全，下饭神器。",
-        "鲜活花蛤，爆炒入味，下酒必备。": "鲜活花蛤，爆炒入味，下酒必备。",
-        "外酥里嫩，椒香浓郁。": "外酥里嫩，椒香浓郁。",
-        "肥而不腻，入口即化。": "肥而不腻，入口即化。",
-        "时令鲜菜，清脆爽口。": "时令鲜菜，清脆爽口。",
-        "粒粒分明，配料丰富。": "粒粒分明，配料丰富。",
-        "新鲜原浆，口感醇厚。": "新鲜原浆，口感醇厚。"
-      }
-    },
-    ko: {
-      searchPlaceholder: '메뉴 검색...',
-      all: '전체',
-      soldOut: '품절 Sold Out',
-      recommended: '추천 메뉴',
-      selectSpecs: '옵션',
-      addToCart: '담기',
-      myOrder: '내 주문',
-      clearAll: '전체 삭제',
-      emptyCartTitle: '장바구니가 비어 있습니다',
-      emptyCartDesc: '원하시는 메뉴를 선택해주세요',
-      itemsSelected: (count: number) => `총 ${count}개 메뉴 선택`,
-      selectTable: '테이블 번호 선택',
-      required: '* 필수',
-      totalAmount: '총 결제 금액',
-      noTableSelected: '테이블 미선택',
-      confirmOrder: (table: string) => `주문하기 (${table}번 테이블)`,
-      confirmOrderNoTable: '테이블 번호를 선택해주세요',
-      submitting: '제출 중...',
-      specSelection: '옵션/추가 선택',
-      specRequired: '필수',
-      specOptional: '선택',
-      specMax: (max: number) => `최대 ${max}개 선택 가능`,
-      tableNumber: (num: string) => `${num}번 테이블`,
-      currency: '₩',
-      adminPanel: '관리자 패널',
-      login: '로그인',
-      logout: '로그아웃',
-      scanQr: 'QR 주문',
-      scanDesc: '위챗이나 카메라로 테이블 QR을 스캔해주세요',
-      close: '닫기',
-      confirm: '확인',
-      cancel: '취소',
-      defaultDesc: '신선한 재료로 정성껏 만들었습니다',
-      selected: '선택됨: ',
-      none: '없음',
-      checkout: '결제하기',
-      confirmAddToCart: '장바구니 담기 확인',
-      hotRecommended: '인기 추천',
-      invalidQr: 'QR 코드가 만료되었습니다',
-      invalidQrDesc: '해당 테이블의 식사 세션이 종료되었거나 QR 코드가 만료되었습니다. 다시 스캔하거나 직원에게 문의해주세요.',
-      reload: '새로고침',
-      orderedItems: (count: number) => `총 ${count}개 주문`,
-      orderSuccessTitle: '주문 완료!',
-      orderSuccessDesc: (table: string) => `${table}번 테이블의 맛있는 요리가 준비 중입니다`,
-      kitchenNotified: '주방에 실시간으로 전달되었습니다',
-      newOrderTitle: '새 주문이 접수되었습니다!',
-      newOrderDesc: '관리자 페이지에서 확인해주세요',
-      viewNow: '지금 확인',
-      stockLeft: (count: number) => `남은 수량 ${count}개`,
-      offlineTitle: '네트워크 연결 끊김',
-      offlineDesc: '주문 실패를 방지하기 위해 네트워크 연결을 확인해주세요',
-      upsellTitle: '가성비 추가',
-      upsellDesc: '조금만 더하면 맛이 두 배!',
-      emptyCartHint: '배가 비어있어요, 주문하러 가볼까요?~',
-      categories: {
-        "招牌烤鱼": "시그니처 생선구이",
-        "东北菜": "동북 요리",
-        "川菜": "사천 요리",
-        "肉菜类": "고기류",
-        "素菜类": "채소류",
-        "海鲜类": "해산물",
-        "主食类": "식사류",
-        "酒水类": "주류/음료",
-        "啤酒菜": "맥주 안주"
-      },
-      dishes: {
-        "巫山招牌香辣烤鱼": "우산 시그니처 마라 생선구이",
-        "金牌蒜香烤鱼": "골드 마늘 생선구이",
-        "东北锅包肉": "동북 꿔바로우",
-        "小鸡炖蘑菇": "닭고기 버섯 조림",
-        "四川毛血旺": "사천 마오쉐왕",
-        "鱼香肉丝": "어향육사",
-        "辣炒花蛤": "매운 바지락 볶음",
-        "椒盐皮皮虾": "소금후추 쏙새우 튀김",
-        "红烧肉": "홍샤오로우",
-        "清炒时蔬": "제철 채소 볶음",
-        "扬州炒饭": "양저우 볶음밥",
-        "青岛原浆啤酒": "칭다오 생맥주"
-      },
-      dishDesc: {
-        "选用3斤以上活草鱼，秘制红油炒制，外焦里嫩。": "1.5kg 이상의 활어를 사용하여 비법 고추기름으로 볶아 겉은 바삭하고 속은 촉촉합니다.",
-        "浓郁蒜香，不辣首选，汤汁拌饭一绝。": "진한 마늘향, 맵지 않은 최고의 선택, 국물에 밥을 비벼 먹으면 일품입니다.",
-        "经典老式做法，酸甜适口，酥脆掉渣。": "전통 방식 그대로, 새콤달콤하고 바삭바삭합니다.",
-        "选用长白山榛蘑，鸡肉鲜嫩入味。": "백두산 개암버섯을 사용하여 닭고기가 부드럽고 간이 잘 배어 있습니다.",
-        "麻辣鲜香，配料丰富，正宗川味。": "마라의 매콤하고 신선한 향, 풍부한 재료, 정통 사천의 맛.",
-        "酸辣甜咸四味俱全，下饭神器。": "새콤, 매콤, 달콤, 짭짤한 네 가지 맛이 어우러진 밥도둑.",
-        "鲜活花蛤，爆炒入味，下酒必备。": "신선한 바지락을 센 불에 볶아 술안주로 필수입니다.",
-        "外酥里嫩，椒香浓郁。": "겉은 바삭하고 속은 부드러우며, 산초향이 진합니다.",
-        "肥而不腻，入口即化。": "비계가 있지만 느끼하지 않고 입안에서 녹습니다.",
-        "时令鲜菜，清脆爽口。": "제철 신선한 채소로 아삭하고 상쾌합니다.",
-        "粒粒分明，配料丰富。": "밥알이 살아있고 재료가 풍부합니다.",
-        "新鲜原浆，口感醇厚。": "신선한 생맥주, 깊고 진한 맛."
-      }
-    }
-  }[currentLanguage as 'zh' | 'ko'] || {
-    searchPlaceholder: '搜索菜品...',
-    all: '全部',
-    soldOut: '已估清 Sold Out',
-    recommended: '店长推荐',
-    selectSpecs: '选',
-    addToCart: '加入',
-    myOrder: '我的点餐单',
-    clearAll: '清空全部',
-    emptyCartTitle: '购物车还是空的',
-    emptyCartDesc: '快去挑选您心仪的美味吧',
-    itemsSelected: (count: number) => `共选择了 ${count} 件菜品`,
-    selectTable: '选择餐桌号',
-    required: '* 必选',
-    totalAmount: '应付总额',
-    noTableSelected: '未选桌号',
-    confirmOrder: (table: string) => `确认下单 (${table}号桌)`,
-    confirmOrderNoTable: '请先选择餐桌号',
-    submitting: '提交中...',
-    specSelection: '选择规格/加料',
-    specRequired: '必选',
-    specOptional: '可选',
-    specMax: (max: number) => `最多选 ${max} 项`,
-    tableNumber: (num: string) => `${num} 号桌`,
-    currency: '₩',
-    adminPanel: '后台管理',
-    login: '登录',
-    logout: '退出',
-    scanQr: '扫码点餐',
-    scanDesc: '请使用微信或相机扫描桌台二维码',
-    close: '关闭',
-    confirm: '确认',
-    cancel: '取消',
-    defaultDesc: '精选食材，匠心制作',
-    selected: '已选：',
-    none: '无',
-    checkout: '去结算',
-    confirmAddToCart: '确认加入购物车',
-    hotRecommended: '热门推荐',
-    invalidQr: '二维码已失效',
-    invalidQrDesc: '该桌位的用餐会话已结束或二维码已过期，请重新扫码或联系服务员。',
-    reload: '重新加载',
-    orderedItems: (count: number) => `已点 ${count} 件`,
-    orderSuccessTitle: '下单成功！',
-    orderSuccessDesc: (table: string) => `餐桌 ${table} 的美味正在准备中`,
-    kitchenNotified: '已实时通知后厨',
-    newOrderTitle: '收到新订单！',
-    newOrderDesc: '请立即前往后台处理',
-    viewNow: '立即查看',
-    stockLeft: (count: number) => `仅剩 ${count} 份`,
-    offlineTitle: '网络已断开',
-    offlineDesc: '请检查您的网络连接，以免下单失败',
-    upsellTitle: '超值加购',
-    upsellDesc: '再加一点，美味翻倍',
-    emptyCartHint: '肚子空空，快去点餐吧~',
-    categories: {
-      "招牌烤鱼": "招牌烤鱼",
-      "东北菜": "东北菜",
-      "川菜": "川菜",
-      "肉菜类": "肉菜类",
-      "素菜类": "素菜类",
-      "海鲜类": "海鲜类",
-      "主食类": "主食类",
-      "酒水类": "酒水类",
-      "啤酒菜": "啤酒菜"
-    },
-    dishes: {
-      "巫山招牌香辣烤鱼": "巫山招牌香辣烤鱼",
-      "金牌蒜香烤鱼": "金牌蒜香烤鱼",
-      "东北锅包肉": "东北锅包肉",
-      "小鸡炖蘑菇": "小鸡炖蘑菇",
-      "四川毛血旺": "四川毛血旺",
-      "鱼香肉丝": "鱼香肉丝",
-      "辣炒花蛤": "辣炒花蛤",
-      "椒盐皮皮虾": "椒盐皮皮虾",
-      "红烧肉": "红烧肉",
-      "清炒时蔬": "清炒时蔬",
-      "扬州炒饭": "扬州炒饭",
-      "青岛原浆啤酒": "青岛原浆啤酒"
-    },
-    dishDesc: {
-      "选用3斤以上活草鱼，秘制红油炒制，外焦里嫩。": "选用3斤以上活草鱼，秘制红油炒制，外焦里嫩。",
-      "浓郁蒜香，不辣首选，汤汁拌饭一绝。": "浓郁蒜香，不辣首选，汤汁拌饭一绝。",
-      "经典老式做法，酸甜适口，酥脆掉渣。": "经典老式做法，酸甜适口，酥脆掉渣。",
-      "选用长白山榛蘑，鸡肉鲜嫩入味。": "选用长白山榛蘑，鸡肉鲜嫩入味。",
-      "麻辣鲜香，配料丰富，正宗川味。": "麻辣鲜香，配料丰富，正宗川味。",
-      "酸辣甜咸四味俱全，下饭神器。": "酸辣甜咸四味俱全，下饭神器。",
-      "鲜活花蛤，爆炒入味，下酒必备。": "鲜活花蛤，爆炒入味，下酒必备。",
-      "外酥里嫩，椒香浓郁。": "外酥里嫩，椒香浓郁。",
-      "肥而不腻，入口即化。": "肥而不腻，入口即化。",
-      "时令鲜菜，清脆爽口。": "时令鲜菜，清脆爽口。",
-      "粒粒分明，配料丰富。": "粒粒分明，配料丰富。",
-      "新鲜原浆，口感醇厚。": "新鲜原浆，口感醇厚。"
-    }
-  };
 
   const getLocalizedName = (dish: Dish) => {
     if (currentLanguage === 'en' && dish.name_en) return dish.name_en;
@@ -890,63 +918,90 @@ export default function App() {
       {/* Mobile Sidebar Navigation */}
       <aside className="flex w-20 bg-gray-50 border-r border-gray-100 flex-col py-4 z-10 overflow-y-auto no-scrollbar">
         <div className="flex flex-col space-y-2">
-          <button
-            onClick={() => setActiveCategory('店长推荐')}
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => handleCategoryClick('店长推荐')}
             className={`flex flex-col items-center py-4 relative transition-all ${
               activeCategory === '店长推荐' ? 'bg-white text-red-600' : 'text-gray-500'
             }`}
           >
-            {activeCategory === '店长推荐' && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-red-600 rounded-r-full" />}
-            <span className="text-xl mb-1">{CATEGORY_ICONS['店长推荐']}</span>
+            {activeCategory === '店长推荐' && (
+              <motion.div 
+                layoutId="active-indicator"
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-red-600 rounded-r-full" 
+              />
+            )}
+            <motion.span 
+              animate={{ scale: activeCategory === '店长推荐' ? 1.1 : 1 }}
+              className="text-xl mb-1"
+            >
+              {CATEGORY_ICONS['店长推荐']}
+            </motion.span>
             <span className={`text-[0.65rem] font-bold ${activeCategory === '店长推荐' ? 'text-red-600' : 'text-gray-400'}`}>{t.hotRecommended}</span>
-          </button>
+          </motion.button>
           {categories.map(category => (
-            <button
+            <motion.button
               key={category}
-              onClick={() => setActiveCategory(category)}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => handleCategoryClick(category)}
               className={`flex flex-col items-center py-4 relative transition-all ${
                 activeCategory === category ? 'bg-white text-red-600' : 'text-gray-500'
               }`}
             >
-              {activeCategory === category && <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-red-600 rounded-r-full" />}
-              <span className="text-xl mb-1">{CATEGORY_ICONS[category] || '🍽️'}</span>
+              {activeCategory === category && (
+                <motion.div 
+                  layoutId="active-indicator"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-red-600 rounded-r-full" 
+                />
+              )}
+              <motion.span 
+                animate={{ scale: activeCategory === category ? 1.1 : 1 }}
+                className="text-xl mb-1"
+              >
+                {CATEGORY_ICONS[category] || '🍽️'}
+              </motion.span>
               <span className={`text-[0.65rem] font-bold ${activeCategory === category ? 'text-red-600' : 'text-gray-400'}`}>{getLocalizedCategory(category)}</span>
-            </button>
+            </motion.button>
           ))}
         </div>
       </aside>
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col relative overflow-hidden bg-white">
-        {/* Mobile Header */}
-        <div className="pt-[env(safe-area-inset-top)] bg-white z-20">
-          <div className="h-14 flex items-center justify-between px-4 border-b border-gray-50">
-            <div className="w-8">
-              {/* Admin button removed as per user request */}
+        {/* Sticky Header with Glassmorphism */}
+        <div className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-gray-50/50">
+          <div className="pt-[env(safe-area-inset-top)]">
+            <div className="h-14 flex items-center justify-between px-4">
+              <div className="w-8" />
+              <h1 className="text-lg font-black tracking-tight text-gray-900">{appSettings.restaurantName}</h1>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setLocalLanguage(currentLanguage === 'zh' ? 'ko' : 'zh')}
+                  className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gray-100/50 text-gray-600 hover:bg-gray-200/50 transition-colors flex items-center space-x-1"
+                >
+                  <span>{currentLanguage === 'zh' ? '🇨🇳' : '🇰🇷'}</span>
+                </button>
+                {/* Admin buttons removed as requested */}
+              </div>
             </div>
-            <h1 className="text-lg font-black tracking-tight text-gray-900">{appSettings.restaurantName}</h1>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setLocalLanguage(currentLanguage === 'zh' ? 'ko' : 'zh')}
-                className="px-3 py-1.5 text-xs font-bold rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors flex items-center space-x-1"
-              >
-                <span>{currentLanguage === 'zh' ? '🇨🇳 CN' : '🇰🇷 KO'}</span>
-              </button>
-              {!user ? (
-                <button 
-                  onClick={handleLogin}
-                  className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"
-                >
-                  <LogIn size={20} />
-                </button>
-              ) : (
-                <button 
-                  onClick={handleLogout}
-                  className="p-1 hover:bg-gray-100 rounded-lg transition-colors text-gray-400"
-                >
-                  <LogOut size={20} />
-                </button>
-              )}
+          </div>
+
+          {/* Search Bar inside Sticky Header */}
+          <div className="px-4 pb-3">
+            <div className="bg-gray-100/50 rounded-xl flex items-center px-4 py-2 border border-gray-200/20">
+              <AnimatePresence mode="wait">
+                <motion.input 
+                  key={searchPlaceholderIndex}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -5 }}
+                  type="text" 
+                  placeholder={searchQuery ? '' : t.searchPlaceholders[searchPlaceholderIndex]}
+                  className="bg-transparent border-none outline-none text-sm w-full text-gray-700 placeholder-gray-400"
+                  value={searchQuery || ''}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </AnimatePresence>
             </div>
           </div>
         </div>
@@ -966,99 +1021,239 @@ export default function App() {
           )}
         </AnimatePresence>
 
-        {/* Mobile Search Bar */}
-        <div className="px-4 py-3 bg-white z-10">
-          <div className="bg-gray-100 rounded-xl flex items-center px-4 py-2">
-            <Search size={16} className="text-gray-400 mr-2" />
-            <input 
-              type="text" 
-              placeholder={t.searchPlaceholder}
-              className="bg-transparent border-none outline-none text-sm w-full text-gray-700 placeholder-gray-400"
-              value={searchQuery || ''}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </div>
-        </div>
-
         {/* Dish Grid/List */}
-        <div className="flex-1 overflow-y-auto px-4 pb-32 no-scrollbar bg-white">
-          <div className="mb-6 flex items-center justify-between pt-4">
-            <h2 className="text-lg font-black text-gray-900 flex items-center">
-              {getLocalizedCategory(activeCategory)} {CATEGORY_ICONS[activeCategory]}
-            </h2>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4">
-            <AnimatePresence mode="popLayout">
-              {filteredDishes.map(dish => (
-                <motion.div
-                  key={dish.id}
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className={`bg-white rounded-2xl p-2 shadow-sm border border-gray-50 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-md hover:border-red-50'}`}
-                >
-                  {dish.isSoldOut && (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/40 backdrop-blur-[1px] rounded-2xl">
-                      <div className="bg-gray-800 text-white px-3 py-1 rounded-full text-[0.65rem] font-black uppercase tracking-widest shadow-xl">
-                        {t.soldOut}
-                      </div>
-                    </div>
-                  )}
-                  <div className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl bg-gray-100">
-                    <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
-                    
-                    {dish.isRecommended && (
-                      <div className="absolute top-2 left-2 bg-red-600 text-white text-[0.5rem] font-bold px-1.5 py-0.5 rounded-md shadow-lg z-10">
-                        {t.recommended}
+        <div 
+          ref={scrollContainerRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto px-4 pb-32 no-scrollbar bg-white"
+        >
+          {searchQuery ? (
+            <div className="grid grid-cols-1 gap-4 pt-4">
+              <AnimatePresence mode="popLayout">
+                {filteredDishes.map(dish => (
+                  <motion.div
+                    key={dish.id}
+                    layout
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className={`bg-white rounded-2xl p-2 shadow-sm border border-gray-50 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-md hover:border-red-50'}`}
+                  >
+                    {dish.isSoldOut && (
+                      <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/40 backdrop-blur-[1px] rounded-2xl">
+                        <div className="bg-gray-800 text-white px-3 py-1 rounded-full text-[0.65rem] font-black uppercase tracking-widest shadow-xl">
+                          {t.soldOut}
+                        </div>
                       </div>
                     )}
-                  </div>
-                  
-                  <div className="flex-1 pl-3 py-1 flex flex-col justify-between">
-                    <div>
-                      <div className="flex items-start justify-between mb-1">
-                        <h3 className="text-base font-black text-gray-900 group-hover:text-red-600 transition-colors line-clamp-1">
-                          {getLocalizedName(dish)}
-                        </h3>
-                      </div>
-                      <p className="text-[0.65rem] text-gray-400 line-clamp-1">{getLocalizedDesc(dish) || t.defaultDesc}</p>
+                    <div className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl bg-gray-100">
+                      <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
+                      
+                      {dish.isRecommended && (
+                        <div className="absolute top-2 left-2 bg-red-600 text-white text-[0.5rem] font-bold px-1.5 py-0.5 rounded-md shadow-lg z-10">
+                          {t.recommended}
+                        </div>
+                      )}
                     </div>
+                    
+                    <div className="flex-1 pl-3 py-1 flex flex-col justify-between">
+                      <div>
+                        <div className="flex items-start justify-between mb-1">
+                          <h3 className="text-base font-black text-gray-900 group-hover:text-red-600 transition-colors line-clamp-1">
+                            {getLocalizedName(dish)}
+                          </h3>
+                        </div>
+                        <p className="text-[0.65rem] text-gray-400 line-clamp-1">{getLocalizedDesc(dish) || t.defaultDesc}</p>
+                      </div>
 
-                    <div className="flex items-center justify-between mt-auto">
-                      <div className="flex flex-col">
-                        <span className="text-red-600 text-lg font-black">{formatPrice(dish.price, appSettings.currency)}</span>
-                        {dish.stock !== undefined && dish.stock > 0 && dish.stock <= 10 && (
-                          <span className="text-[0.6rem] text-red-500 font-bold animate-pulse">
-                            🔥 {t.stockLeft(dish.stock)}
-                          </span>
-                        )}
+                      <div className="flex items-center justify-between mt-auto">
+                        <div className="flex flex-col">
+                          <span className="text-red-600 text-lg font-black">{formatPrice(dish.price, appSettings.currency)}</span>
+                          {dish.stock !== undefined && dish.stock > 0 && dish.stock <= 10 && (
+                            <span className="text-[0.6rem] text-red-500 font-bold animate-pulse">
+                              🔥 {t.stockLeft(dish.stock)}
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <button 
+                            onClick={(e) => handleAddToCart(dish, e)}
+                            disabled={dish.isSoldOut}
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 ${
+                              dish.isSoldOut 
+                                ? 'bg-gray-100 text-gray-300' 
+                                : 'bg-red-600 text-white shadow-red-100'
+                            }`}
+                          >
+                            {dish.modifiers && dish.modifiers.length > 0 ? (
+                              <span className="text-[0.65rem] font-black">{t.selectSpecs}</span>
+                            ) : (
+                              <Plus size={20} />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          ) : (
+            <>
+              {/* Hot Recommended Section */}
+              <div id="category-店长推荐" className="category-section pt-4">
+                <div className="mb-6 flex items-center justify-between">
+                  <h2 className="text-lg font-black text-gray-900 flex items-center">
+                    {t.hotRecommended} {CATEGORY_ICONS['店长推荐']}
+                  </h2>
+                </div>
+                <div className="grid grid-cols-1 gap-4 mb-8">
+                  {dishes.filter(d => d.isRecommended).map(dish => (
+                    <motion.div
+                      key={`rec-${dish.id}`}
+                      layout
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`bg-white rounded-2xl p-2 shadow-sm border border-gray-50 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-md hover:border-red-50'}`}
+                    >
+                      {dish.isSoldOut && (
+                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/40 backdrop-blur-[1px] rounded-2xl">
+                          <div className="bg-gray-800 text-white px-3 py-1 rounded-full text-[0.65rem] font-black uppercase tracking-widest shadow-xl">
+                            {t.soldOut}
+                          </div>
+                        </div>
+                      )}
+                      <div className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl bg-gray-100">
+                        <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
+                        <div className="absolute top-2 left-2 bg-red-600 text-white text-[0.5rem] font-bold px-1.5 py-0.5 rounded-md shadow-lg z-10">
+                          {t.recommended}
+                        </div>
                       </div>
                       
-                      <div className="flex items-center space-x-2">
-                        <button 
-                          onClick={(e) => handleAddToCart(dish, e)}
-                          disabled={dish.isSoldOut}
-                          className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 ${
-                            dish.isSoldOut 
-                              ? 'bg-gray-100 text-gray-300' 
-                              : 'bg-red-600 text-white shadow-red-100'
-                          }`}
-                        >
-                          {dish.modifiers && dish.modifiers.length > 0 ? (
-                            <span className="text-[0.65rem] font-black">{t.selectSpecs}</span>
-                          ) : (
-                            <Plus size={20} />
-                          )}
-                        </button>
+                      <div className="flex-1 pl-3 py-1 flex flex-col justify-between">
+                        <div>
+                          <div className="flex items-start justify-between mb-1">
+                            <h3 className="text-base font-black text-gray-900 group-hover:text-red-600 transition-colors line-clamp-1">
+                              {getLocalizedName(dish)}
+                            </h3>
+                          </div>
+                          <p className="text-[0.65rem] text-gray-400 line-clamp-1">{getLocalizedDesc(dish) || t.defaultDesc}</p>
+                        </div>
+
+                        <div className="flex items-center justify-between mt-auto">
+                          <div className="flex flex-col">
+                            <span className="text-red-600 text-lg font-black">{formatPrice(dish.price, appSettings.currency)}</span>
+                            {dish.stock !== undefined && dish.stock > 0 && dish.stock <= 10 && (
+                              <span className="text-[0.6rem] text-red-500 font-bold animate-pulse">
+                                🔥 {t.stockLeft(dish.stock)}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center space-x-2">
+                            <button 
+                              onClick={(e) => handleAddToCart(dish, e)}
+                              disabled={dish.isSoldOut}
+                              className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 ${
+                                dish.isSoldOut 
+                                  ? 'bg-gray-100 text-gray-300' 
+                                  : 'bg-red-600 text-white shadow-red-100'
+                              }`}
+                            >
+                              {dish.modifiers && dish.modifiers.length > 0 ? (
+                                <span className="text-[0.65rem] font-black">{t.selectSpecs}</span>
+                              ) : (
+                                <Plus size={20} />
+                              )}
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Other Categories */}
+              {categories.map(category => (
+                <div key={category} id={`category-${category}`} className="category-section">
+                  <div className="mb-6 flex items-center justify-between pt-4">
+                    <h2 className="text-lg font-black text-gray-900 flex items-center">
+                      {getLocalizedCategory(category)} {CATEGORY_ICONS[category]}
+                    </h2>
                   </div>
-                </motion.div>
+                  <div className="grid grid-cols-1 gap-4 mb-8">
+                    {dishes.filter(d => d.category === category).map(dish => (
+                      <motion.div
+                        key={dish.id}
+                        layout
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`bg-white rounded-2xl p-2 shadow-sm border border-gray-50 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-md hover:border-red-50'}`}
+                      >
+                        {dish.isSoldOut && (
+                          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/40 backdrop-blur-[1px] rounded-2xl">
+                            <div className="bg-gray-800 text-white px-3 py-1 rounded-full text-[0.65rem] font-black uppercase tracking-widest shadow-xl">
+                              {t.soldOut}
+                            </div>
+                          </div>
+                        )}
+                        <div className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl bg-gray-100">
+                          <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
+                          {dish.isRecommended && (
+                            <div className="absolute top-2 left-2 bg-red-600 text-white text-[0.5rem] font-bold px-1.5 py-0.5 rounded-md shadow-lg z-10">
+                              {t.recommended}
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex-1 pl-3 py-1 flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-start justify-between mb-1">
+                              <h3 className="text-base font-black text-gray-900 group-hover:text-red-600 transition-colors line-clamp-1">
+                                {getLocalizedName(dish)}
+                              </h3>
+                            </div>
+                            <p className="text-[0.65rem] text-gray-400 line-clamp-1">{getLocalizedDesc(dish) || t.defaultDesc}</p>
+                          </div>
+
+                          <div className="flex items-center justify-between mt-auto">
+                            <div className="flex flex-col">
+                              <span className="text-red-600 text-lg font-black">{formatPrice(dish.price, appSettings.currency)}</span>
+                              {dish.stock !== undefined && dish.stock > 0 && dish.stock <= 10 && (
+                                <span className="text-[0.6rem] text-red-500 font-bold animate-pulse">
+                                  🔥 {t.stockLeft(dish.stock)}
+                                </span>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                              <button 
+                                onClick={(e) => handleAddToCart(dish, e)}
+                                disabled={dish.isSoldOut}
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 ${
+                                  dish.isSoldOut 
+                                    ? 'bg-gray-100 text-gray-300' 
+                                    : 'bg-red-600 text-white shadow-red-100'
+                                }`}
+                              >
+                                {dish.modifiers && dish.modifiers.length > 0 ? (
+                                  <span className="text-[0.65rem] font-black">{t.selectSpecs}</span>
+                                ) : (
+                                  <Plus size={20} />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
               ))}
-            </AnimatePresence>
-          </div>
+            </>
+          )}
         </div>
 
         {/* Bottom Cart Bar - Enhanced */}
