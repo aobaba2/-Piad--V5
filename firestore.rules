@@ -11,7 +11,7 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() && 
         (
-          ('email' in request.auth.token && (request.auth.token.email == "yujianfei2016@gmail.com" || request.auth.token.email == "aoba2026@admin.com")) || 
+          (request.auth.uid == "bkRyLNwXXtbWpRoK8d0XYRLLCff2" || ('email' in request.auth.token && (request.auth.token.email == "yujianfei2016@gmail.com" || request.auth.token.email == "aoba2026@admin.com"))) || 
           (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin') ||
           ('email' in request.auth.token && 
@@ -73,7 +73,7 @@ service cloud.firestore {
              data.tableNumber is string &&
              data.items is list &&
              data.totalPrice is number &&
-             data.status in ['pending', 'preparing', 'served', 'completed', 'cancelled'] &&
+             data.status in ['pending', 'confirmed', 'preparing', 'served', 'completed', 'cancelled'] &&
              (data.createdAt is string || data.createdAt is timestamp) &&
              (!('sessionToken' in data) || data.sessionToken is string);
     }
@@ -128,7 +128,7 @@ service cloud.firestore {
       // We allow 'list' if the query filters by sessionToken.
       allow read: if isStaff() || (resource.data.sessionToken != null && resource.data.sessionToken != "");
       allow create: if isValidOrder(request.resource.data);
-      allow update: if isStaff() && isValidOrder(request.resource.data);
+      allow update: if isStaff() && (isValidOrder(request.resource.data) || isAdmin());
       allow delete: if isAdmin();
     }
     
