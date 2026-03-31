@@ -1173,7 +1173,7 @@ export default function App() {
         )}
       </AnimatePresence>
       {/* Mobile Sidebar Navigation */}
-      <aside className="flex w-24 bg-piad-bg border-r border-piad-primary/5 flex-col py-4 z-10 overflow-y-auto no-scrollbar">
+      <aside className="flex w-24 bg-piad-bg border-r border-piad-primary/5 flex-col py-4 z-10 overflow-y-auto no-scrollbar overscroll-contain">
         <div className="flex flex-col space-y-3">
           <motion.button
             whileTap={{ scale: 0.95 }}
@@ -1322,7 +1322,7 @@ export default function App() {
         <div 
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto px-4 pb-32 no-scrollbar bg-piad-bg"
+          className="flex-1 overflow-y-auto px-4 pb-32 no-scrollbar bg-piad-bg overscroll-contain"
         >
           {searchQuery ? (
             <div className="grid grid-cols-1 gap-4 pt-4">
