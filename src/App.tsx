@@ -1574,26 +1574,29 @@ export default function App() {
         </div>
 
         {/* Bottom Cart Bar - Enhanced */}
-        <div className="fixed bottom-6 right-4 w-[70vw] z-30">
+        <div className="fixed bottom-6 right-4 z-30">
           <motion.div 
+            layout
             initial={{ y: 100, opacity: 0 }}
             animate={{ 
               y: 0, 
               opacity: 1,
-              scale: isCartPopping ? 1.05 : 1
+              scale: isCartPopping ? 1.05 : 1,
+              width: totalItems > 0 ? 'min(70vw, 400px)' : '64px'
             }}
             transition={{
-              scale: { duration: 0.1 }
+              scale: { duration: 0.1 },
+              layout: { duration: 0.3, type: "spring", stiffness: 300, damping: 30 }
             }}
-            className="bg-[#1f2937]/50 backdrop-blur-xl border border-white/10 rounded-full h-16 flex items-center justify-between px-2 shadow-[0_20px_50px_rgba(0,0,0,0.3)] active:scale-95 transition-transform"
+            className="bg-[#1f2937]/50 backdrop-blur-xl border border-white/10 rounded-full h-16 flex items-center shadow-[0_20px_50px_rgba(0,0,0,0.3)] active:scale-95 transition-transform overflow-hidden"
           >
             <div 
-              onClick={() => setIsCartOpen(!isCartOpen)}
-              className="flex items-center flex-1 cursor-pointer pl-3"
+              onClick={() => totalItems > 0 && setIsCartOpen(!isCartOpen)}
+              className={`flex items-center cursor-pointer transition-all duration-300 ${totalItems > 0 ? 'flex-1 pl-3' : 'justify-center w-full'}`}
             >
-              <div className="relative mr-3">
-                <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-500/20">
-                  <ShoppingCart size={20} />
+              <div className="relative">
+                <div className={`rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-500/20 transition-all duration-300 ${totalItems > 0 ? 'w-10 h-10 mr-3' : 'w-12 h-12'}`}>
+                  <ShoppingCart size={totalItems > 0 ? 20 : 24} />
                 </div>
                 {totalItems > 0 && (
                   <motion.div 
@@ -1605,32 +1608,48 @@ export default function App() {
                   </motion.div>
                 )}
               </div>
-              <div className="flex flex-col">
-                <span className="text-white text-sm font-black">{t.orderedItems(totalItems)}</span>
-                <span className="text-[0.6rem] text-gray-400 font-bold">{t.viewCart}</span>
-              </div>
+              
+              <AnimatePresence>
+                {totalItems > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    className="flex flex-col whitespace-nowrap"
+                  >
+                    <span className="text-white text-sm font-black">{t.orderedItems(totalItems)}</span>
+                    <span className="text-[0.6rem] text-gray-400 font-bold">{t.viewCart}</span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            <button 
-              onClick={handleOrderSubmit}
-              disabled={totalItems === 0 || isOrdering}
-              className={`h-12 px-5 rounded-full font-black text-sm transition-all flex items-center space-x-2 ${
-                totalItems > 0
-                ? 'bg-red-600 text-white shadow-lg shadow-red-900/20 active:scale-95' 
-                : 'bg-gray-700/40 text-gray-500 cursor-not-allowed'
-              }`}
-            >
-              {isOrdering ? (
-                <motion.div 
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                  className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
-                />
-              ) : (
-                <CheckCircle2 size={18} />
+            <AnimatePresence>
+              {totalItems > 0 && (
+                <motion.button 
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOrderSubmit();
+                  }}
+                  disabled={isOrdering}
+                  className="h-12 px-5 mr-2 rounded-full font-black text-sm transition-all flex items-center space-x-2 bg-red-600 text-white shadow-lg shadow-red-900/20 active:scale-95 whitespace-nowrap"
+                >
+                  {isOrdering ? (
+                    <motion.div 
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                      className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
+                    />
+                  ) : (
+                    <CheckCircle2 size={18} />
+                  )}
+                  <span>{isOrdering ? t.submitting : t.checkout}</span>
+                </motion.button>
               )}
-              <span>{isOrdering ? t.submitting : t.checkout}</span>
-            </button>
+            </AnimatePresence>
           </motion.div>
         </div>
 
