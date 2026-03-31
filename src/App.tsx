@@ -106,12 +106,28 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 }
 
 // New Components for Enhanced UI/UX
-const DishImage = ({ src, alt }: { src: string; alt: string }) => {
-  const [isLoaded, setIsLoaded] = useState(false);
+// Global image cache to prevent re-fading already loaded images
+const loadedImagesCache = new Set<string>();
+
+const DishImage = ({ src, alt, className = "" }: { src: string; alt: string; className?: string }) => {
+  const [isLoaded, setIsLoaded] = useState(loadedImagesCache.has(src));
   const [isInView, setIsInView] = useState(false);
   const imgRef = useRef<HTMLDivElement>(null);
 
+  // Derive a low-res placeholder for blur-up effect if it's a picsum URL
+  const placeholderSrc = useMemo(() => {
+    if (src.includes('picsum.photos')) {
+      return src.replace(/\/\d+\/\d+/, '/20/20') + (src.includes('?') ? '&' : '?') + 'blur=10';
+    }
+    return null;
+  }, [src]);
+
   useEffect(() => {
+    if (loadedImagesCache.has(src)) {
+      setIsLoaded(true);
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -119,7 +135,7 @@ const DishImage = ({ src, alt }: { src: string; alt: string }) => {
           observer.disconnect();
         }
       },
-      { rootMargin: '100px' }
+      { rootMargin: '300px' } // Load even earlier for smoother experience
     );
 
     if (imgRef.current) {
@@ -127,21 +143,41 @@ const DishImage = ({ src, alt }: { src: string; alt: string }) => {
     }
 
     return () => observer.disconnect();
-  }, []);
+  }, [src]);
+
+  const handleLoad = () => {
+    loadedImagesCache.add(src);
+    setIsLoaded(true);
+  };
 
   return (
-    <div ref={imgRef} className="relative w-full h-full bg-piad-primary/5">
-      {!isLoaded && (
-        <div className="absolute inset-0 bg-piad-primary/5 animate-pulse flex items-center justify-center">
-          <UtensilsCrossed className="text-piad-subtext/20" size={24} />
+    <div ref={imgRef} className={`relative w-full h-full overflow-hidden bg-piad-primary/5 ${className}`}>
+      {/* Low-res placeholder for blur-up */}
+      {placeholderSrc && !isLoaded && (
+        <img
+          src={placeholderSrc}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover blur-xl scale-110 opacity-50 transition-opacity duration-500"
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Skeleton/Placeholder fallback */}
+      {!isLoaded && !placeholderSrc && (
+        <div className="absolute inset-0 bg-gradient-to-br from-piad-primary/5 to-piad-primary/10 animate-pulse flex items-center justify-center">
+          <UtensilsCrossed className="text-piad-subtext/10" size={24} />
         </div>
       )}
-      {isInView && (
+      
+      {/* Image with smooth transition */}
+      {(isInView || isLoaded) && (
         <img
           src={src}
           alt={alt}
-          onLoad={() => setIsLoaded(true)}
-          className={`w-full h-full object-cover transition-all duration-700 ${isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}
+          onLoad={handleLoad}
+          className={`w-full h-full object-cover transition-all duration-500 ease-out ${
+            isLoaded ? 'opacity-100 scale-100 blur-0' : 'opacity-0 scale-105 blur-md'
+          }`}
           referrerPolicy="no-referrer"
           loading="lazy"
         />
@@ -1039,51 +1075,51 @@ export default function App() {
         )}
       </AnimatePresence>
       {/* Mobile Sidebar Navigation */}
-      <aside className="flex w-20 bg-piad-bg border-r border-piad-primary/5 flex-col py-4 z-10 overflow-y-auto no-scrollbar">
-        <div className="flex flex-col space-y-2">
+      <aside className="flex w-24 bg-piad-bg border-r border-piad-primary/5 flex-col py-4 z-10 overflow-y-auto no-scrollbar">
+        <div className="flex flex-col space-y-3">
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => handleCategoryClick('店长推荐')}
-            className={`flex flex-col items-center py-4 relative transition-all ${
+            className={`flex flex-col items-center py-5 relative transition-all ${
               activeCategory === '店长推荐' ? 'bg-piad-card text-piad-primary' : 'text-piad-subtext'
             }`}
           >
             {activeCategory === '店长推荐' && (
               <motion.div 
                 layoutId="active-indicator"
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-piad-primary rounded-r-full" 
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-piad-primary rounded-r-full" 
               />
             )}
             <motion.span 
               animate={{ scale: activeCategory === '店长推荐' ? 1.1 : 1 }}
-              className="text-xl mb-1"
+              className="text-3xl mb-2"
             >
               {CATEGORY_ICONS['店长推荐']}
             </motion.span>
-            <span className={`text-[0.65rem] font-bold ${activeCategory === '店长推荐' ? 'text-piad-primary' : 'text-piad-subtext'}`}>{t.hotRecommended}</span>
+            <span className={`text-[0.8rem] font-black leading-tight text-center px-1 ${activeCategory === '店长推荐' ? 'text-piad-primary' : 'text-piad-subtext'}`}>{t.hotRecommended}</span>
           </motion.button>
           {categories.map(category => (
             <motion.button
               key={category}
               whileTap={{ scale: 0.95 }}
               onClick={() => handleCategoryClick(category)}
-              className={`flex flex-col items-center py-4 relative transition-all ${
+              className={`flex flex-col items-center py-5 relative transition-all ${
                 activeCategory === category ? 'bg-piad-card text-piad-primary' : 'text-piad-subtext'
               }`}
             >
               {activeCategory === category && (
                 <motion.div 
                   layoutId="active-indicator"
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-piad-primary rounded-r-full" 
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-piad-primary rounded-r-full" 
                 />
               )}
               <motion.span 
                 animate={{ scale: activeCategory === category ? 1.1 : 1 }}
-                className="text-xl mb-1"
+                className="text-3xl mb-2"
               >
                 {CATEGORY_ICONS[category] || '🍽️'}
               </motion.span>
-              <span className={`text-[0.65rem] font-bold ${activeCategory === category ? 'text-piad-primary' : 'text-piad-subtext'}`}>{getLocalizedCategory(category)}</span>
+              <span className={`text-[0.8rem] font-black leading-tight text-center px-1 ${activeCategory === category ? 'text-piad-primary' : 'text-piad-subtext'}`}>{getLocalizedCategory(category)}</span>
             </motion.button>
           ))}
         </div>
@@ -1097,7 +1133,7 @@ export default function App() {
             <div className="h-14 flex items-center justify-between px-4">
               <div className="w-8" />
               <h1 
-                className="text-lg font-black tracking-tight text-piad-text cursor-pointer select-none active:scale-95 transition-transform"
+                className="text-xl font-black tracking-tight text-piad-text cursor-pointer select-none active:scale-95 transition-transform"
                 onClick={handleLogoTap}
               >
                 {appSettings.restaurantName}
@@ -1105,7 +1141,7 @@ export default function App() {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => setLocalLanguage(currentLanguage === 'zh' ? 'ko' : 'zh')}
-                  className="px-3 py-1.5 text-xs font-bold rounded-lg bg-piad-primary/5 text-piad-subtext hover:bg-piad-primary/10 transition-colors flex items-center space-x-1"
+                  className="px-4 py-2 text-sm font-bold rounded-lg bg-piad-primary/5 text-piad-subtext hover:bg-piad-primary/10 transition-colors flex items-center space-x-1"
                 >
                   <span>{currentLanguage === 'zh' ? '🇨🇳' : '🇰🇷'}</span>
                 </button>
@@ -1116,8 +1152,8 @@ export default function App() {
 
           {/* Search Bar inside Sticky Header */}
           <div className="px-4 pb-3">
-            <div className="bg-piad-primary/5 rounded-xl flex items-center px-4 py-2 border border-piad-primary/5">
-              <Search size={18} className="text-piad-subtext mr-2 shrink-0" />
+            <div className="bg-piad-primary/5 rounded-xl flex items-center px-4 py-2.5 border border-piad-primary/5">
+              <Search size={20} className="text-piad-subtext mr-2 shrink-0" />
               <div className="relative flex-1 h-6 overflow-hidden">
                 <AnimatePresence mode="wait">
                   {!searchQuery && (
@@ -1126,7 +1162,7 @@ export default function App() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="absolute inset-0 flex items-center text-sm text-piad-subtext pointer-events-none"
+                      className="absolute inset-0 flex items-center text-base text-piad-subtext pointer-events-none"
                     >
                       {placeholders[searchPlaceholderIndex % placeholders.length]}
                     </motion.div>
@@ -1134,14 +1170,14 @@ export default function App() {
                 </AnimatePresence>
                 <input 
                   type="text" 
-                  className="absolute inset-0 bg-transparent border-none outline-none text-sm w-full text-piad-text placeholder-transparent"
+                  className="absolute inset-0 bg-transparent border-none outline-none text-base w-full text-piad-text placeholder-transparent"
                   value={searchQuery || ''}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
               {searchQuery && (
                 <button onClick={() => setSearchQuery('')} className="ml-2 text-piad-subtext hover:text-piad-primary">
-                  <X size={16} />
+                  <X size={18} />
                 </button>
               )}
             </div>
@@ -1190,14 +1226,19 @@ export default function App() {
                     )}
                     <div 
                       onClick={() => !dish.isSoldOut && setSelectedDishForDetail(dish)}
-                      className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl bg-gray-100 cursor-pointer"
+                      className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl bg-gray-100 cursor-pointer group-hover:shadow-lg transition-shadow"
                     >
-                      <motion.div layoutId={`dish-image-${dish.id}`} className="w-full h-full">
+                      <motion.div 
+                        layoutId={`dish-image-${dish.id}`} 
+                        className="w-full h-full"
+                        whileHover={{ scale: 1.05 }}
+                        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      >
                         <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
                       </motion.div>
                       
                       {dish.isRecommended && (
-                        <div className="absolute top-2 left-2 bg-red-600 text-white text-[0.5rem] font-bold px-1.5 py-0.5 rounded-md shadow-lg z-10">
+                        <div className="absolute top-2 left-2 bg-red-600/90 backdrop-blur-sm text-white text-[0.5rem] font-bold px-1.5 py-0.5 rounded-md shadow-lg z-10">
                           {t.recommended}
                         </div>
                       )}
@@ -1714,11 +1755,9 @@ export default function App() {
             >
               <div className="relative w-full aspect-[4/3] overflow-hidden">
                 <motion.div layoutId={`dish-image-${selectedDishForDetail.id}`} className="w-full h-full">
-                  <img 
+                  <DishImage 
                     src={getOptimizedImage(selectedDishForDetail.image)} 
                     alt={selectedDishForDetail.name}
-                    className="w-full h-full object-cover"
-                    referrerPolicy="no-referrer"
                   />
                 </motion.div>
                 <button 
