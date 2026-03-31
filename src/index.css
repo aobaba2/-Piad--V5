@@ -34,6 +34,17 @@ body {
   background-color: var(--piad-bg);
   color: var(--piad-text);
   transition: background-color 0.3s ease, color 0.3s ease;
+  
+  /* PWA Fixes */
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  overflow-x: hidden;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  height: -webkit-fill-available;
 }
 
 @layer utilities {
