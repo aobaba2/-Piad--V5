@@ -1574,7 +1574,7 @@ export default function App() {
         </div>
 
         {/* Bottom Cart Bar - Enhanced */}
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90vw] z-30">
+        <div className="fixed bottom-6 right-4 w-[70vw] z-30">
           <motion.div 
             initial={{ y: 100, opacity: 0 }}
             animate={{ 
@@ -1585,13 +1585,13 @@ export default function App() {
             transition={{
               scale: { duration: 0.1 }
             }}
-            className="bg-[#1f2937]/95 backdrop-blur-xl border border-white/10 rounded-full h-16 flex items-center justify-between px-2 shadow-[0_20px_50px_rgba(0,0,0,0.3)] active:scale-95 transition-transform"
+            className="bg-[#1f2937]/50 backdrop-blur-xl border border-white/10 rounded-full h-16 flex items-center justify-between px-2 shadow-[0_20px_50px_rgba(0,0,0,0.3)] active:scale-95 transition-transform"
           >
             <div 
               onClick={() => setIsCartOpen(!isCartOpen)}
-              className="flex items-center flex-1 cursor-pointer pl-4"
+              className="flex items-center flex-1 cursor-pointer pl-3"
             >
-              <div className="relative mr-4">
+              <div className="relative mr-3">
                 <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-500/20">
                   <ShoppingCart size={20} />
                 </div>
@@ -1614,10 +1614,10 @@ export default function App() {
             <button 
               onClick={handleOrderSubmit}
               disabled={totalItems === 0 || isOrdering}
-              className={`h-12 px-8 rounded-full font-black text-sm transition-all flex items-center space-x-2 ${
+              className={`h-12 px-5 rounded-full font-black text-sm transition-all flex items-center space-x-2 ${
                 totalItems > 0
                 ? 'bg-red-600 text-white shadow-lg shadow-red-900/20 active:scale-95' 
-                : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                : 'bg-gray-700/40 text-gray-500 cursor-not-allowed'
               }`}
             >
               {isOrdering ? (
