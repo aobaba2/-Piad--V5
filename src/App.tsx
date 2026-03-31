@@ -1133,7 +1133,7 @@ export default function App() {
             <div className="h-14 flex items-center justify-between px-4">
               <div className="w-8" />
               <h1 
-                className="text-xl font-black tracking-tight text-piad-text cursor-pointer select-none active:scale-95 transition-transform"
+                className="text-base sm:text-lg md:text-xl font-black tracking-tight text-piad-text cursor-pointer select-none active:scale-95 transition-transform truncate max-w-[140px] sm:max-w-none"
                 onClick={handleLogoTap}
               >
                 {appSettings.restaurantName}
@@ -1152,9 +1152,9 @@ export default function App() {
 
           {/* Search Bar inside Sticky Header */}
           <div className="px-4 pb-3">
-            <div className="bg-piad-primary/5 rounded-xl flex items-center px-4 py-2.5 border border-piad-primary/5">
-              <Search size={20} className="text-piad-subtext mr-2 shrink-0" />
-              <div className="relative flex-1 h-6 overflow-hidden">
+            <div className="bg-piad-primary/5 rounded-xl flex items-center px-4 py-2 border border-piad-primary/5">
+              <Search size={18} className="text-piad-subtext mr-2 shrink-0" />
+              <div className="relative flex-1 h-5 overflow-hidden">
                 <AnimatePresence mode="wait">
                   {!searchQuery && (
                     <motion.div
@@ -1162,7 +1162,7 @@ export default function App() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
-                      className="absolute inset-0 flex items-center text-base text-piad-subtext pointer-events-none"
+                      className="absolute inset-0 flex items-center text-sm text-piad-subtext pointer-events-none"
                     >
                       {placeholders[searchPlaceholderIndex % placeholders.length]}
                     </motion.div>
@@ -1170,14 +1170,14 @@ export default function App() {
                 </AnimatePresence>
                 <input 
                   type="text" 
-                  className="absolute inset-0 bg-transparent border-none outline-none text-base w-full text-piad-text placeholder-transparent"
+                  className="absolute inset-0 bg-transparent border-none outline-none text-sm w-full text-piad-text placeholder-transparent"
                   value={searchQuery || ''}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
               {searchQuery && (
                 <button onClick={() => setSearchQuery('')} className="ml-2 text-piad-subtext hover:text-piad-primary">
-                  <X size={18} />
+                  <X size={16} />
                 </button>
               )}
             </div>
