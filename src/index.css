@@ -1,62 +1,123 @@
 @import "tailwindcss";
 
 @theme {
-  --color-piad-bg: var(--piad-bg);
-  --color-piad-primary: var(--piad-primary);
-  --color-piad-accent: var(--piad-accent);
-  --color-piad-text: var(--piad-text);
-  --color-piad-card: var(--piad-card);
-  --color-piad-subtext: var(--piad-subtext);
+  --color-piad-bg: var(--main-bg);
+  --color-piad-primary: var(--primary-color);
+  --color-piad-accent: var(--primary-color);
+  --color-piad-text: var(--text-main);
+  --color-piad-subtext: var(--text-sub);
+  --color-piad-card: var(--card-bg);
+  --color-piad-border: var(--border-color);
+  
+  /* User requested names as tailwind colors */
+  --color-main-bg: var(--main-bg);
+  --color-card-bg: var(--card-bg);
+  --color-primary-color: var(--primary-color);
+  --color-text-main: var(--text-main);
+  --color-text-sub: var(--text-sub);
+  --color-border-color: var(--border-color);
+  
   --shadow-piad: var(--piad-shadow);
+  --radius-piad: var(--radius-button);
 }
 
 :root {
-  --piad-bg: #FAFAFA;
-  --piad-primary: #E60012;
-  --piad-accent: #FFB800;
-  --piad-text: #1A1A1A;
-  --piad-subtext: #666666;
-  --piad-card: #FFFFFF;
-  --piad-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  --main-bg: #FFFFFF;
+  --card-bg: #F8F9FA;
+  --primary-color: #FFCC00;
+  --text-main: #1A1A1A;
+  --text-sub: #757575;
+  --border-color: #EEEEEE;
+  --piad-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  --radius-button: 12px;
 }
 
 .theme-default {
-  --piad-bg: #FAFAFA;
-  --piad-primary: #E60012;
-  --piad-accent: #FFB800;
-  --piad-text: #1A1A1A;
-  --piad-subtext: #666666;
-  --piad-card: #FFFFFF;
-  --piad-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  --main-bg: #FFFFFF;
+  --card-bg: #F8F9FA;
+  --primary-color: #FFCC00;
+  --text-main: #1A1A1A;
+  --text-sub: #757575;
+  --border-color: #EEEEEE;
+  --piad-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  --radius-button: 12px;
+}
+
+/* 1. 美团黄-活力版 */
+.theme-meituan {
+  --main-bg: #FFFFFF;
+  --primary-color: #FFC107;
+  --card-bg: #FFFFFF;
+  --text-main: #222222;
+  --text-sub: #757575;
+  --border-color: #EEEEEE;
+  --piad-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  --radius-button: 8px;
+}
+
+/* 2. 饿了么蓝-清新版 */
+.theme-eleme {
+  --main-bg: #F5F9FF;
+  --primary-color: #0087FF;
+  --card-bg: #FFFFFF;
+  --text-main: #333333;
+  --text-sub: #757575;
+  --border-color: #EEEEEE;
+  --piad-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  --radius-button: 8px;
+}
+
+/* 3. 琥珀暖-温馨版 */
+.theme-warm {
+  --main-bg: #FFF9F5;
+  --primary-color: #FF7043;
+  --card-bg: #FFFFFF;
+  --text-main: #4E342E;
+  --text-sub: #8D6E63;
+  --border-color: #E0E0E0;
+  --piad-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  --radius-button: 20px;
+}
+
+/* 4. PIAD红-经典版 */
+.theme-classic {
+  --main-bg: #FFFFFF;
+  --primary-color: #E60012;
+  --card-bg: #FDFDFD;
+  --text-main: #1A1A1A;
+  --text-sub: #757575;
+  --border-color: #EEEEEE;
+  --piad-shadow: 0 4px 12px rgba(0,0,0,0.05);
+  --radius-button: 12px;
 }
 
 .theme-luxury {
-  --piad-bg: #121212;
-  --piad-primary: #D4AF37;
-  --piad-accent: #2A2A2A;
-  --piad-text: #E5E5E5;
-  --piad-subtext: #A0A0A0;
-  --piad-card: #1E1E1E;
+  --main-bg: #121212;
+  --primary-color: #D4AF37;
+  --card-bg: #1E1E1E;
+  --text-main: #E5E5E5;
+  --text-sub: #A0A0A0;
+  --border-color: #2A2A2A;
   --piad-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
 .theme-nature {
-  --piad-bg: #F5F7F2;
-  --piad-primary: #487E4C;
-  --piad-accent: #A8C69F;
-  --piad-text: #2D3A2D;
-  --piad-subtext: #5A6B5A;
-  --piad-card: #FFFFFF;
+  --main-bg: #F5F7F2;
+  --primary-color: #487E4C;
+  --card-bg: #FFFFFF;
+  --text-main: #2D3A2D;
+  --text-sub: #5A6B5A;
+  --border-color: #E0E0E0;
   --piad-shadow: 0 4px 20px rgba(72, 126, 76, 0.1);
 }
 
 .theme-sweet {
-  --piad-bg: #FFF9F5;
-  --piad-primary: #FF6B6B;
-  --piad-accent: #FFE66D;
-  --piad-text: #4A4A4A;
-  --piad-subtext: #8E7D7D;
-  --piad-card: #FFFFFF;
+  --main-bg: #FFF9F5;
+  --primary-color: #FF6B6B;
+  --card-bg: #FFFFFF;
+  --text-main: #4A4A4A;
+  --text-sub: #8E7D7D;
+  --border-color: #EEEEEE;
   --piad-shadow: 0 4px 20px rgba(255, 107, 107, 0.1);
 }
 

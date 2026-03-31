@@ -474,6 +474,7 @@ export default function App() {
   const [lastOrderCount, setLastOrderCount] = useState(0);
   const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
   const [selectedDishForSpecs, setSelectedDishForSpecs] = useState<Dish | null>(null);
+  const [selectedDishForDetail, setSelectedDishForDetail] = useState<Dish | null>(null);
   const [selectedModifiers, setSelectedModifiers] = useState<DishModifier[]>([]);
   const [isCartPopping, setIsCartPopping] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -1187,8 +1188,13 @@ export default function App() {
                         </div>
                       </div>
                     )}
-                    <div className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl bg-gray-100">
-                      <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
+                    <div 
+                      onClick={() => !dish.isSoldOut && setSelectedDishForDetail(dish)}
+                      className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl bg-gray-100 cursor-pointer"
+                    >
+                      <motion.div layoutId={`dish-image-${dish.id}`} className="w-full h-full">
+                        <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
+                      </motion.div>
                       
                       {dish.isRecommended && (
                         <div className="absolute top-2 left-2 bg-red-600 text-white text-[0.5rem] font-bold px-1.5 py-0.5 rounded-md shadow-lg z-10">
@@ -1265,8 +1271,13 @@ export default function App() {
                         </div>
                       </div>
                     )}
-                    <div className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl bg-piad-primary/5">
-                      <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
+                    <div 
+                      onClick={() => !dish.isSoldOut && setSelectedDishForDetail(dish)}
+                      className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl bg-piad-primary/5 cursor-pointer"
+                    >
+                      <motion.div layoutId={`dish-image-${dish.id}`} className="w-full h-full">
+                        <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
+                      </motion.div>
                       <div className="absolute top-2 left-2 bg-piad-primary text-white text-[0.5rem] font-bold px-1.5 py-0.5 rounded-md shadow-lg z-10">
                         {t.recommended}
                       </div>
@@ -1340,8 +1351,13 @@ export default function App() {
                             </div>
                           </div>
                         )}
-                        <div className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl bg-gray-100">
-                          <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
+                        <div 
+                          onClick={() => !dish.isSoldOut && setSelectedDishForDetail(dish)}
+                          className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl bg-gray-100 cursor-pointer"
+                        >
+                          <motion.div layoutId={`dish-image-${dish.id}`} className="w-full h-full">
+                            <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
+                          </motion.div>
                           {dish.isRecommended && (
                             <div className="absolute top-2 left-2 bg-red-600 text-white text-[0.5rem] font-bold px-1.5 py-0.5 rounded-md shadow-lg z-10">
                               {t.recommended}
@@ -1682,6 +1698,85 @@ export default function App() {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Dish Detail Modal - Hero Animation */}
+      <AnimatePresence>
+        {selectedDishForDetail && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedDishForDetail(null)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-[10px]"
+            />
+            <motion.div
+              layoutId={`dish-card-${selectedDishForDetail.id}`}
+              className="relative w-full max-w-lg bg-white rounded-[2.5rem] overflow-hidden shadow-2xl z-10 flex flex-col max-h-[90vh]"
+            >
+              <div className="relative w-full aspect-[4/3] overflow-hidden">
+                <motion.div layoutId={`dish-image-${selectedDishForDetail.id}`} className="w-full h-full">
+                  <img 
+                    src={getOptimizedImage(selectedDishForDetail.image)} 
+                    alt={selectedDishForDetail.name}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                </motion.div>
+                <button 
+                  onClick={() => setSelectedDishForDetail(null)}
+                  className="absolute top-6 right-6 w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/40 transition-colors"
+                >
+                  <X size={24} />
+                </button>
+                {selectedDishForDetail.isRecommended && (
+                  <div className="absolute top-6 left-6 bg-red-600 text-white text-xs font-black px-3 py-1 rounded-full shadow-lg">
+                    {t.recommended}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar">
+                <div className="flex items-start justify-between">
+                  <h2 className="text-3xl font-black text-gray-900 leading-tight">
+                    {getLocalizedName(selectedDishForDetail)}
+                  </h2>
+                  <div className="text-2xl font-black text-red-600">
+                    {formatPrice(selectedDishForDetail.price, appSettings.currency)}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="text-sm font-black text-gray-400 uppercase tracking-widest">菜品故事</h4>
+                  <p className="text-gray-600 leading-relaxed text-lg italic font-medium">
+                    “{getLocalizedDesc(selectedDishForDetail) || t.defaultDesc}”
+                  </p>
+                </div>
+
+                {selectedDishForDetail.stock !== undefined && selectedDishForDetail.stock > 0 && selectedDishForDetail.stock <= 10 && (
+                  <div className="bg-red-50 text-red-600 px-4 py-2 rounded-xl inline-flex items-center space-x-2 text-sm font-bold">
+                    <span>🔥</span>
+                    <span>{t.stockLeft(selectedDishForDetail.stock)}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 bg-white/80 backdrop-blur-md border-t border-gray-100">
+                <button
+                  onClick={(e) => {
+                    handleAddToCart(selectedDishForDetail, e);
+                    setSelectedDishForDetail(null);
+                  }}
+                  className="w-full h-16 bg-red-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-red-100 active:scale-95 transition-all flex items-center justify-center space-x-3"
+                >
+                  <Plus size={24} strokeWidth={3} />
+                  <span>{t.addToCart}</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Specification Selector Bottom Sheet */}
       <AnimatePresence>
