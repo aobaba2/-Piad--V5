@@ -1526,7 +1526,7 @@ export default function App() {
                   </div>
                 </div>
                 
-                <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
+                <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar overscroll-contain">
                   {cart.length === 0 ? (
                     <div className="py-20 flex flex-col items-center justify-center text-center">
                       <motion.div 
@@ -1734,7 +1734,7 @@ export default function App() {
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-5 no-scrollbar bg-piad-primary/[0.03]">
+              <div className="flex-1 overflow-y-auto p-6 space-y-5 no-scrollbar bg-piad-primary/[0.03] overscroll-contain">
                 <div className="flex items-start justify-between gap-2">
                   <h2 className="dish-detail-title font-black text-gray-900 leading-tight">
                     {getLocalizedName(selectedDishForDetail)}
@@ -1816,7 +1816,7 @@ export default function App() {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
+              <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar overscroll-contain">
                 {(() => {
                   const groupedModifiers: Record<string, DishModifier[]> = {};
                   selectedDishForSpecs.modifiers?.forEach(mod => {
