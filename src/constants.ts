@@ -31,7 +31,6 @@ export interface Settings {
   currency: 'KRW' | 'CNY' | 'USD';
   language: 'zh' | 'en' | 'ko';
   restaurantName: string;
-  theme?: 'default' | 'luxury' | 'nature' | 'sweet';
   searchPlaceholders?: string[];
   coverHistory?: string;
   coverAddress?: string;

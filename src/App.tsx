@@ -654,14 +654,13 @@ export default function App() {
         const newSettings: AppSettings = {
           currency: data.currency || 'KRW',
           language: data.language || 'zh',
-          restaurantName: data.restaurantName || 'PIAD 点餐',
-          theme: data.theme || 'default'
+          restaurantName: data.restaurantName || 'PIAD 点餐'
         };
         setAppSettings(newSettings);
         setGridColumns(data.gridColumns || 3);
         
         // Apply theme to body
-        document.body.className = `theme-${newSettings.theme}`;
+        document.body.className = 'theme-default';
       }
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'settings/global');
@@ -1712,9 +1711,9 @@ export default function App() {
             />
             <motion.div
               layoutId={`dish-card-${selectedDishForDetail.id}`}
-              className="relative w-full max-w-lg bg-white rounded-[2.5rem] overflow-hidden shadow-2xl z-10 flex flex-col max-h-[90vh]"
+              className="relative w-[90%] max-w-[400px] bg-white rounded-[24px] overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.08)] z-10 flex flex-col max-h-[90vh]"
             >
-              <div className="relative w-full aspect-[4/3] overflow-hidden">
+              <div className="relative w-full aspect-[16/9] overflow-hidden">
                 <motion.div layoutId={`dish-image-${selectedDishForDetail.id}`} className="w-full h-full">
                   <img 
                     src={getOptimizedImage(selectedDishForDetail.image)} 
@@ -1725,51 +1724,51 @@ export default function App() {
                 </motion.div>
                 <button 
                   onClick={() => setSelectedDishForDetail(null)}
-                  className="absolute top-6 right-6 w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/40 transition-colors"
+                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-gray-400 hover:text-gray-600 shadow-sm transition-all active:scale-90"
                 >
-                  <X size={24} />
+                  <X size={18} strokeWidth={2.5} />
                 </button>
                 {selectedDishForDetail.isRecommended && (
-                  <div className="absolute top-6 left-6 bg-red-600 text-white text-xs font-black px-3 py-1 rounded-full shadow-lg">
+                  <div className="absolute top-4 left-4 bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg">
                     {t.recommended}
                   </div>
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar">
-                <div className="flex items-start justify-between">
-                  <h2 className="text-3xl font-black text-gray-900 leading-tight">
+              <div className="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar">
+                <div className="flex items-start justify-between gap-2">
+                  <h2 className="dish-detail-title font-black text-gray-900 leading-tight">
                     {getLocalizedName(selectedDishForDetail)}
                   </h2>
-                  <div className="text-2xl font-black text-red-600">
+                  <div className="dish-detail-price font-black text-red-600 whitespace-nowrap">
                     {formatPrice(selectedDishForDetail.price, appSettings.currency)}
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <h4 className="text-sm font-black text-gray-400 uppercase tracking-widest">菜品故事</h4>
-                  <p className="text-gray-600 leading-relaxed text-lg italic font-medium">
+                <div className="space-y-2">
+                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">菜品故事</h4>
+                  <p className="dish-detail-desc text-gray-600 leading-relaxed italic font-medium">
                     “{getLocalizedDesc(selectedDishForDetail) || t.defaultDesc}”
                   </p>
                 </div>
 
                 {selectedDishForDetail.stock !== undefined && selectedDishForDetail.stock > 0 && selectedDishForDetail.stock <= 10 && (
-                  <div className="bg-red-50 text-red-600 px-4 py-2 rounded-xl inline-flex items-center space-x-2 text-sm font-bold">
+                  <div className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg inline-flex items-center space-x-2 text-xs font-bold">
                     <span>🔥</span>
                     <span>{t.stockLeft(selectedDishForDetail.stock)}</span>
                   </div>
                 )}
               </div>
 
-              <div className="p-6 bg-white/80 backdrop-blur-md border-t border-gray-100">
+              <div className="p-5 bg-white/80 backdrop-blur-md border-t border-gray-50">
                 <button
                   onClick={(e) => {
                     handleAddToCart(selectedDishForDetail, e);
                     setSelectedDishForDetail(null);
                   }}
-                  className="w-full h-16 bg-red-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-red-100 active:scale-95 transition-all flex items-center justify-center space-x-3"
+                  className="w-full h-14 bg-red-600 text-white rounded-xl font-black text-base shadow-lg shadow-red-100 active:scale-95 transition-all flex items-center justify-center space-x-2"
                 >
-                  <Plus size={24} strokeWidth={3} />
+                  <Plus size={20} strokeWidth={3} />
                   <span>{t.addToCart}</span>
                 </button>
               </div>
