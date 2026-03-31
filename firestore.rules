@@ -38,7 +38,7 @@ service cloud.firestore {
     }
 
     function isValidDish(data) {
-      let allowedFields = ['name', 'name_en', 'name_ko', 'price', 'category', 'image', 'description', 'description_en', 'description_ko', 'tags', 'isRecommended', 'isSoldOut', 'order', 'modifiers', 'clickCount'];
+      let allowedFields = ['name', 'name_en', 'name_ko', 'price', 'category', 'image', 'description', 'description_en', 'description_ko', 'tags', 'isRecommended', 'isSoldOut', 'order', 'modifiers', 'clickCount', 'stock'];
       return hasOnlyAllowedFields(data, allowedFields) &&
              data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
              (!('name_en' in data) || data.name_en is string) &&
@@ -54,7 +54,8 @@ service cloud.firestore {
              (!('isSoldOut' in data) || data.isSoldOut is bool) &&
              (!('order' in data) || data.order is number) &&
              (!('modifiers' in data) || data.modifiers is list) &&
-             (!('clickCount' in data) || data.clickCount is number);
+             (!('clickCount' in data) || data.clickCount is number) &&
+             (!('stock' in data) || data.stock is number);
     }
 
     function isValidTable(data) {
@@ -77,9 +78,24 @@ service cloud.firestore {
              (!('sessionToken' in data) || data.sessionToken is string);
     }
 
+    function isValidBanner(data) {
+      let allowedFields = ['title', 'image', 'dishId', 'order'];
+      return hasOnlyAllowedFields(data, allowedFields) &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 100 &&
+             data.image is string &&
+             (!('dishId' in data) || data.dishId is string) &&
+             data.order is number;
+    }
+
     // ===============================================================
     // Rules
     // ===============================================================
+
+    match /banners/{bannerId} {
+      allow read: if true;
+      allow create, update: if isAdmin() && isValidBanner(request.resource.data);
+      allow delete: if isAdmin();
+    }
 
     match /categories/{categoryId} {
       allow read: if true;

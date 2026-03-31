@@ -38,6 +38,13 @@ export interface Settings {
   coverImage?: string;
 }
 
+export interface Banner {
+  id: string;
+  image: string;
+  title: string;
+  dishId?: string;
+}
+
 export interface Table {
   id: string;
   number: string;

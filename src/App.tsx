@@ -23,7 +23,7 @@ import {
   Trash2,
   CheckCircle2
 } from 'lucide-react';
-import { Dish, DishModifier, CATEGORIES, DISHES, formatPrice, Settings as AppSettings, Table } from './constants';
+import { Dish, DishModifier, CATEGORIES, DISHES, formatPrice, Settings as AppSettings, Table, Banner } from './constants';
 import AdminPanel from './AdminPanel';
 import { db, auth } from './firebase';
 import { 
@@ -104,6 +104,74 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   console.error('Firestore Error: ', JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }
+
+// Banner Carousel Component
+const BannerCarousel = ({ banners, onBannerClick }: { banners: Banner[], onBannerClick?: (dishId: string) => void }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % banners.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [banners.length]);
+
+  if (banners.length === 0) return null;
+
+  return (
+    <div className="px-4 py-3">
+      <div className="relative aspect-[16/7] w-full overflow-hidden rounded-2xl shadow-lg shadow-piad-primary/5">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentIndex}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            className="absolute inset-0 cursor-pointer"
+            onClick={() => banners[currentIndex].dishId && onBannerClick?.(banners[currentIndex].dishId)}
+          >
+            <img 
+              src={banners[currentIndex].image} 
+              alt={banners[currentIndex].title}
+              className="h-full w-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+            {/* Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+            
+            {/* Tag */}
+            <div className="absolute left-3 top-3 rounded-lg bg-red-600 px-2 py-1 text-[0.65rem] font-black text-white shadow-lg">
+              新品上市
+            </div>
+            
+            {/* Title */}
+            <div className="absolute bottom-3 right-3 max-w-[80%] text-right">
+              <h3 className="text-lg font-black text-white drop-shadow-lg line-clamp-1">
+                {banners[currentIndex].title}
+              </h3>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+        
+        {/* Indicators */}
+        {banners.length > 1 && (
+          <div className="absolute bottom-3 left-3 flex space-x-1.5">
+            {banners.map((_, idx) => (
+              <div 
+                key={idx}
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  idx === currentIndex ? 'w-4 bg-white' : 'w-1.5 bg-white/50'
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 // New Components for Enhanced UI/UX
 // Global image cache to prevent re-fading already loaded images
@@ -211,6 +279,7 @@ const FlyToCart: React.FC<{ start: { x: number; y: number }; end: { x: number; y
 export default function App() {
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
   const [activeCategory, setActiveCategory] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -738,6 +807,18 @@ export default function App() {
       handleFirestoreError(error, OperationType.GET, 'dishes');
     });
 
+    // Fetch banners
+    const qBanners = query(collection(db, 'banners'), orderBy('order', 'asc'));
+    const unsubscribeBanners = onSnapshot(qBanners, (snapshot) => {
+      const bannersData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Banner[];
+      setBanners(bannersData);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'banners');
+    });
+
     // Listen for order status changes (Simulated Push Notification)
     let unsubscribeOrders = () => {};
     if (sessionInfo) {
@@ -768,6 +849,7 @@ export default function App() {
       unsubscribeSettings();
       unsubscribeCats();
       unsubscribeDishes();
+      unsubscribeBanners();
       unsubscribeOrders();
     };
   }, [isAuthReady, user, lastOrderCount, sessionInfo]);
@@ -1150,6 +1232,15 @@ export default function App() {
             </div>
           </div>
 
+          {/* Banner Carousel */}
+          <BannerCarousel 
+            banners={banners}
+            onBannerClick={(dishId) => {
+              const dish = dishes.find(d => d.id === dishId);
+              if (dish) setSelectedDishForDetail(dish);
+            }} 
+          />
+
           {/* Search Bar inside Sticky Header */}
           <div className="px-4 pb-3">
             <div className="bg-piad-primary/5 rounded-xl flex items-center px-4 py-2 border border-piad-primary/5">
@@ -1247,7 +1338,7 @@ export default function App() {
                     <div className="flex-1 pl-3 py-1 flex flex-col justify-between">
                       <div>
                         <div className="flex items-start justify-between mb-1">
-                          <h3 className="text-base font-black text-piad-text group-hover:text-piad-primary transition-colors line-clamp-1">
+                          <h3 className="text-lg font-black text-piad-text group-hover:text-piad-primary transition-colors line-clamp-1">
                             {getLocalizedName(dish)}
                           </h3>
                         </div>
@@ -1327,7 +1418,7 @@ export default function App() {
                     <div className="flex-1 pl-3 py-1 flex flex-col justify-between">
                       <div>
                         <div className="flex items-start justify-between mb-1">
-                          <h3 className="text-base font-black text-piad-text group-hover:text-piad-primary transition-colors line-clamp-1">
+                          <h3 className="text-lg font-black text-piad-text group-hover:text-piad-primary transition-colors line-clamp-1">
                             {getLocalizedName(dish)}
                           </h3>
                         </div>
@@ -1409,7 +1500,7 @@ export default function App() {
                         <div className="flex-1 pl-3 py-1 flex flex-col justify-between">
                           <div>
                             <div className="flex items-start justify-between mb-1">
-                              <h3 className="text-base font-black text-gray-900 group-hover:text-red-600 transition-colors line-clamp-1">
+                              <h3 className="text-lg font-black text-gray-900 group-hover:text-red-600 transition-colors line-clamp-1">
                                 {getLocalizedName(dish)}
                               </h3>
                             </div>
@@ -1616,7 +1707,7 @@ export default function App() {
                                 <div className="text-[10px] font-black text-piad-primary/40 uppercase tracking-wider mb-0.5">
                                   {t.categories[item.category as keyof typeof t.categories] || item.category}
                                 </div>
-                                <h4 className="font-bold text-base text-piad-text truncate">{getLocalizedName(item)}</h4>
+                                <h4 className="font-bold text-lg text-piad-text truncate">{getLocalizedName(item)}</h4>
                                 {item.modifiers && item.modifiers.length > 0 && (
                                   <div className="flex flex-wrap gap-1 mt-1">
                                     {item.modifiers.map((m, idx) => (
@@ -1659,7 +1750,7 @@ export default function App() {
                               <div className="w-full aspect-square rounded-xl overflow-hidden mb-2">
                                 <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
                               </div>
-                              <h5 className="text-[0.7rem] font-bold text-piad-text line-clamp-1 mb-1">{getLocalizedName(dish)}</h5>
+                              <h5 className="text-sm font-bold text-piad-text line-clamp-1 mb-1">{getLocalizedName(dish)}</h5>
                               <div className="flex items-center justify-end">
                                 <button 
                                   onClick={(e) => handleAddToCart(dish, e)}
@@ -1841,7 +1932,7 @@ export default function App() {
                     <DishImage src={selectedDishForSpecs.image} alt={selectedDishForSpecs.name} />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-piad-text">{getLocalizedName(selectedDishForSpecs)}</h3>
+                    <h3 className="text-xl font-black text-piad-text">{getLocalizedName(selectedDishForSpecs)}</h3>
                   </div>
                 </div>
                 <button 

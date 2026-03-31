@@ -69,6 +69,10 @@
         "order": {
           "type": "number",
           "description": "Display order of the dish"
+        },
+        "stock": {
+          "type": "number",
+          "description": "Inventory stock level"
         }
       },
       "required": ["name", "price", "category", "image"]
@@ -141,6 +145,18 @@
       },
       "required": ["email", "role"]
     },
+    "Banner": {
+      "title": "Banner",
+      "description": "Homepage carousel banners",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "image": { "type": "string" },
+        "dishId": { "type": "string" },
+        "order": { "type": "number" }
+      },
+      "required": ["title", "image", "order"]
+    },
     "SuperAdmin": {
       "title": "SuperAdmin",
       "description": "Super administrator account for direct login",
@@ -173,6 +189,10 @@
     "/staff": {
       "schema": "Staff",
       "description": "Collection of staff members"
+    },
+    "/banners": {
+      "schema": "Banner",
+      "description": "Collection of homepage carousel banners"
     },
     "/super_admins": {
       "schema": "SuperAdmin",

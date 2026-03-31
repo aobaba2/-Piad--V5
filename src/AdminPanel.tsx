@@ -32,7 +32,7 @@ import {
   LayoutGrid,
   LogOut
 } from 'lucide-react';
-import { Dish, DishModifier, formatPrice, Table, Settings as AppSettings } from './constants';
+import { Dish, DishModifier, formatPrice, Table, Settings as AppSettings, Banner } from './constants';
 import { initializeApp } from 'firebase/app';
 import { 
   signInWithPopup, 
@@ -59,7 +59,8 @@ import {
   setDoc,
   getDocs,
   getDoc,
-  serverTimestamp
+  serverTimestamp,
+  writeBatch
 } from 'firebase/firestore';
 
 interface AdminPanelProps {
@@ -154,9 +155,73 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [banners, setBanners] = useState<Banner[]>([]);
+  const [editingBanner, setEditingBanner] = useState<Partial<Banner> | null>(null);
+
+  // Fetch banners
+  useEffect(() => {
+    const q = query(collection(db, 'banners'), orderBy('order', 'asc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const bannerData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Banner[];
+      setBanners(bannerData);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'banners');
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const handleSaveBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBanner) return;
+
+    try {
+      if (editingBanner.id) {
+        const { id, ...data } = editingBanner;
+        await updateDoc(doc(db, 'banners', id), data);
+        showToast('轮播图已更新', 'success');
+      } else {
+        const newBanner = {
+          ...editingBanner,
+          order: banners.length
+        };
+        await addDoc(collection(db, 'banners'), newBanner);
+        showToast('轮播图已添加', 'success');
+      }
+      setEditingBanner(null);
+    } catch (error) {
+      handleFirestoreError(error, editingBanner.id ? OperationType.UPDATE : OperationType.CREATE, 'banners');
+    }
+  };
+
+  const handleDeleteBanner = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'banners', id));
+      showToast('轮播图已删除', 'success');
+      setItemToDelete(null);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `banners/${id}`);
+    }
+  };
+
+  const handleReorderBanners = async (newBanners: Banner[]) => {
+    setBanners(newBanners);
+    try {
+      const batch = writeBatch(db);
+      newBanners.forEach((banner, index) => {
+        batch.update(doc(db, 'banners', banner.id), { order: index });
+      });
+      await batch.commit();
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, 'banners');
+    }
+  };
   const [editingDish, setEditingDish] = useState<Partial<Dish> | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [itemToDelete, setItemToDelete] = useState<{ id: string, name: string, type: 'dish' | 'category' | 'order' } | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<{ id: string, name: string, type: 'dish' | 'category' | 'order' | 'banner' } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [view, setView] = useState<'menu' | 'settings' | 'orders' | 'analytics' | 'access' | 'tables'>('orders');
@@ -523,7 +588,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       }
     }
 
-    const dishToSave = {
+    const dishToSave: any = {
       name: editingDish.name,
       name_en: editingDish.name_en || '',
       name_ko: editingDish.name_ko || '',
@@ -536,10 +601,13 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       tags: editingDish.tags || [],
       isRecommended: editingDish.isRecommended || false,
       isSoldOut: editingDish.isSoldOut || false,
-      stock: editingDish.stock ?? undefined,
       modifiers: editingDish.modifiers || [],
       order: editingDish.order ?? dishes.filter(d => d.category === editingDish.category).length
     };
+
+    if (editingDish.stock !== undefined && editingDish.stock !== null) {
+      dishToSave.stock = editingDish.stock;
+    }
 
     try {
       if (editingDish.id) {
@@ -949,17 +1017,27 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                             </p>
                           </div>
                         </div>
-                        <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-                          order.status === 'pending' ? 'bg-piad-primary/10 text-piad-primary' :
-                          order.status === 'confirmed' ? 'bg-piad-primary/20 text-piad-primary border border-piad-primary/30' :
-                          order.status === 'preparing' ? 'bg-piad-accent/10 text-piad-accent' :
-                          order.status === 'served' ? 'bg-blue-100 text-blue-700' :
-                          'bg-green-100 text-green-700'
-                        }`}>
-                          {order.status === 'pending' ? '待确认' : 
-                           order.status === 'confirmed' ? '已确认' : 
-                           order.status === 'preparing' ? '制作中' : 
-                           order.status === 'served' ? '待配送' : '已完成'}
+                        <div className="flex items-center space-x-2">
+                          {order.status === 'pending' && (
+                            <button 
+                              onClick={() => handleUpdateOrderStatus(order.id, 'confirmed')}
+                              className="bg-piad-primary text-white px-3 py-1 rounded-full text-[0.6rem] font-black shadow-lg shadow-piad-primary/20 active:scale-95 transition-all"
+                            >
+                              快速确认
+                            </button>
+                          )}
+                          <div className={`px-3 py-1 rounded-full text-xs font-bold ${
+                            order.status === 'pending' ? 'bg-piad-primary/10 text-piad-primary' :
+                            order.status === 'confirmed' ? 'bg-piad-primary/20 text-piad-primary border border-piad-primary/30' :
+                            order.status === 'preparing' ? 'bg-piad-accent/10 text-piad-accent' :
+                            order.status === 'served' ? 'bg-blue-100 text-blue-700' :
+                            'bg-green-100 text-green-700'
+                          }`}>
+                            {order.status === 'pending' ? '待确认' : 
+                             order.status === 'confirmed' ? '已确认' : 
+                             order.status === 'preparing' ? '制作中' : 
+                             order.status === 'served' ? '待配送' : '已完成'}
+                          </div>
                         </div>
                       </div>
 
@@ -984,8 +1062,17 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                       </div>
 
                       <div className="flex items-center justify-between pt-3 border-t border-piad-primary/5">
-                        <div className="text-lg font-black text-piad-primary">
-                          {formatPrice(order.totalPrice)}
+                        <div className="flex flex-col">
+                          <div className="text-lg font-black text-piad-primary">
+                            {formatPrice(order.totalPrice)}
+                          </div>
+                          <div className="text-[0.6rem] text-gray-400 font-bold">
+                            {order.createdAt ? (
+                              typeof order.createdAt === 'string' 
+                                ? `${new Date(order.createdAt).toLocaleDateString()} ${new Date(order.createdAt).toLocaleTimeString()}`
+                                : `${(order.createdAt as any).toDate?.().toLocaleDateString()} ${(order.createdAt as any).toDate?.().toLocaleTimeString()}`
+                            ) : '刚刚'}
+                          </div>
                         </div>
                         <div className="flex space-x-2">
                           {order.status === 'pending' && (
@@ -1127,7 +1214,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                     value={dish}
                     className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group active:scale-[0.98] transition-all cursor-grab active:cursor-grabbing flex items-center p-3"
                   >
-                    <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0">
+                    <div className="relative w-24 h-24 rounded-2xl overflow-hidden bg-gray-50 flex-shrink-0 shadow-sm">
                       <img src={dish.image} alt={dish.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
                       {dish.isSoldOut && (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[1px]">
@@ -1797,6 +1884,77 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                   </div>
                 </div>
 
+                {/* Banner Management */}
+                <div className="space-y-4 border-t border-piad-primary/5 pt-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-black text-sm text-piad-text flex items-center">
+                      <Tag size={16} className="mr-2 text-piad-primary" />
+                      首页轮播图管理 (Banners)
+                    </h3>
+                    <button 
+                      onClick={() => setEditingBanner({ title: '', image: '', dishId: '', order: banners.length })}
+                      className="text-piad-primary text-xs font-black flex items-center bg-piad-primary/5 px-3 py-1.5 rounded-lg"
+                    >
+                      <Plus size={14} className="mr-1" />
+                      添加轮播
+                    </button>
+                  </div>
+                  
+                  <div className="bg-piad-primary/5 rounded-2xl p-4 border border-piad-primary/10">
+                    <p className="text-[0.65rem] text-piad-subtext mb-4 leading-relaxed">
+                      提示：建议使用 16:9 比例的图片。点击图片可跳转至对应菜品详情页。
+                    </p>
+                    
+                    <Reorder.Group 
+                      axis="y" 
+                      values={banners} 
+                      onReorder={handleReorderBanners}
+                      className="space-y-3"
+                    >
+                      {banners.map(banner => (
+                        <Reorder.Item 
+                          key={banner.id} 
+                          value={banner}
+                          className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex items-center p-2 group"
+                        >
+                          <div className="w-16 h-9 rounded-lg overflow-hidden bg-gray-50 flex-shrink-0">
+                            <img src={banner.image} alt={banner.title} className="w-full h-full object-cover" />
+                          </div>
+                          <div className="ml-3 flex-1 min-w-0">
+                            <h4 className="text-xs font-black text-piad-text truncate">{banner.title}</h4>
+                            {banner.dishId && (
+                              <p className="text-[0.5rem] text-piad-subtext truncate">关联菜品 ID: {banner.dishId}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center space-x-1 ml-2">
+                            <button 
+                              onClick={() => setEditingBanner(banner)}
+                              className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors"
+                            >
+                              <Edit2 size={14} />
+                            </button>
+                            <button 
+                              onClick={() => setItemToDelete({ id: banner.id, name: banner.title, type: 'banner' })}
+                              className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                            <div className="p-1.5 text-gray-300 cursor-grab active:cursor-grabbing">
+                              <GripVertical size={14} />
+                            </div>
+                          </div>
+                        </Reorder.Item>
+                      ))}
+                    </Reorder.Group>
+                    
+                    {banners.length === 0 && (
+                      <div className="py-8 text-center border-2 border-dashed border-piad-primary/10 rounded-xl">
+                        <p className="text-[0.65rem] text-piad-subtext">暂无轮播图，点击上方按钮添加</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Cover Page Management */}
                 <div className="space-y-4 border-t border-piad-primary/5 pt-4">
                   <h3 className="font-black text-sm text-piad-text flex items-center">
@@ -1908,6 +2066,97 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           )}
         </main>
       </div>
+
+      {/* Banner Modal */}
+      <AnimatePresence>
+        {editingBanner && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setEditingBanner(null)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white w-full max-w-md rounded-[2rem] overflow-hidden shadow-2xl relative z-10 flex flex-col"
+            >
+              <form onSubmit={handleSaveBanner} className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-black">{editingBanner.id ? '编辑轮播图' : '新增轮播图'}</h2>
+                  <button type="button" onClick={() => setEditingBanner(null)} className="text-gray-400 hover:text-gray-600">
+                    <X size={24} />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="space-y-1">
+                    <label className="text-[0.65rem] font-black text-piad-subtext uppercase tracking-wider">标题</label>
+                    <input 
+                      required
+                      type="text" 
+                      value={editingBanner.title || ''}
+                      onChange={e => setEditingBanner({ ...editingBanner, title: e.target.value })}
+                      className="w-full bg-piad-primary/5 border border-piad-primary/10 rounded-xl px-4 py-2 text-sm outline-none text-piad-text"
+                      placeholder="e.g.: New Arrival: Signature Grilled Fish"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[0.65rem] font-black text-piad-subtext uppercase tracking-wider">图片 URL (16:9)</label>
+                    <div className="flex space-x-3">
+                      <input 
+                        required
+                        type="text" 
+                        value={editingBanner.image || ''}
+                        onChange={e => setEditingBanner({ ...editingBanner, image: e.target.value })}
+                        className="flex-1 bg-piad-primary/5 border border-piad-primary/10 rounded-xl px-4 py-2 text-sm outline-none text-piad-text"
+                        placeholder="https://..."
+                      />
+                      <div className="w-16 aspect-video bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden border border-gray-200">
+                        {editingBanner.image ? <img src={editingBanner.image} className="w-full h-full object-cover" /> : <ImageIcon size={14} className="text-gray-300" />}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[0.65rem] font-black text-piad-subtext uppercase tracking-wider">关联菜品 ID (可选)</label>
+                    <select 
+                      value={editingBanner.dishId || ''}
+                      onChange={e => setEditingBanner({ ...editingBanner, dishId: e.target.value })}
+                      className="w-full bg-piad-primary/5 border border-piad-primary/10 rounded-xl px-4 py-2 text-sm outline-none text-piad-text appearance-none"
+                    >
+                      <option value="">不关联菜品</option>
+                      {dishes.map(dish => (
+                        <option key={dish.id} value={dish.id}>{dish.name} ({dish.category})</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="mt-8 flex space-x-3">
+                  <button 
+                    type="button"
+                    onClick={() => setEditingBanner(null)}
+                    className="flex-1 py-3 rounded-xl font-black text-piad-subtext bg-piad-primary/5 hover:bg-piad-primary/10 transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button 
+                    type="submit"
+                    className="flex-1 py-3 rounded-xl font-black text-white bg-piad-primary shadow-lg shadow-piad-primary/20 hover:bg-piad-primary/90 transition-colors"
+                  >
+                    保存
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Edit Modal */}
       <AnimatePresence>
@@ -2347,6 +2596,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                     if (itemToDelete.type === 'dish') handleDeleteDish(itemToDelete.id);
                     else if (itemToDelete.type === 'category') handleDeleteCategory(itemToDelete.id);
                     else if (itemToDelete.type === 'order') handleDeleteOrder(itemToDelete.id);
+                    else if (itemToDelete.type === 'banner') handleDeleteBanner(itemToDelete.id);
                   }}
                   className="flex-1 py-3 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 transition-colors"
                 >
