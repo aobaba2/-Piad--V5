@@ -1108,6 +1108,19 @@ export default function App() {
     return () => clearInterval(interval);
   }, [isWaitingForConfirmation, pendingOrderId]);
 
+  const CATEGORY_IMAGES: Record<string, string> = {
+    "店长推荐": "https://img.icons8.com/fluency/96/fire.png",
+    "招牌烤鱼": "https://img.icons8.com/fluency/96/fish.png",
+    "东北菜": "https://img.icons8.com/fluency/96/dumplings.png",
+    "川菜": "https://img.icons8.com/fluency/96/chili-pepper.png",
+    "肉菜类": "https://img.icons8.com/fluency/96/steak.png",
+    "素菜类": "https://img.icons8.com/fluency/96/vegetables.png",
+    "海鲜类": "https://img.icons8.com/fluency/96/crab.png",
+    "主食类": "https://img.icons8.com/fluency/96/rice-bowl.png",
+    "酒水类": "https://img.icons8.com/fluency/96/soft-drink.png",
+    "啤酒菜": "https://img.icons8.com/fluency/96/beer.png"
+  };
+
   const CATEGORY_ICONS: Record<string, string> = {
     "店长推荐": "🔥",
     "招牌烤鱼": "🐟",
@@ -1119,6 +1132,23 @@ export default function App() {
     "主食类": "🍚",
     "酒水类": "🥤",
     "啤酒菜": "🍺"
+  };
+
+  const renderCategoryIcon = (category: string, size: string = "text-3xl") => {
+    const imageUrl = CATEGORY_IMAGES[category];
+    if (imageUrl) {
+      const isHot = category === '店长推荐';
+      return (
+        <img 
+          src={imageUrl} 
+          alt={category} 
+          className={size === "text-3xl" ? "w-10 h-10 object-contain" : "w-6 h-6 object-contain ml-2"} 
+          style={isHot ? { filter: 'saturate(2) hue-rotate(-15deg) contrast(1.1)' } : {}}
+          referrerPolicy="no-referrer"
+        />
+      );
+    }
+    return <span className={size}>{CATEGORY_ICONS[category] || '🍽️'}</span>;
   };
 
   if (isLoading && dishes.length === 0) {
@@ -1188,12 +1218,12 @@ export default function App() {
                 className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-piad-primary rounded-r-full" 
               />
             )}
-            <motion.span 
+            <motion.div 
               animate={{ scale: activeCategory === '店长推荐' ? 1.1 : 1 }}
-              className="text-3xl mb-2"
+              className="mb-2"
             >
-              {CATEGORY_ICONS['店长推荐']}
-            </motion.span>
+              {renderCategoryIcon('店长推荐')}
+            </motion.div>
             <span className={`text-[0.8rem] font-black leading-tight text-center px-1 ${activeCategory === '店长推荐' ? 'text-piad-primary' : 'text-piad-subtext'}`}>{t.hotRecommended}</span>
           </motion.button>
           {categories.map(category => (
@@ -1211,12 +1241,12 @@ export default function App() {
                   className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-piad-primary rounded-r-full" 
                 />
               )}
-              <motion.span 
+              <motion.div 
                 animate={{ scale: activeCategory === category ? 1.1 : 1 }}
-                className="text-3xl mb-2"
+                className="mb-2"
               >
-                {CATEGORY_ICONS[category] || '🍽️'}
-              </motion.span>
+                {renderCategoryIcon(category)}
+              </motion.div>
               <span className={`text-[0.8rem] font-black leading-tight text-center px-1 ${activeCategory === category ? 'text-piad-primary' : 'text-piad-subtext'}`}>{getLocalizedCategory(category)}</span>
             </motion.button>
           ))}
@@ -1412,7 +1442,7 @@ export default function App() {
               <div id="category-店长推荐" className="category-section pt-4">
                 <div className="mb-6 flex items-center justify-between">
                   <h2 className="text-lg font-black text-piad-text flex items-center">
-                    {t.hotRecommended} {CATEGORY_ICONS['店长推荐']}
+                    {t.hotRecommended} {renderCategoryIcon('店长推荐', 'text-xl')}
                   </h2>
                 </div>
                 <div className="grid grid-cols-1 gap-4 mb-8">
@@ -1492,7 +1522,7 @@ export default function App() {
                 <div key={category} id={`category-${category}`} className="category-section">
                   <div className="mb-6 flex items-center justify-between pt-4">
                     <h2 className="text-lg font-black text-gray-900 flex items-center">
-                      {getLocalizedCategory(category)} {CATEGORY_ICONS[category]}
+                      {getLocalizedCategory(category)} {renderCategoryIcon(category, 'text-xl')}
                     </h2>
                   </div>
                   <div className="grid grid-cols-1 gap-4 mb-8">
