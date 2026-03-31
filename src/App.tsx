@@ -36,6 +36,7 @@ import {
   addDoc, 
   setDoc, 
   doc,
+  getDoc,
   getDocFromServer,
   updateDoc,
   serverTimestamp
@@ -185,6 +186,7 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
+  const [userRole, setUserRole] = useState<'owner' | 'manager' | 'waiter' | null>(null);
   const [gridColumns, setGridColumns] = useState(3);
   const [appSettings, setAppSettings] = useState<AppSettings>({
     currency: 'KRW',
@@ -334,12 +336,14 @@ export default function App() {
       checkout: '결제하기',
       confirmAddToCart: '장바구니 담기 확인',
       hotRecommended: '인기 추천',
-      invalidQr: 'QR 코드가 만료되었습니다',
-      invalidQrDesc: '해당 테이블의 식사 세션이 종료되었거나 QR 코드가 만료되었습니다. 다시 스캔하거나 직원에게 문의해주세요.',
+      invalidQr: '비정상적인 접근',
+      invalidQrDesc: '테이블 QR 코드를 다시 스캔해 주세요.',
       reload: '새로고침',
       orderedItems: (count: number) => `총 ${count}개 주문`,
       orderSuccessTitle: '주문 완료!',
       orderSuccessDesc: (table: string) => `${table}번 테이블의 맛있는 요리가 준비 중입니다`,
+      waitingForConfirmation: '주문 대기 중',
+      waitingForConfirmationDesc: '주문이 전송되었습니다. 직원의 확인을 기다려주세요...',
       kitchenNotified: '주방에 실시간으로 전달되었습니다',
       newOrderTitle: '새 주문이 접수되었습니다!',
       newOrderDesc: '관리자 페이지에서 확인해주세요',
@@ -435,12 +439,14 @@ export default function App() {
     checkout: '去结算',
     confirmAddToCart: '确认加入购物车',
     hotRecommended: '热门推荐',
-    invalidQr: '二维码已失效',
-    invalidQrDesc: '该桌位的用餐会话已结束或二维码已过期，请重新扫码或联系服务员。',
+    invalidQr: '非法进入',
+    invalidQrDesc: '请重新扫描餐桌二维码',
     reload: '重新加载',
     orderedItems: (count: number) => `已点 ${count} 件`,
     orderSuccessTitle: '下单成功！',
     orderSuccessDesc: (table: string) => `餐桌 ${table} 的美味正在准备中`,
+    waitingForConfirmation: '订单待确认',
+    waitingForConfirmationDesc: '订单已发送，请等待服务员确认...',
     kitchenNotified: '已实时通知后厨',
     newOrderTitle: '收到新订单！',
     newOrderDesc: '请立即前往后台处理',
@@ -462,6 +468,8 @@ export default function App() {
   const [isSessionValid, setIsSessionValid] = useState<boolean | null>(null);
   const [notification, setNotification] = useState<{ message: string, type: 'info' | 'success' } | null>(null);
   const [isOrdering, setIsOrdering] = useState(false);
+  const [isWaitingForConfirmation, setIsWaitingForConfirmation] = useState(false);
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [lastOrderCount, setLastOrderCount] = useState(0);
   const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
@@ -480,7 +488,7 @@ export default function App() {
     if (now - lastLogoTapTime.current < 500) {
       const newCount = logoTapCount + 1;
       setLogoTapCount(newCount);
-      if (newCount >= 5) {
+      if (newCount >= 12) {
         setIsAdminOpen(true);
         setLogoTapCount(0);
       }
@@ -554,8 +562,30 @@ export default function App() {
   };
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
+      if (user) {
+        // Fetch user role
+        try {
+          if (user.email === 'yujianfei2016@gmail.com' || user.email === 'aoba2026@admin.com') {
+            setUserRole('owner');
+          } else if (user.email) {
+            const staffDoc = await getDoc(doc(db, 'staff', user.email));
+            if (staffDoc.exists()) {
+              setUserRole(staffDoc.data().role || 'waiter');
+            } else {
+              setUserRole('waiter');
+            }
+          } else {
+            setUserRole('waiter');
+          }
+        } catch (error) {
+          console.error('Failed to fetch user role:', error);
+          setUserRole('waiter');
+        }
+      } else {
+        setUserRole(null);
+      }
       setIsAuthReady(true);
     });
     return () => unsubscribe();
@@ -564,12 +594,25 @@ export default function App() {
   useEffect(() => {
     // Parse URL parameters for QR code session
     const params = new URLSearchParams(window.location.search);
-    const table = params.get('table');
-    const token = params.get('token');
+    let table = params.get('table');
+    let token = params.get('token');
+    
+    // If not in URL, try localStorage
+    if (!table || !token) {
+      table = localStorage.getItem('piad_table');
+      token = localStorage.getItem('piad_token');
+    } else {
+      // If found in URL, store in localStorage for persistence
+      localStorage.setItem('piad_table', table);
+      localStorage.setItem('piad_token', token);
+    }
     
     if (table && token) {
       setSessionInfo({ table, token });
       setSelectedTable(Number(table));
+    } else {
+      // No session found in URL or localStorage
+      setIsSessionValid(false);
     }
 
     if (params.get('admin') === 'true') {
@@ -896,18 +939,39 @@ export default function App() {
     };
 
     try {
-      await addDoc(collection(db, 'orders'), orderData);
-      setOrderSuccess(true);
-      setTimeout(() => {
-        setOrderSuccess(false);
-        clearCart();
-      }, 3000);
+      const docRef = await addDoc(collection(db, 'orders'), orderData);
+      setPendingOrderId(docRef.id);
+      setIsWaitingForConfirmation(true);
+      setIsCartOpen(false);
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, 'orders');
     } finally {
       setIsOrdering(false);
     }
   };
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isWaitingForConfirmation && pendingOrderId) {
+      interval = setInterval(async () => {
+        try {
+          const orderDoc = await getDocFromServer(doc(db, 'orders', pendingOrderId));
+          if (orderDoc.exists() && orderDoc.data().status === 'confirmed') {
+            setIsWaitingForConfirmation(false);
+            setPendingOrderId(null);
+            setOrderSuccess(true);
+            setTimeout(() => {
+              setOrderSuccess(false);
+              clearCart();
+            }, 3000);
+          }
+        } catch (error) {
+          console.error('Polling order status failed:', error);
+        }
+      }, 3000);
+    }
+    return () => clearInterval(interval);
+  }, [isWaitingForConfirmation, pendingOrderId]);
 
   const CATEGORY_ICONS: Record<string, string> = {
     "店长推荐": "🔥",
@@ -934,10 +998,13 @@ export default function App() {
     );
   }
 
-  if (isSessionValid === false) {
+  if (isSessionValid === false && !isAdminOpen && !(userRole === 'owner' || userRole === 'manager')) {
     return (
       <div className="min-h-screen bg-piad-bg flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-20 h-20 bg-piad-primary/10 text-piad-primary rounded-full flex items-center justify-center mb-6">
+        <div 
+          onClick={handleLogoTap}
+          className="w-20 h-20 bg-piad-primary/10 text-piad-primary rounded-full flex items-center justify-center mb-6 cursor-pointer active:scale-95 transition-transform"
+        >
           <X size={40} />
         </div>
         <h1 className="text-2xl font-black text-piad-text mb-2">{t.invalidQr}</h1>
@@ -1789,6 +1856,35 @@ export default function App() {
           scrollbar-width: none;
         }
       `}} />
+      {/* Waiting for Confirmation Overlay */}
+      <AnimatePresence>
+        {isWaitingForConfirmation && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-md flex flex-col items-center justify-center text-white text-center p-6"
+          >
+            <motion.div 
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+              className="w-20 h-20 border-4 border-piad-primary border-t-transparent rounded-full mb-8"
+            />
+            <h2 className="text-2xl font-black mb-4">{t.waitingForConfirmation}</h2>
+            <p className="text-lg text-white/80 font-bold max-w-xs">{t.waitingForConfirmationDesc}</p>
+            
+            <div className="mt-12 flex items-center space-x-3 bg-white/10 px-6 py-3 rounded-2xl border border-white/10">
+              <div className="flex space-x-1">
+                <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0 }} className="w-2 h-2 rounded-full bg-piad-primary" />
+                <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.2 }} className="w-2 h-2 rounded-full bg-piad-primary" />
+                <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1, delay: 0.4 }} className="w-2 h-2 rounded-full bg-piad-primary" />
+              </div>
+              <span className="text-sm font-bold opacity-60">正在同步后厨状态...</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Order Success Overlay */}
       <AnimatePresence>
         {orderSuccess && (

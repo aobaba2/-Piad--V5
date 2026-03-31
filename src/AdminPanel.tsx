@@ -29,18 +29,24 @@ import {
   ShieldCheck,
   QrCode,
   Languages,
-  LayoutGrid
+  LayoutGrid,
+  LogOut
 } from 'lucide-react';
 import { Dish, DishModifier, formatPrice, Table, Settings as AppSettings } from './constants';
+import { initializeApp } from 'firebase/app';
 import { 
   signInWithPopup, 
   GoogleAuthProvider, 
   onAuthStateChanged, 
   signOut,
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  getAuth,
   User as FirebaseUser
 } from 'firebase/auth';
+import firebaseConfig from '../firebase-applet-config.json';
 import { db, auth } from './firebase';
+import StaffPanel from './StaffPanel';
 import { 
   collection, 
   onSnapshot, 
@@ -125,12 +131,21 @@ interface OrderItem {
   modifiers?: DishModifier[];
 }
 
+interface StaffMember {
+  id: string;
+  username: string;
+  email: string;
+  role: 'owner' | 'manager' | 'waiter';
+  permissions: string[];
+  password?: string;
+}
+
 interface Order {
   id: string;
   tableNumber: string;
   items: OrderItem[];
   totalPrice: number;
-  status: 'pending' | 'preparing' | 'served' | 'completed' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'preparing' | 'served' | 'completed' | 'cancelled';
   createdAt: string;
 }
 
@@ -145,10 +160,13 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [view, setView] = useState<'menu' | 'settings' | 'orders' | 'analytics' | 'access' | 'tables'>('orders');
-  const [staff, setStaff] = useState<{ id: string, email: string, role: 'owner' | 'manager' | 'waiter', uid?: string }[]>([]);
-  const [newStaffEmail, setNewStaffEmail] = useState('');
-  const [newStaffRole, setNewStaffRole] = useState<'manager' | 'waiter'>('waiter');
+  const [isSimpleMode, setIsSimpleMode] = useState(false);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
   const [isAddingStaff, setIsAddingStaff] = useState(false);
+  const [newStaffUsername, setNewStaffUsername] = useState('');
+  const [newStaffPassword, setNewStaffPassword] = useState('');
+  const [newStaffRole, setNewStaffRole] = useState<'manager' | 'waiter'>('waiter');
+  const [newStaffPermissions, setNewStaffPermissions] = useState<string[]>(['orders']);
   const [tables, setTables] = useState<Table[]>([]);
   const [appSettings, setAppSettings] = useState<AppSettings>({
     currency: 'KRW',
@@ -182,7 +200,8 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   }, []);
 
   const [showNewOrderAlert, setShowNewOrderAlert] = useState(false);
-  const [userRole, setUserRole] = useState<'owner' | 'manager' | 'waiter'>('owner');
+  const [userRole, setUserRole] = useState<'owner' | 'manager' | 'waiter'>('waiter');
+  const [userPermissions, setUserPermissions] = useState<string[]>([]);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   const [gridColumns, setGridColumns] = useState(3);
   const isReorderingRef = React.useRef(false);
@@ -193,6 +212,8 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   };
 
   useEffect(() => {
+    if (!user) return;
+
     // Fetch user role
     const fetchUserRole = async () => {
       if (!auth.currentUser) return;
@@ -200,6 +221,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       // Default admin check
       if (auth.currentUser.email === 'yujianfei2016@gmail.com' || auth.currentUser.email === 'aoba2026@admin.com') {
         setUserRole('owner');
+        setUserPermissions(['orders', 'menu', 'analytics', 'access', 'tables', 'settings']);
         return;
       }
 
@@ -207,7 +229,9 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         if (auth.currentUser.email) {
           const staffDoc = await getDoc(doc(db, 'staff', auth.currentUser.email));
           if (staffDoc.exists()) {
-            setUserRole(staffDoc.data().role || 'waiter');
+            const data = staffDoc.data();
+            setUserRole(data.role || 'waiter');
+            setUserPermissions(data.permissions || (data.role === 'manager' ? ['orders', 'menu', 'analytics', 'tables'] : ['orders']));
             return;
           }
         }
@@ -342,26 +366,30 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       handleFirestoreError(error, OperationType.GET, 'orders');
     });
 
-    // Real-time staff
-    const unsubscribeStaff = onSnapshot(collection(db, 'staff'), (snapshot) => {
-      const staffData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as { id: string, email: string, role: 'owner' | 'manager' | 'waiter' }[];
-      setStaff(staffData);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'staff');
-    });
-
     return () => {
       unsubscribeSettings();
       unsubscribeCats();
       unsubscribeDishes();
       unsubscribeOrders();
       unsubscribeTables();
-      unsubscribeStaff();
     };
   }, [user]);
+
+  useEffect(() => {
+    if (!user || userRole === 'waiter') return;
+
+    const unsubscribeStaff = onSnapshot(collection(db, 'staff'), (snapshot) => {
+      const staffData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as StaffMember[];
+      setStaff(staffData);
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'staff');
+    });
+
+    return () => unsubscribeStaff();
+  }, [user, userRole]);
 
   const handleUpdateGridColumns = async (cols: number) => {
     try {
@@ -414,8 +442,13 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     try {
       // Map username to email for Firebase Auth
       const normalizedUsername = adminUsername.trim().toLowerCase();
-      const email = normalizedUsername.includes('@') ? normalizedUsername : `${normalizedUsername}@admin.com`;
+      let email = normalizedUsername.includes('@') ? normalizedUsername : `${normalizedUsername}@admin.com`;
       
+      // Check if it's a staff member by username
+      if (!normalizedUsername.includes('@') && normalizedUsername !== 'aoba2026') {
+        email = `${normalizedUsername}@staff.piad`;
+      }
+
       try {
         await signInWithEmailAndPassword(auth, email, adminPassword);
       } catch (err: any) {
@@ -423,7 +456,6 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
         // and it's the requested super admin, try to create it
         if ((err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential') && normalizedUsername === 'aoba2026') {
           try {
-            const { createUserWithEmailAndPassword } = await import('firebase/auth');
             await createUserWithEmailAndPassword(auth, email, adminPassword);
             showToast('管理员账号已初始化并登录', 'success');
           } catch (createErr: any) {
@@ -638,9 +670,9 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     })
     .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 
-  return (
-    <div className="fixed inset-0 bg-[#f3f4f6] z-[100] flex flex-col overflow-hidden text-gray-800">
-      {!user ? (
+  if (!user) {
+    return (
+      <div className="fixed inset-0 bg-[#f3f4f6] z-[100] flex flex-col overflow-hidden text-gray-800">
         <div className="flex-1 flex items-center justify-center p-6 bg-gradient-to-br from-piad-primary/5 to-piad-bg">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -733,9 +765,17 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
             <X size={24} />
           </button>
         </div>
-      ) : (
-        <>
-          {/* Admin Header */}
+      </div>
+    );
+  }
+
+  if (isSimpleMode) {
+    return <StaffPanel onClose={() => setIsSimpleMode(false)} />;
+  }
+
+  return (
+    <div className="fixed inset-0 bg-[#f3f4f6] z-[100] flex flex-col overflow-hidden text-gray-800">
+      {/* Admin Header */}
       <header className="h-14 bg-piad-card/80 backdrop-blur-md border-b border-piad-primary/10 flex items-center justify-between px-4 shadow-sm flex-shrink-0 sticky top-0 z-50">
         <div className="flex items-center space-x-3">
           <button 
@@ -755,6 +795,13 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           </h1>
         </div>
         <div className="flex items-center space-x-2">
+          <button 
+            onClick={handleLogout}
+            className="p-2 hover:bg-red-50 rounded-lg transition-colors text-piad-subtext hover:text-red-600"
+            title="退出登录"
+          >
+            <LogOut size={18} />
+          </button>
           <button 
             onClick={() => {
               window.speechSynthesis.cancel();
@@ -778,11 +825,11 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
             </button>
           )}
           <button 
-            onClick={handleLogout}
+            onClick={() => setIsSimpleMode(true)}
             className="p-2 hover:bg-piad-primary/5 rounded-lg transition-colors text-piad-subtext hover:text-piad-primary"
-            title="退出登录"
+            title="极简模式"
           >
-            <RotateCcw size={18} />
+            <LayoutGrid size={18} />
           </button>
         </div>
       </header>
@@ -802,17 +849,19 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
               </span>
             )}
           </button>
-          <button 
-            onClick={() => {
-              setView('menu');
-              setActiveCategory(null);
-            }}
-            className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'menu' && !activeCategory ? 'bg-piad-primary text-white shadow-lg shadow-piad-primary/20' : 'text-piad-subtext bg-piad-primary/5'}`}
-          >
-            <ImageIcon size={14} className="mr-2" />
-            智能菜单
-          </button>
-          {userRole !== 'waiter' && (
+          {userPermissions.includes('menu') && (
+            <button 
+              onClick={() => {
+                setView('menu');
+                setActiveCategory(null);
+              }}
+              className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'menu' && !activeCategory ? 'bg-piad-primary text-white shadow-lg shadow-piad-primary/20' : 'text-piad-subtext bg-piad-primary/5'}`}
+            >
+              <ImageIcon size={14} className="mr-2" />
+              智能菜单
+            </button>
+          )}
+          {userPermissions.includes('analytics') && (
             <button 
               onClick={() => setView('analytics')}
               className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'analytics' ? 'bg-piad-primary text-white shadow-lg shadow-piad-primary/20' : 'text-piad-subtext bg-piad-primary/5'}`}
@@ -821,7 +870,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
               数据中心
             </button>
           )}
-          {userRole !== 'waiter' && (
+          {userPermissions.includes('access') && (
             <button 
               onClick={() => setView('access')}
               className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'access' ? 'bg-piad-primary text-white shadow-lg shadow-piad-primary/20' : 'text-piad-subtext bg-piad-primary/5'}`}
@@ -830,14 +879,16 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
               权限安全
             </button>
           )}
-          <button 
-            onClick={() => setView('tables')}
-            className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'tables' ? 'bg-piad-primary text-white shadow-lg shadow-piad-primary/20' : 'text-piad-subtext bg-piad-primary/5'}`}
-          >
-            <QrCode size={14} className="mr-2" />
-            桌位管理
-          </button>
-          {userRole !== 'waiter' && (
+          {userPermissions.includes('tables') && (
+            <button 
+              onClick={() => setView('tables')}
+              className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'tables' ? 'bg-piad-primary text-white shadow-lg shadow-piad-primary/20' : 'text-piad-subtext bg-piad-primary/5'}`}
+            >
+              <QrCode size={14} className="mr-2" />
+              桌位管理
+            </button>
+          )}
+          {userPermissions.includes('settings') && (
             <button 
               onClick={() => setView('settings')}
               className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'settings' ? 'bg-piad-primary text-white shadow-lg shadow-piad-primary/20' : 'text-piad-subtext bg-piad-primary/5'}`}
@@ -898,11 +949,13 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                         </div>
                         <div className={`px-3 py-1 rounded-full text-xs font-bold ${
                           order.status === 'pending' ? 'bg-piad-primary/10 text-piad-primary' :
+                          order.status === 'confirmed' ? 'bg-piad-primary/20 text-piad-primary border border-piad-primary/30' :
                           order.status === 'preparing' ? 'bg-piad-accent/10 text-piad-accent' :
                           order.status === 'served' ? 'bg-blue-100 text-blue-700' :
                           'bg-green-100 text-green-700'
                         }`}>
-                          {order.status === 'pending' ? '待处理' : 
+                          {order.status === 'pending' ? '待确认' : 
+                           order.status === 'confirmed' ? '已确认' : 
                            order.status === 'preparing' ? '制作中' : 
                            order.status === 'served' ? '待配送' : '已完成'}
                         </div>
@@ -934,6 +987,15 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                         </div>
                         <div className="flex space-x-2">
                           {order.status === 'pending' && (
+                            <button 
+                              onClick={() => handleUpdateOrderStatus(order.id, 'confirmed')}
+                              className="bg-piad-primary text-white px-4 py-2.5 rounded-xl text-sm font-black shadow-lg shadow-piad-primary/20 active:scale-95 transition-all flex items-center"
+                            >
+                              <CheckCircle2 size={16} className="mr-1.5" />
+                              确认订单
+                            </button>
+                          )}
+                          {order.status === 'confirmed' && (
                             <button 
                               onClick={() => handleUpdateOrderStatus(order.id, 'preparing')}
                               className="bg-piad-accent text-white px-4 py-2.5 rounded-xl text-sm font-black shadow-lg shadow-piad-accent/20 active:scale-95 transition-all flex items-center"
@@ -1312,17 +1374,60 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                         exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden"
                       >
-                        <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-3">
-                          <div className="space-y-1">
-                            <label className="text-[0.5rem] font-bold text-gray-400 uppercase">员工邮箱 (Google 账号)</label>
-                            <input 
-                              type="email" 
-                              value={newStaffEmail}
-                              onChange={e => setNewStaffEmail(e.target.value)}
-                              placeholder="example@gmail.com"
-                              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-red-600 transition-colors"
-                            />
+                        <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 space-y-4">
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                              <label className="text-[0.5rem] font-bold text-gray-400 uppercase">用户名</label>
+                              <input 
+                                type="text" 
+                                value={newStaffUsername}
+                                onChange={e => setNewStaffUsername(e.target.value)}
+                                placeholder="例如: waiter01"
+                                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-red-600 transition-colors"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[0.5rem] font-bold text-gray-400 uppercase">密码</label>
+                              <input 
+                                type="password" 
+                                value={newStaffPassword}
+                                onChange={e => setNewStaffPassword(e.target.value)}
+                                placeholder="设置登录密码"
+                                className="w-full bg-white border border-gray-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-red-600 transition-colors"
+                              />
+                            </div>
                           </div>
+                          
+                          <div className="space-y-2">
+                            <label className="text-[0.5rem] font-bold text-gray-400 uppercase">权限设置</label>
+                            <div className="grid grid-cols-3 gap-2">
+                              {[
+                                { id: 'orders', name: '实时看板' },
+                                { id: 'menu', name: '智能菜单' },
+                                { id: 'analytics', name: '数据中心' },
+                                { id: 'access', name: '权限安全' },
+                                { id: 'tables', name: '桌位管理' },
+                                { id: 'settings', name: '系统设置' }
+                              ].map(perm => (
+                                <label key={perm.id} className="flex items-center space-x-2 bg-white p-2 rounded-lg border border-gray-100 cursor-pointer">
+                                  <input 
+                                    type="checkbox"
+                                    checked={newStaffPermissions.includes(perm.id)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setNewStaffPermissions([...newStaffPermissions, perm.id]);
+                                      } else {
+                                        setNewStaffPermissions(newStaffPermissions.filter(p => p !== perm.id));
+                                      }
+                                    }}
+                                    className="w-3 h-3 text-red-600 rounded focus:ring-red-500"
+                                  />
+                                  <span className="text-[0.6rem] font-bold text-gray-600">{perm.name}</span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+
                           <div className="flex items-center space-x-3">
                             <div className="flex-1 space-y-1">
                               <label className="text-[0.5rem] font-bold text-gray-400 uppercase">分配角色</label>
@@ -1337,13 +1442,36 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                             </div>
                             <button 
                               onClick={async () => {
-                                if (!newStaffEmail) return;
+                                if (!newStaffUsername || !newStaffPassword) {
+                                  showToast('请填写用户名和密码', 'error');
+                                  return;
+                                }
                                 try {
-                                  await setDoc(doc(db, 'staff', newStaffEmail), {
-                                    email: newStaffEmail,
-                                    role: newStaffRole
+                                  const email = `${newStaffUsername.toLowerCase()}@staff.piad`;
+                                  
+                                  // Use a secondary auth instance to create the user without signing out the current admin
+                                  const secondaryApp = initializeApp(firebaseConfig, 'Secondary');
+                                  const secondaryAuth = getAuth(secondaryApp);
+                                  
+                                  try {
+                                    await createUserWithEmailAndPassword(secondaryAuth, email, newStaffPassword);
+                                  } catch (authErr: any) {
+                                    if (authErr.code !== 'auth/email-already-in-use') {
+                                      throw authErr;
+                                    }
+                                  }
+
+                                  await setDoc(doc(db, 'staff', email), {
+                                    username: newStaffUsername,
+                                    email: email,
+                                    role: newStaffRole,
+                                    permissions: newStaffPermissions,
+                                    createdAt: serverTimestamp()
                                   });
-                                  setNewStaffEmail('');
+                                  
+                                  setNewStaffUsername('');
+                                  setNewStaffPassword('');
+                                  setNewStaffPermissions(['orders']);
                                   setIsAddingStaff(false);
                                   showToast('员工添加成功', 'success');
                                 } catch (error) {
@@ -1376,9 +1504,23 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                                  member.role === 'manager' ? <Users size={16} /> : <ClipboardList size={16} />}
                               </div>
                               <div>
-                                <div className="text-sm font-black text-gray-800">{member.email}</div>
-                                <div className="text-[0.65rem] text-gray-400 uppercase tracking-widest font-bold">
-                                  {member.role === 'owner' ? '老板' : member.role === 'manager' ? '店长' : '服务员'}
+                                <div className="text-sm font-black text-gray-800">{member.username || member.email}</div>
+                                <div className="flex items-center space-x-2">
+                                  <div className="text-[0.65rem] text-gray-400 uppercase tracking-widest font-bold">
+                                    {member.role === 'owner' ? '老板' : member.role === 'manager' ? '店长' : '服务员'}
+                                  </div>
+                                  {member.permissions && member.permissions.length > 0 && (
+                                    <div className="flex items-center space-x-1">
+                                      <span className="text-[0.5rem] text-gray-300">•</span>
+                                      <div className="flex flex-wrap gap-1">
+                                        {member.permissions.map(p => (
+                                          <span key={p} className="text-[0.5rem] bg-gray-50 text-gray-400 px-1.5 py-0.5 rounded border border-gray-100">
+                                            {p === 'orders' ? '看板' : p === 'menu' ? '菜单' : p === 'analytics' ? '数据' : p === 'access' ? '权限' : p === 'tables' ? '桌位' : '设置'}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -2284,8 +2426,6 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           </motion.div>
         )}
       </AnimatePresence>
-        </>
-      )}
     </div>
   );
 }
