@@ -202,7 +202,7 @@ export default function App() {
       soldOut: '已估清 Sold Out',
       recommended: '店长推荐',
       selectSpecs: '选',
-      addToCart: '加入',
+      addToCart: '加入购物车',
       myOrder: '我的点餐单',
       clearAll: '清空全部',
       emptyCartTitle: '购物车还是空的',
@@ -303,7 +303,7 @@ export default function App() {
       soldOut: '품절 Sold Out',
       recommended: '추천 메뉴',
       selectSpecs: '옵션',
-      addToCart: '담기',
+      addToCart: '장바구니 담기',
       myOrder: '내 주문',
       clearAll: '전체 삭제',
       emptyCartTitle: '장바구니가 비어 있습니다',
@@ -1712,7 +1712,7 @@ export default function App() {
               layoutId={`dish-card-${selectedDishForDetail.id}`}
               className="relative w-[90%] max-w-[400px] bg-white rounded-[24px] overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.08)] z-10 flex flex-col max-h-[90vh]"
             >
-              <div className="relative w-full aspect-[16/9] overflow-hidden">
+              <div className="relative w-full aspect-[4/3] overflow-hidden">
                 <motion.div layoutId={`dish-image-${selectedDishForDetail.id}`} className="w-full h-full">
                   <img 
                     src={getOptimizedImage(selectedDishForDetail.image)} 
@@ -1723,27 +1723,27 @@ export default function App() {
                 </motion.div>
                 <button 
                   onClick={() => setSelectedDishForDetail(null)}
-                  className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/80 backdrop-blur-md flex items-center justify-center text-gray-400 hover:text-gray-600 shadow-sm transition-all active:scale-90"
+                  className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white z-10 hover:bg-black/40 transition-all"
                 >
-                  <X size={18} strokeWidth={2.5} />
+                  <X size={20} strokeWidth={2.5} />
                 </button>
                 {selectedDishForDetail.isRecommended && (
-                  <div className="absolute top-4 left-4 bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg">
+                  <div className="absolute top-4 left-4 bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg animate-pulse">
                     {t.recommended}
                   </div>
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar">
+              <div className="flex-1 overflow-y-auto p-6 space-y-5 no-scrollbar bg-piad-primary/[0.03]">
                 <div className="flex items-start justify-between gap-2">
                   <h2 className="dish-detail-title font-black text-gray-900 leading-tight">
                     {getLocalizedName(selectedDishForDetail)}
                   </h2>
                 </div>
 
-                <div className="space-y-2">
-                  <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">菜品故事</h4>
-                  <p className="dish-detail-desc text-gray-600 leading-relaxed italic font-medium">
+                <div className="space-y-3">
+                  <h4 className="text-[10px] font-black text-piad-primary/40 uppercase tracking-[0.2em]">菜品故事</h4>
+                  <p className="dish-detail-desc text-gray-600 leading-relaxed italic font-medium text-sm">
                     “{getLocalizedDesc(selectedDishForDetail) || t.defaultDesc}”
                   </p>
                 </div>
