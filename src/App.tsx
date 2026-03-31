@@ -1108,47 +1108,17 @@ export default function App() {
     return () => clearInterval(interval);
   }, [isWaitingForConfirmation, pendingOrderId]);
 
-  const CATEGORY_IMAGES: Record<string, string> = {
-    "店长推荐": "https://img.icons8.com/fluency/96/fire.png",
-    "招牌烤鱼": "https://img.icons8.com/fluency/96/fish.png",
-    "东北菜": "https://img.icons8.com/fluency/96/dumplings.png",
-    "川菜": "https://img.icons8.com/fluency/96/chili-pepper.png",
-    "肉菜类": "https://img.icons8.com/fluency/96/steak.png",
-    "素菜类": "https://img.icons8.com/fluency/96/vegetables.png",
-    "海鲜类": "https://img.icons8.com/fluency/96/crab.png",
-    "主食类": "https://img.icons8.com/fluency/96/rice-bowl.png",
-    "酒水类": "https://img.icons8.com/fluency/96/soft-drink.png",
-    "啤酒菜": "https://img.icons8.com/fluency/96/beer.png"
-  };
-
-  const CATEGORY_ICONS: Record<string, string> = {
-    "店长推荐": "🔥",
-    "招牌烤鱼": "🐟",
-    "东北菜": "🥟",
-    "川菜": "🌶️",
-    "肉菜类": "🥩",
-    "素菜类": "🥦",
-    "海鲜类": "🦀",
-    "主食类": "🍚",
-    "酒水类": "🥤",
-    "啤酒菜": "🍺"
-  };
-
-  const renderCategoryIcon = (category: string, size: string = "text-3xl") => {
-    const imageUrl = CATEGORY_IMAGES[category];
-    if (imageUrl) {
-      const isHot = category === '店长推荐';
-      return (
-        <img 
-          src={imageUrl} 
-          alt={category} 
-          className={size === "text-3xl" ? "w-10 h-10 object-contain" : "w-6 h-6 object-contain ml-2"} 
-          style={isHot ? { filter: 'saturate(2) hue-rotate(-15deg) contrast(1.1)' } : {}}
-          referrerPolicy="no-referrer"
-        />
-      );
-    }
-    return <span className={size}>{CATEGORY_ICONS[category] || '🍽️'}</span>;
+  const CATEGORY_SPRITES: Record<string, string> = {
+    "店长推荐": "sprite-hot",
+    "招牌烤鱼": "sprite-hot",
+    "东北菜": "sprite-meat",
+    "川菜": "sprite-meat",
+    "肉菜类": "sprite-meat",
+    "素菜类": "sprite-veg",
+    "海鲜类": "sprite-seafood",
+    "主食类": "sprite-staple",
+    "酒水类": "sprite-drinks",
+    "啤酒菜": "sprite-seafood"
   };
 
   if (isLoading && dishes.length === 0) {
@@ -1208,7 +1178,7 @@ export default function App() {
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => handleCategoryClick('店长推荐')}
-            className={`flex flex-col items-center py-5 relative transition-all ${
+            className={`flex flex-col items-center py-4 mx-2 my-1 rounded-2xl relative transition-all ${
               activeCategory === '店长推荐' ? 'bg-piad-card text-piad-primary' : 'text-piad-subtext'
             }`}
           >
@@ -1220,10 +1190,8 @@ export default function App() {
             )}
             <motion.div 
               animate={{ scale: activeCategory === '店长推荐' ? 1.1 : 1 }}
-              className="mb-2"
-            >
-              {renderCategoryIcon('店长推荐')}
-            </motion.div>
+              className={`category-sprite ${CATEGORY_SPRITES['店长推荐'] || 'sprite-hot'}`}
+            />
             <span className={`text-[0.8rem] font-black leading-tight text-center px-1 ${activeCategory === '店长推荐' ? 'text-piad-primary' : 'text-piad-subtext'}`}>{t.hotRecommended}</span>
           </motion.button>
           {categories.map(category => (
@@ -1231,7 +1199,7 @@ export default function App() {
               key={category}
               whileTap={{ scale: 0.95 }}
               onClick={() => handleCategoryClick(category)}
-              className={`flex flex-col items-center py-5 relative transition-all ${
+              className={`flex flex-col items-center py-4 mx-2 my-1 rounded-2xl relative transition-all ${
                 activeCategory === category ? 'bg-piad-card text-piad-primary' : 'text-piad-subtext'
               }`}
             >
@@ -1243,10 +1211,8 @@ export default function App() {
               )}
               <motion.div 
                 animate={{ scale: activeCategory === category ? 1.1 : 1 }}
-                className="mb-2"
-              >
-                {renderCategoryIcon(category)}
-              </motion.div>
+                className={`category-sprite ${CATEGORY_SPRITES[category] || 'sprite-hot'}`}
+              />
               <span className={`text-[0.8rem] font-black leading-tight text-center px-1 ${activeCategory === category ? 'text-piad-primary' : 'text-piad-subtext'}`}>{getLocalizedCategory(category)}</span>
             </motion.button>
           ))}
@@ -1442,7 +1408,8 @@ export default function App() {
               <div id="category-店长推荐" className="category-section pt-4">
                 <div className="mb-6 flex items-center justify-between">
                   <h2 className="text-lg font-black text-piad-text flex items-center">
-                    {t.hotRecommended} {renderCategoryIcon('店长推荐', 'text-xl')}
+                    {t.hotRecommended}
+                    <div className={`category-sprite-sm ${CATEGORY_SPRITES['店长推荐']}`} />
                   </h2>
                 </div>
                 <div className="grid grid-cols-1 gap-4 mb-8">
@@ -1522,7 +1489,8 @@ export default function App() {
                 <div key={category} id={`category-${category}`} className="category-section">
                   <div className="mb-6 flex items-center justify-between pt-4">
                     <h2 className="text-lg font-black text-gray-900 flex items-center">
-                      {getLocalizedCategory(category)} {renderCategoryIcon(category, 'text-xl')}
+                      {getLocalizedCategory(category)}
+                      <div className={`category-sprite-sm ${CATEGORY_SPRITES[category] || 'sprite-hot'}`} />
                     </h2>
                   </div>
                   <div className="grid grid-cols-1 gap-4 mb-8">

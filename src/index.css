@@ -114,4 +114,33 @@ html {
       font-size: 1.875rem;
     }
   }
+
+  /* Category Sprite Icons */
+  .category-sprite {
+    width: 70px;
+    height: 70px;
+    background-image: url('https://i.imgur.com/I9Wo3pe.png');
+    background-size: 100% auto;
+    background-repeat: no-repeat;
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+
+  .category-sprite-sm {
+    width: 32px;
+    height: 32px;
+    background-image: url('https://i.imgur.com/I9Wo3pe.png');
+    background-size: 100% auto;
+    background-repeat: no-repeat;
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 0.5rem;
+  }
+  
+  .sprite-hot { background-position: 0 0; }
+  .sprite-meat { background-position: 0 20%; }
+  .sprite-veg { background-position: 0 40%; }
+  .sprite-seafood { background-position: 0 60%; }
+  .sprite-staple { background-position: 0 80%; }
+  .sprite-drinks { background-position: 0 100%; }
 }
