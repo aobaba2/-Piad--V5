@@ -589,6 +589,8 @@ export default function App() {
   const isScrollingRef = useRef(false);
   const [logoTapCount, setLogoTapCount] = useState(0);
   const lastLogoTapTime = useRef(0);
+  const [isBannerVisible, setIsBannerVisible] = useState(true);
+  const lastScrollY = useRef(0);
 
   const handleLogoTap = () => {
     const now = Date.now();
@@ -632,11 +634,25 @@ export default function App() {
   }, [placeholders, searchQuery]);
 
   const handleScroll = () => {
-    if (isScrollingRef.current || searchQuery) return;
-    
     const container = scrollContainerRef.current;
     if (!container) return;
 
+    const currentScrollY = container.scrollTop;
+    
+    // Hide banner when scrolling down, show when scrolling up or at top
+    // Only apply this logic on mobile/small screens (width < 768px)
+    if (window.innerWidth < 768) {
+      if (currentScrollY > lastScrollY.current && currentScrollY > 50) {
+        setIsBannerVisible(false);
+      } else if (currentScrollY < lastScrollY.current || currentScrollY <= 0) {
+        setIsBannerVisible(true);
+      }
+    }
+    
+    lastScrollY.current = currentScrollY;
+
+    if (isScrollingRef.current || searchQuery) return;
+    
     const sections = container.querySelectorAll('.category-section');
     let currentCategory = activeCategory;
 
@@ -1233,13 +1249,25 @@ export default function App() {
           </div>
 
           {/* Banner Carousel */}
-          <BannerCarousel 
-            banners={banners}
-            onBannerClick={(dishId) => {
-              const dish = dishes.find(d => d.id === dishId);
-              if (dish) setSelectedDishForDetail(dish);
-            }} 
-          />
+          <AnimatePresence initial={false}>
+            {isBannerVisible && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="overflow-hidden"
+              >
+                <BannerCarousel 
+                  banners={banners}
+                  onBannerClick={(dishId) => {
+                    const dish = dishes.find(d => d.id === dishId);
+                    if (dish) setSelectedDishForDetail(dish);
+                  }} 
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Search Bar inside Sticky Header */}
           <div className="px-4 pb-3">
