@@ -1710,7 +1710,7 @@ export default function App() {
             />
             <motion.div
               layoutId={`dish-card-${selectedDishForDetail.id}`}
-              className="relative w-[90%] max-w-[400px] bg-white rounded-[24px] overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.08)] z-10 flex flex-col max-h-[90vh]"
+              className="relative w-[90%] max-w-[400px] bg-white rounded-[24px] overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.08)] z-10 flex flex-col max-h-[70vh]"
             >
               <div className="relative w-full aspect-[4/3] overflow-hidden">
                 <motion.div layoutId={`dish-image-${selectedDishForDetail.id}`} className="w-full h-full">
