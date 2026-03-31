@@ -244,7 +244,7 @@ export default function App() {
       kitchenNotified: '已实时通知后厨',
       newOrderTitle: '收到新订单！',
       newOrderDesc: '请立即前往后台处理',
-      viewNow: '立即查看',
+      viewCart: '查看购物车',
       categories: {
         "招牌烤鱼": "招牌烤鱼",
         "东北菜": "东北菜",
@@ -348,6 +348,7 @@ export default function App() {
       newOrderTitle: '새 주문이 접수되었습니다!',
       newOrderDesc: '관리자 페이지에서 확인해주세요',
       viewNow: '지금 확인',
+      viewCart: '장바구니 보기',
       stockLeft: (count: number) => `남은 수량 ${count}개`,
       offlineTitle: '네트워크 연결 끊김',
       offlineDesc: '주문 실패를 방지하기 위해 네트워크 연결을 확인해주세요',
@@ -450,7 +451,7 @@ export default function App() {
     kitchenNotified: '已实时通知后厨',
     newOrderTitle: '收到新订单！',
     newOrderDesc: '请立即前往后台处理',
-    viewNow: '立即查看',
+    viewCart: '查看购物车',
     stockLeft: (count: number) => `仅剩 ${count} 份`,
     offlineTitle: '网络连接已断开',
     offlineDesc: '请检查网络连接，以免影响下单',
@@ -1445,10 +1446,8 @@ export default function App() {
                 )}
               </div>
               <div className="flex flex-col">
-                <div className="flex items-baseline space-x-1">
-                  <span className="text-white text-lg font-black">{formatPrice(totalAmount, appSettings.currency)}</span>
-                </div>
-                <span className="text-[0.6rem] text-gray-400 font-bold">{t.orderedItems(totalItems)}</span>
+                <span className="text-white text-sm font-black">{t.orderedItems(totalItems)}</span>
+                <span className="text-[0.6rem] text-gray-400 font-bold">{t.viewCart}</span>
               </div>
             </div>
 
@@ -1573,8 +1572,10 @@ export default function App() {
                                 <DishImage src={getOptimizedImage(item.image)} alt={item.name} />
                               </div>
                               <div className="flex-1 min-w-0 mr-4">
+                                <div className="text-[10px] font-black text-piad-primary/40 uppercase tracking-wider mb-0.5">
+                                  {t.categories[item.category as keyof typeof t.categories] || item.category}
+                                </div>
                                 <h4 className="font-bold text-base text-piad-text truncate">{getLocalizedName(item)}</h4>
-                                <div className="text-piad-primary text-sm font-bold mt-1">{formatPrice(item.price, appSettings.currency)}</div>
                                 {item.modifiers && item.modifiers.length > 0 && (
                                   <div className="flex flex-wrap gap-1 mt-1">
                                     {item.modifiers.map((m, idx) => (
@@ -1618,8 +1619,7 @@ export default function App() {
                                 <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
                               </div>
                               <h5 className="text-[0.7rem] font-bold text-piad-text line-clamp-1 mb-1">{getLocalizedName(dish)}</h5>
-                              <div className="flex items-center justify-between">
-                                <span className="text-[0.7rem] font-black text-piad-primary">{formatPrice(dish.price, appSettings.currency)}</span>
+                              <div className="flex items-center justify-end">
                                 <button 
                                   onClick={(e) => handleAddToCart(dish, e)}
                                   className="w-6 h-6 bg-piad-card rounded-lg flex items-center justify-center text-piad-primary shadow-piad border border-piad-primary/5 active:scale-90 transition-all"
@@ -1662,12 +1662,11 @@ export default function App() {
                 {cart.length > 0 && (
                   <div className="p-6 bg-piad-card border-t border-piad-primary/5 shrink-0 shadow-piad pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
                     <div className="flex items-center justify-between mb-4">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-sm font-bold text-piad-text">{t.totalAmount}</span>
-                        <span className="text-2xl font-black text-piad-primary">{formatPrice(totalAmount, appSettings.currency)}</span>
-                      </div>
                       <div className="text-piad-subtext text-sm font-medium">
                         {selectedTable ? t.tableNumber(selectedTable) : t.noTableSelected}
+                      </div>
+                      <div className="text-piad-subtext text-xs font-bold">
+                        {t.orderedItems(totalItems)}
                       </div>
                     </div>
                     <button 
@@ -1740,9 +1739,6 @@ export default function App() {
                   <h2 className="dish-detail-title font-black text-gray-900 leading-tight">
                     {getLocalizedName(selectedDishForDetail)}
                   </h2>
-                  <div className="dish-detail-price font-black text-red-600 whitespace-nowrap">
-                    {formatPrice(selectedDishForDetail.price, appSettings.currency)}
-                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -1807,7 +1803,6 @@ export default function App() {
                   </div>
                   <div>
                     <h3 className="text-lg font-black text-piad-text">{getLocalizedName(selectedDishForSpecs)}</h3>
-                    <p className="text-piad-primary font-black">{formatPrice(selectedDishForSpecs.price, appSettings.currency)}</p>
                   </div>
                 </div>
                 <button 
@@ -1886,9 +1881,6 @@ export default function App() {
               <div className="p-6 bg-piad-primary/5 border-t border-piad-primary/5 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
                 <div className="flex items-center justify-between mb-4">
                   <div className="text-xs text-piad-subtext font-bold">{t.selected}{selectedModifiers.length > 0 ? selectedModifiers.map(m => getLocalizedModifierName(m)).join(', ') : t.none}</div>
-                  <div className="text-lg font-black text-piad-primary">
-                    {formatPrice(selectedDishForSpecs.price + selectedModifiers.reduce((acc, m) => acc + m.price, 0), appSettings.currency)}
-                  </div>
                 </div>
                 {(() => {
                   const requiredGroups = Array.from(new Set(selectedDishForSpecs.modifiers?.filter(m => m.groupRequired).map(m => m.group || t.specSelection) || []));
