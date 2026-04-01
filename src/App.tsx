@@ -1306,6 +1306,13 @@ export default function App() {
         >
           {t.reload}
         </button>
+
+        {/* AI Assistant for testing even on invalid QR screen */}
+        {console.log('Rendering AIAssistant in invalid QR view')}
+        <AIAssistant 
+          dishes={dishes} 
+          handleAddToCart={handleAddToCart} 
+        />
       </div>
     );
   }
@@ -1719,8 +1726,8 @@ export default function App() {
               className={`flex items-center cursor-pointer transition-all duration-300 ${searchQuery || isSearchExpanded ? 'flex-1 pl-3' : 'justify-center w-full'}`}
             >
               <div className="relative">
-                <div className={`rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-500/20 transition-all duration-300 ${searchQuery || isSearchExpanded ? 'w-10 h-10 mr-3' : 'w-12 h-12'}`}>
-                  {searchQuery || isSearchExpanded ? <Search size={20} /> : <span className="text-lg font-black">搜</span>}
+                <div className={`rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-500/20 transition-all duration-300 ${searchQuery || isSearchExpanded ? 'w-8 h-8 mr-2' : 'w-10 h-10'}`}>
+                  {searchQuery || isSearchExpanded ? <Search size={16} /> : <span className="text-base font-black">搜</span>}
                 </div>
               </div>
               
@@ -2499,11 +2506,14 @@ export default function App() {
       </AnimatePresence>
 
       {/* AI Ordering Assistant */}
-      {!isAdminOpen && isSessionValid && (
-        <AIAssistant 
-          dishes={dishes} 
-          handleAddToCart={handleAddToCart} 
-        />
+      {!isAdminOpen && (
+        <>
+          {console.log('Rendering AIAssistant in main view')}
+          <AIAssistant 
+            dishes={dishes} 
+            handleAddToCart={handleAddToCart} 
+          />
+        </>
       )}
     </div>
   );
