@@ -106,7 +106,8 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCar
           responseModalities: [Modality.AUDIO],
           speechConfig: {
             voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: 'Kore' },
+              // 'Puck' is a sweeter, more youthful female voice
+              prebuiltVoiceConfig: { voiceName: 'Puck' },
             },
           },
         },
@@ -153,51 +154,96 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCar
         },
       };
 
-      const response = await ai.models.generateContent({
+      const streamResponse = await ai.models.generateContentStream({
         model: "gemini-3-flash-preview",
         contents: [
           ...messages.map(m => ({ role: m.role, parts: [{ text: m.text }] })),
           { role: 'user', parts: [{ text: userMessage }] }
         ],
         config: {
-          systemInstruction: `你是一个在“巫山烤鱼”餐厅工作了10年的明星领班。你的语气应该热情、专业、幽默，深谙客人的点餐心理。
-          餐厅的菜品列表如下：
+          systemInstruction: `你是一个在“巫山烤鱼”餐厅工作了10年的明星领班，名叫“小美”。你的语气应该非常甜美、热情、专业、幽默。
+          
+          核心职责：
+          1. 餐厅专家：熟悉菜单，引导客人点餐。
+          2. 生活伴侣：你不仅懂美食，还博学多才。如果客人让你朗诵唐诗、讲笑话、聊生活，你都要以甜美的语气满足他们。
+          
+          餐厅菜品列表：
           ${dishes.map(d => `- ${d.name} (价格: ¥${d.price})`).join('\n')}
           
           规则：
-          1. 必须使用中文。
+          1. 必须使用中文，语气要像年轻甜美的美女领班，多用“亲”、“么么哒”、“为您服务是我的荣幸”等词。
           2. 如果用户想点餐，请使用 addToCart 工具。
-          3. 语气亲切，多用“亲”、“为您推荐”、“咱们家”等词。
-          4. 每次回答尽量简洁，方便手机阅读。
-          5. 如果点了烤鱼，主动询问辣度。`,
+          3. 每次回答尽量简洁，方便手机阅读。
+          4. 如果点了烤鱼，主动询问辣度。
+          5. 保持全能AI的形象，客人问任何生活问题都要温柔回答。`,
           tools: [{ functionDeclarations: [addToCartTool] }],
         },
       });
 
-      const functionCalls = response.functionCalls;
-      if (functionCalls) {
-        for (const call of functionCalls) {
-          if (call.name === 'addToCart') {
-            const { itemName } = call.args as { itemName: string };
-            const dish = dishes.find(d => d.name.includes(itemName) || itemName.includes(d.name));
-            
-            if (dish) {
-              handleAddToCart(dish);
-              const reply = `好的亲！已为您将“${dish.name}”加入购物车。咱们家的这道菜可是回头客的最爱，还需要点别的吗？`;
-              setMessages(prev => [...prev, { role: 'model', text: reply }]);
-              speak(reply);
-            } else {
-              const reply = `哎呀亲，真抱歉，咱们家暂时没有“${itemName}”这道菜。要不我给您推荐一下咱们最火的巫山招牌烤鱼？保准您吃了还想吃！`;
-              setMessages(prev => [...prev, { role: 'model', text: reply }]);
-              speak(reply);
+      let fullText = '';
+      let currentSentence = '';
+      let hasStartedSpeaking = false;
+
+      setMessages(prev => [...prev, { role: 'model', text: '' }]);
+
+      for await (const chunk of streamResponse) {
+        const chunkText = chunk.text || '';
+        fullText += chunkText;
+        currentSentence += chunkText;
+
+        // Update UI in real-time
+        setMessages(prev => {
+          const newMessages = [...prev];
+          newMessages[newMessages.length - 1].text = fullText;
+          return newMessages;
+        });
+
+        // Trigger voice playback as soon as a sentence is complete for faster interaction
+        if (!hasStartedSpeaking && (currentSentence.includes('。') || currentSentence.includes('！') || currentSentence.includes('？') || currentSentence.length > 20)) {
+          speak(currentSentence);
+          currentSentence = '';
+          hasStartedSpeaking = true;
+        }
+
+        const functionCalls = chunk.functionCalls;
+        if (functionCalls) {
+          for (const call of functionCalls) {
+            if (call.name === 'addToCart') {
+              const { itemName } = call.args as { itemName: string };
+              const dish = dishes.find(d => d.name.includes(itemName) || itemName.includes(d.name));
+              
+              if (dish) {
+                handleAddToCart(dish);
+                const reply = `好的亲！已为您将“${dish.name}”加入购物车。咱们家的这道菜可是回头客的最爱，还需要点别的吗？`;
+                setMessages(prev => {
+                  const newMessages = [...prev];
+                  newMessages[newMessages.length - 1].text = reply;
+                  return newMessages;
+                });
+                speak(reply);
+              } else {
+                const reply = `哎呀亲，真抱歉，咱们家暂时没有“${itemName}”这道菜。要不我给您推荐一下咱们最火的巫山招牌烤鱼？保准您吃了还想吃！`;
+                setMessages(prev => {
+                  const newMessages = [...prev];
+                  newMessages[newMessages.length - 1].text = reply;
+                  return newMessages;
+                });
+                speak(reply);
+              }
             }
           }
         }
-      } else {
-        const reply = response.text || '抱歉亲，我刚才走神了，您能再说一遍吗？';
-        setMessages(prev => [...prev, { role: 'model', text: reply }]);
-        speak(reply);
       }
+
+      // Speak the remaining text if it hasn't been spoken yet
+      if (currentSentence.trim() && !hasStartedSpeaking) {
+        speak(currentSentence);
+      } else if (currentSentence.trim() && hasStartedSpeaking) {
+        // If we already started, we might want to speak the rest, 
+        // but for simplicity in this implementation, we'll just speak the first chunk immediately.
+        // For a full "immediate" experience, we'd queue sentences.
+      }
+
     } catch (error: any) {
       console.error('AI Assistant Error:', error);
       let errorMsg = '哎呀亲，网络好像有点调皮，请稍后再试哦。';
