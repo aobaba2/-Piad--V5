@@ -810,7 +810,7 @@ export default function App() {
         ...doc.data()
       })) as { id: string, name: string, order: number }[];
       
-      const cats = catsData.map(c => c.name);
+      const cats = Array.from(new Set(catsData.map(c => c.name)));
       
       if (cats.length === 0) {
         seedInitialData();
@@ -831,7 +831,9 @@ export default function App() {
         id: doc.id,
         ...doc.data()
       })) as Dish[];
-      setDishes(dishesData);
+      // Ensure unique dishes by ID
+      const uniqueDishes = Array.from(new Map(dishesData.map(d => [d.id, d])).values());
+      setDishes(uniqueDishes);
       setIsLoading(false);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'dishes');
@@ -844,7 +846,9 @@ export default function App() {
         id: doc.id,
         ...doc.data()
       })) as Banner[];
-      setBanners(bannersData);
+      // Ensure unique banners by ID
+      const uniqueBanners = Array.from(new Map(bannersData.map(b => [b.id, b])).values());
+      setBanners(uniqueBanners);
     }, (error) => {
       handleFirestoreError(error, OperationType.GET, 'banners');
     });
@@ -957,6 +961,24 @@ export default function App() {
     });
   }, [activeCategory, searchQuery, dishes]);
 
+  const getModifierSignature = (modifiers?: DishModifier[]) => {
+    if (!modifiers || modifiers.length === 0) return 'none';
+    return modifiers.map(m => m.name).sort().join('|');
+  };
+
+  const incrementCartItem = (itemToIncrement: CartItem) => {
+    setCart(prev => {
+      const signature = getModifierSignature(itemToIncrement.modifiers);
+      return prev.map(item => 
+        (item.id === itemToIncrement.id && getModifierSignature(item.modifiers) === signature)
+          ? { ...item, quantity: item.quantity + 1 }
+          : item
+      );
+    });
+    setIsCartPopping(true);
+    setTimeout(() => setIsCartPopping(false), 300);
+  };
+
   const handleAddToCart = async (dish: Dish, e?: React.MouseEvent) => {
     if (dish.isSoldOut) return;
 
@@ -964,7 +986,7 @@ export default function App() {
     if (e) {
       const rect = e.currentTarget.getBoundingClientRect();
       const newItem = {
-        id: Date.now(),
+        id: `fly-add-${Date.now()}-${Math.random()}`,
         start: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
       };
       setFlyItems(prev => [...prev, newItem]);
@@ -985,13 +1007,14 @@ export default function App() {
     }
 
     setCart(prev => {
-      const existing = prev.find(item => item.id === dish.id && !item.modifiers);
+      const signature = 'none';
+      const existing = prev.find(item => item.id === dish.id && getModifierSignature(item.modifiers) === signature);
       if (existing) {
         return prev.map(item => 
-          (item.id === dish.id && !item.modifiers) ? { ...item, quantity: item.quantity + 1 } : item
+          (item.id === dish.id && getModifierSignature(item.modifiers) === signature) ? { ...item, quantity: item.quantity + 1 } : item
         );
       }
-      return [...prev, { ...dish, quantity: 1 }];
+      return [...prev, { ...dish, quantity: 1, modifiers: [] }];
     });
     setIsCartPopping(true);
     setTimeout(() => setIsCartPopping(false), 300);
@@ -1002,22 +1025,22 @@ export default function App() {
     if (e) {
       const rect = e.currentTarget.getBoundingClientRect();
       const newItem = {
-        id: Date.now(),
+        id: `fly-mod-${Date.now()}-${Math.random()}`,
         start: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
       };
       setFlyItems(prev => [...prev, newItem]);
     }
 
     setCart(prev => {
-      const modifierIds = selectedModifiers.map(m => m.name).sort().join('|');
+      const signature = getModifierSignature(selectedModifiers);
       const existing = prev.find(item => 
         item.id === dish.id && 
-        item.modifiers?.map(m => m.name).sort().join('|') === modifierIds
+        getModifierSignature(item.modifiers) === signature
       );
 
       if (existing) {
         return prev.map(item => 
-          (item.id === dish.id && item.modifiers?.map(m => m.name).sort().join('|') === modifierIds)
+          (item.id === dish.id && getModifierSignature(item.modifiers) === signature)
             ? { ...item, quantity: item.quantity + 1 }
             : item
         );
@@ -1033,21 +1056,21 @@ export default function App() {
 
   const removeFromCart = (itemToRemove: CartItem) => {
     setCart(prev => {
-      const modifierIds = itemToRemove.modifiers?.map(m => m.name).sort().join('|') || '';
+      const signature = getModifierSignature(itemToRemove.modifiers);
       const existing = prev.find(item => 
         item.id === itemToRemove.id && 
-        (item.modifiers?.map(m => m.name).sort().join('|') || '') === modifierIds
+        getModifierSignature(item.modifiers) === signature
       );
 
       if (existing && existing.quantity > 1) {
         return prev.map(item => 
-          (item.id === itemToRemove.id && (item.modifiers?.map(m => m.name).sort().join('|') || '') === modifierIds)
+          (item.id === itemToRemove.id && getModifierSignature(item.modifiers) === signature)
             ? { ...item, quantity: item.quantity - 1 } 
             : item
         );
       }
       return prev.filter(item => 
-        !(item.id === itemToRemove.id && (item.modifiers?.map(m => m.name).sort().join('|') || '') === modifierIds)
+        !(item.id === itemToRemove.id && getModifierSignature(item.modifiers) === signature)
       );
     });
   };
@@ -1368,7 +1391,7 @@ export default function App() {
                           <button 
                             onClick={(e) => handleAddToCart(dish, e)}
                             disabled={dish.isSoldOut}
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 ${
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-lg transition-all active:scale-95 ${
                               dish.isSoldOut 
                                 ? 'bg-gray-100 text-gray-300' 
                                 : 'bg-red-600 text-white shadow-red-100'
@@ -1377,7 +1400,7 @@ export default function App() {
                             {dish.modifiers && dish.modifiers.length > 0 ? (
                               <span className="text-[0.65rem] font-black">{t.selectSpecs}</span>
                             ) : (
-                              <Plus size={16} />
+                              <Plus size={14} />
                             )}
                           </button>
                         </div>
@@ -1448,7 +1471,7 @@ export default function App() {
                           <button 
                             onClick={(e) => handleAddToCart(dish, e)}
                             disabled={dish.isSoldOut}
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 ${
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-lg transition-all active:scale-95 ${
                               dish.isSoldOut 
                                 ? 'bg-piad-primary/10 text-piad-subtext' 
                                 : 'bg-piad-primary text-white shadow-piad-primary/20'
@@ -1457,7 +1480,7 @@ export default function App() {
                             {dish.modifiers && dish.modifiers.length > 0 ? (
                               <span className="text-[0.65rem] font-black">{t.selectSpecs}</span>
                             ) : (
-                              <Plus size={16} />
+                              <Plus size={14} />
                             )}
                           </button>
                         </div>
@@ -1530,7 +1553,7 @@ export default function App() {
                               <button 
                                 onClick={(e) => handleAddToCart(dish, e)}
                                 disabled={dish.isSoldOut}
-                                className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 ${
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-lg transition-all active:scale-95 ${
                                   dish.isSoldOut 
                                     ? 'bg-gray-100 text-gray-300' 
                                     : 'bg-red-600 text-white shadow-red-100'
@@ -1539,7 +1562,7 @@ export default function App() {
                                 {dish.modifiers && dish.modifiers.length > 0 ? (
                                   <span className="text-[0.65rem] font-black">{t.selectSpecs}</span>
                                 ) : (
-                                  <Plus size={16} />
+                                  <Plus size={14} />
                                 )}
                               </button>
                             </div>
@@ -1787,7 +1810,7 @@ export default function App() {
                           {cart.map(item => (
                             <motion.div 
                               layout
-                              key={item.id} 
+                              key={`${item.id}-${getModifierSignature(item.modifiers)}`} 
                               className="flex items-center bg-piad-card p-3 rounded-2xl shadow-piad border border-piad-primary/5"
                             >
                               <div className="w-16 h-16 shrink-0 rounded-xl overflow-hidden mr-4 bg-piad-primary/5">
@@ -1817,10 +1840,10 @@ export default function App() {
                                 </button>
                                 <span className="w-8 text-center font-bold text-sm text-piad-text">{item.quantity}</span>
                                 <button 
-                                  onClick={(e) => handleAddToCart(item, e)}
+                                  onClick={(e) => incrementCartItem(item)}
                                   className="w-8 h-8 flex items-center justify-center text-piad-subtext hover:text-piad-primary hover:bg-piad-card rounded-full transition-colors"
                                 >
-                                  <Plus size={16} strokeWidth={3} />
+                                  <Plus size={14} strokeWidth={3} />
                                 </button>
                               </div>
                             </motion.div>
@@ -1984,7 +2007,7 @@ export default function App() {
                   }}
                   className="w-full h-14 bg-red-600 text-white rounded-xl font-black text-base shadow-lg shadow-red-100 active:scale-95 transition-all flex items-center justify-center space-x-2"
                 >
-                  <Plus size={20} strokeWidth={3} />
+                  <Plus size={14} strokeWidth={3} />
                   <span>{t.addToCart}</span>
                 </button>
               </div>
