@@ -36,6 +36,9 @@ export interface Settings {
   coverAddress?: string;
   coverPhone?: string;
   coverImage?: string;
+  upsellDishIds?: string[];
+  upsellPhrases?: string[];
+  upsellFontSize?: number;
 }
 
 export interface Banner {

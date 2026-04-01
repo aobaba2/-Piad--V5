@@ -105,6 +105,38 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 }
 
 // Banner Carousel Component
+const ScrollingPhrases = ({ phrases, fontSize = 18 }: { phrases: string[], fontSize?: number }) => {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (!phrases || phrases.length <= 1) return;
+    const timer = setInterval(() => {
+      setIndex((prev) => (prev + 1) % phrases.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [phrases]);
+
+  if (!phrases || phrases.length === 0) return null;
+
+  return (
+    <div className="h-8 overflow-hidden relative flex items-center">
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={index}
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: -20, opacity: 0 }}
+          transition={{ duration: 0.5 }}
+          className="font-black text-piad-primary whitespace-nowrap"
+          style={{ fontSize: `${fontSize}px` }}
+        >
+          {phrases[index]}
+        </motion.div>
+      </AnimatePresence>
+    </div>
+  );
+};
+
 const BannerCarousel = ({ banners, onBannerClick, onClose }: { banners: Banner[], onBannerClick?: (dishId: string) => void, onClose?: () => void }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -411,6 +443,14 @@ export default function App() {
       clearCartConfirmDesc: '清空后将无法恢复，需要重新选择菜品。',
       upsellTitle: '超值加购',
       upsellDesc: '再加一点，美味翻倍',
+      upsellPhrases: [
+        '再加一点，美味翻倍 😋',
+        '超值加购，不容错过 ✨',
+        '搭配这些，口感更佳 🥢',
+        '最后一步，完美收官 🌟',
+        '老板推荐，闭眼入 💯',
+        '加一份快乐，多一份满足 ❤️'
+      ],
       emptyCartHint: '肚子空空，快去点餐吧~',
       searchPlaceholders: [
         '想吃点辣的？',
@@ -482,6 +522,14 @@ export default function App() {
       clearCartConfirmDesc: '장바구니를 비우면 복구할 수 없으며 메뉴를 다시 선택해야 합니다.',
       upsellTitle: '가성비 추가',
       upsellDesc: '조금만 더하면 맛이 두 배!',
+      upsellPhrases: [
+        '조금만 더하면 맛이 두 배! 😋',
+        '가성비 추가, 놓치지 마세요 ✨',
+        '함께하면 더 맛있어요 🥢',
+        '마지막 단계, 완벽한 마무리 🌟',
+        '사장님 추천 메뉴 💯',
+        '행복을 더해보세요 ❤️'
+      ],
       emptyCartHint: '배가 비어있어요, 주문하러 가볼까요?~',
       searchPlaceholders: [
         '매운 음식이 당기나요?',
@@ -623,6 +671,12 @@ export default function App() {
   const accumulatedScrollUp = useRef(0);
 
   const handleLogoTap = () => {
+    // If user is already logged in as staff/admin, 1 click is enough
+    if (user && userRole) {
+      setIsAdminOpen(true);
+      return;
+    }
+
     const now = Date.now();
     if (now - lastLogoTapTime.current < 500) {
       const newCount = logoTapCount + 1;
@@ -1233,7 +1287,7 @@ export default function App() {
     );
   }
 
-  if (isSessionValid === false && !isAdminOpen && !(userRole === 'owner' || userRole === 'manager')) {
+  if (isSessionValid === false && !isAdminOpen && !(user && userRole)) {
     return (
       <div className="min-h-screen bg-piad-bg flex flex-col items-center justify-center p-6 text-center">
         <div 
@@ -1911,21 +1965,36 @@ export default function App() {
                       <section className="mt-8">
                         <div className="flex items-center justify-between mb-4">
                           <h4 className="text-base font-black text-piad-text">{t.upsellTitle}</h4>
-                          <span className="text-[0.65rem] text-piad-primary font-bold bg-piad-primary/10 px-2 py-0.5 rounded-full">{t.upsellDesc}</span>
+                          <ScrollingPhrases 
+                            phrases={appSettings.upsellPhrases && appSettings.upsellPhrases.length > 0 ? appSettings.upsellPhrases : t.upsellPhrases} 
+                            fontSize={appSettings.upsellFontSize || 16}
+                          />
                         </div>
-                        <div className="flex overflow-x-auto gap-4 pb-2 no-scrollbar">
-                          {dishes.filter(d => d.category === '酒水类' && !cart.some(ci => ci.id === d.id)).slice(0, 4).map(dish => (
-                            <div key={dish.id} className="shrink-0 w-32 bg-piad-primary/5 rounded-2xl p-2 border border-piad-primary/5">
-                              <div className="w-full aspect-square rounded-xl overflow-hidden mb-2">
+                        <div className="flex overflow-x-auto gap-3 pb-2 no-scrollbar">
+                          {(appSettings.upsellDishIds && appSettings.upsellDishIds.length > 0 
+                            ? appSettings.upsellDishIds.map(id => dishes.find(d => d.id === id)).filter(Boolean) as Dish[]
+                            : dishes.filter(d => d.category === '酒水类' && !cart.some(ci => ci.id === d.id)).slice(0, 4)
+                          ).map(dish => (
+                            <div key={dish.id} className="shrink-0 w-24 bg-piad-primary/5 rounded-2xl p-2 border border-piad-primary/5">
+                              <div className="w-full aspect-square rounded-xl overflow-hidden mb-2 relative">
                                 <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
+                                {dish.isSoldOut && (
+                                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                                    <span className="text-[8px] text-white font-bold px-1 py-0.5 bg-black/60 rounded">已售罄</span>
+                                  </div>
+                                )}
                               </div>
-                              <h5 className="text-sm font-bold text-piad-text line-clamp-1 mb-1">{getLocalizedName(dish)}</h5>
-                              <div className="flex items-center justify-end">
+                              <h5 className="text-[10px] font-bold text-piad-text line-clamp-1 mb-1">{getLocalizedName(dish)}</h5>
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] font-black text-piad-primary">{t.currency}{dish.price}</span>
                                 <button 
+                                  disabled={dish.isSoldOut}
                                   onClick={(e) => handleAddToCart(dish, e)}
-                                  className="w-6 h-6 bg-piad-card rounded-lg flex items-center justify-center text-piad-primary shadow-piad border border-piad-primary/5 active:scale-90 transition-all"
+                                  className={`w-5 h-5 rounded-lg flex items-center justify-center shadow-piad border border-piad-primary/5 active:scale-90 transition-all ${
+                                    dish.isSoldOut ? 'bg-gray-200 text-gray-400' : 'bg-piad-card text-piad-primary'
+                                  }`}
                                 >
-                                  <Plus size={14} strokeWidth={3} />
+                                  <Plus size={12} strokeWidth={3} />
                                 </button>
                               </div>
                             </div>

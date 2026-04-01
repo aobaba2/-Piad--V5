@@ -239,8 +239,13 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     coverHistory: '',
     coverAddress: '',
     coverPhone: '',
-    coverImage: ''
+    coverImage: '',
+    upsellDishIds: [],
+    upsellPhrases: [],
+    upsellFontSize: 16
   });
+  const [newUpsellPhrase, setNewUpsellPhrase] = useState('');
+  const [isUpsellModalOpen, setIsUpsellModalOpen] = useState(false);
   const [localRestaurantName, setLocalRestaurantName] = useState('PIAD 点餐');
   const lastOrderCountRef = useRef(0);
 
@@ -325,7 +330,10 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           coverHistory: data.coverHistory || '',
           coverAddress: data.coverAddress || '',
           coverPhone: data.coverPhone || '',
-          coverImage: data.coverImage || ''
+          coverImage: data.coverImage || '',
+          upsellDishIds: data.upsellDishIds || [],
+          upsellPhrases: data.upsellPhrases || [],
+          upsellFontSize: data.upsellFontSize || 16
         };
         setAppSettings(newSettings);
         setLocalRestaurantName(data.restaurantName || 'PIAD 点餐');
@@ -1932,6 +1940,144 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                   </div>
                 </div>
 
+                {/* Upsell Management */}
+                <div className="space-y-4 border-t border-piad-primary/5 pt-4">
+                  <h3 className="font-black text-sm text-piad-text flex items-center">
+                    <TrendingUp size={16} className="mr-2 text-piad-primary" />
+                    超值加购管理 (Upsell)
+                  </h3>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-[0.65rem] font-black text-piad-subtext uppercase tracking-wider">加购诱人信息 (向上翻页多条)</label>
+                      <div className="space-y-2">
+                        {(appSettings.upsellPhrases || []).map((phrase, idx) => (
+                          <div key={idx} className="flex items-center space-x-2">
+                            <input
+                              type="text"
+                              value={phrase}
+                              onChange={(e) => {
+                                const newList = [...(appSettings.upsellPhrases || [])];
+                                newList[idx] = e.target.value;
+                                setAppSettings(prev => ({ ...prev, upsellPhrases: newList }));
+                              }}
+                              className="flex-1 bg-piad-primary/5 border border-piad-primary/10 rounded-xl px-4 py-2 text-sm outline-none text-piad-text"
+                            />
+                            <button 
+                              onClick={() => {
+                                const newList = (appSettings.upsellPhrases || []).filter((_, i) => i !== idx);
+                                setAppSettings(prev => ({ ...prev, upsellPhrases: newList }));
+                              }}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        ))}
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="text"
+                            value={newUpsellPhrase}
+                            onChange={(e) => setNewUpsellPhrase(e.target.value)}
+                            placeholder="添加新的诱人话语..."
+                            className="flex-1 bg-piad-primary/5 border border-piad-primary/10 rounded-xl px-4 py-2 text-sm outline-none text-piad-text"
+                          />
+                          <button 
+                            onClick={() => {
+                              if (!newUpsellPhrase.trim()) return;
+                              const newList = [...(appSettings.upsellPhrases || []), newUpsellPhrase.trim()];
+                              setAppSettings(prev => ({ ...prev, upsellPhrases: newList }));
+                              setNewUpsellPhrase('');
+                            }}
+                            className="p-2 bg-piad-primary text-white rounded-lg"
+                          >
+                            <Plus size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[0.65rem] font-black text-piad-subtext uppercase tracking-wider flex justify-between">
+                        <span>加购信息字体大小 (Font Size)</span>
+                        <span className="text-piad-primary">{appSettings.upsellFontSize || 16}px</span>
+                      </label>
+                      <div className="flex items-center space-x-4">
+                        <input
+                          type="range"
+                          min="12"
+                          max="32"
+                          value={appSettings.upsellFontSize || 16}
+                          onChange={(e) => {
+                            const size = parseInt(e.target.value);
+                            setAppSettings(prev => ({ ...prev, upsellFontSize: size }));
+                          }}
+                          className="flex-1 h-1.5 bg-piad-primary/10 rounded-lg appearance-none cursor-pointer accent-piad-primary"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-[0.65rem] font-black text-piad-subtext uppercase tracking-wider">推荐加购菜品 (建议4个)</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {(appSettings.upsellDishIds || []).map(id => {
+                          const dish = dishes.find(d => d.id === id);
+                          if (!dish) return null;
+                          return (
+                            <div key={id} className="relative group bg-piad-primary/5 rounded-xl p-2 border border-piad-primary/10 flex items-center space-x-3">
+                              <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
+                                <img src={dish.image} className="w-full h-full object-cover" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[0.65rem] font-black text-piad-text truncate">{dish.name}</p>
+                                <p className="text-[0.5rem] text-piad-primary font-bold">¥{dish.price}</p>
+                              </div>
+                              <button 
+                                onClick={() => {
+                                  const newList = (appSettings.upsellDishIds || []).filter(did => did !== id);
+                                  setAppSettings(prev => ({ ...prev, upsellDishIds: newList }));
+                                }}
+                                className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X size={10} />
+                              </button>
+                            </div>
+                          );
+                        })}
+                        <button 
+                          onClick={() => setIsUpsellModalOpen(true)}
+                          className="border-2 border-dashed border-piad-primary/10 rounded-xl p-3 flex flex-col items-center justify-center space-y-1 hover:bg-piad-primary/5 transition-colors"
+                        >
+                          <Plus size={16} className="text-piad-primary" />
+                          <span className="text-[0.5rem] font-black text-piad-subtext">选择菜品</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <button 
+                        onClick={async () => {
+                          try {
+                            await setDoc(doc(db, 'settings', 'global'), { 
+                              upsellPhrases: appSettings.upsellPhrases || [],
+                              upsellFontSize: appSettings.upsellFontSize || 16,
+                              upsellDishIds: appSettings.upsellDishIds || []
+                            }, { merge: true });
+                            showToast('超值加购设置已保存', 'success');
+                          } catch (error) {
+                            handleFirestoreError(error, OperationType.UPDATE, 'settings/global');
+                            showToast('保存失败', 'error');
+                          }
+                        }}
+                        className="w-full bg-piad-primary text-white py-3 rounded-xl font-black text-sm shadow-lg shadow-piad-primary/20 flex items-center justify-center space-x-2 active:scale-[0.98] transition-all"
+                      >
+                        <Save size={16} />
+                        <span>保存加购设置 (Save Upsell)</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Cover Page Management */}
                 <div className="space-y-4 border-t border-piad-primary/5 pt-4">
                   <h3 className="font-black text-sm text-piad-text flex items-center">
@@ -2603,6 +2749,80 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
               <span className="text-sm font-bold">{toast.message}</span>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Upsell Dish Selection Modal */}
+      <AnimatePresence>
+        {isUpsellModalOpen && (
+          <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsUpsellModalOpen(false)}
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white w-full max-w-md rounded-[2rem] overflow-hidden shadow-2xl relative z-10 flex flex-col max-h-[80vh]"
+            >
+              <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                <h2 className="text-xl font-black">选择推荐菜品</h2>
+                <button onClick={() => setIsUpsellModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
+                {dishes.map(dish => {
+                  const isSelected = (appSettings.upsellDishIds || []).includes(dish.id);
+                  return (
+                    <button
+                      key={dish.id}
+                      onClick={async () => {
+                        let newList;
+                        if (isSelected) {
+                          newList = (appSettings.upsellDishIds || []).filter(id => id !== dish.id);
+                        } else {
+                          newList = [...(appSettings.upsellDishIds || []), dish.id];
+                        }
+                        setAppSettings(prev => ({ ...prev, upsellDishIds: newList }));
+                        await setDoc(doc(db, 'settings', 'global'), { upsellDishIds: newList }, { merge: true });
+                      }}
+                      className={`w-full flex items-center space-x-4 p-3 rounded-2xl transition-all border ${
+                        isSelected ? 'bg-piad-primary/10 border-piad-primary' : 'bg-gray-50 border-transparent'
+                      }`}
+                    >
+                      <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
+                        <img src={dish.image} className="w-full h-full object-cover" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <p className="text-sm font-black text-piad-text">{dish.name}</p>
+                        <p className="text-xs text-piad-subtext">{dish.category}</p>
+                      </div>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center border-2 ${
+                        isSelected ? 'bg-piad-primary border-piad-primary text-white' : 'border-gray-200'
+                      }`}>
+                        {isSelected && <CheckCircle2 size={14} />}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              
+              <div className="p-6 border-t border-gray-100">
+                <button 
+                  onClick={() => setIsUpsellModalOpen(false)}
+                  className="w-full bg-piad-primary text-white py-3 rounded-xl font-black text-sm shadow-lg shadow-piad-primary/20"
+                >
+                  完成选择
+                </button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
