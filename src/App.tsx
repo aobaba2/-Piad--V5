@@ -104,6 +104,8 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
+import { AIAssistant } from './components/AIAssistant';
+
 // Banner Carousel Component
 const ScrollingPhrases = ({ phrases, fontSize = 18 }: { phrases: string[], fontSize?: number }) => {
   const [index, setIndex] = useState(0);
@@ -2495,6 +2497,14 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* AI Ordering Assistant */}
+      {!isAdminOpen && isSessionValid && (
+        <AIAssistant 
+          dishes={dishes} 
+          handleAddToCart={handleAddToCart} 
+        />
+      )}
     </div>
   );
 }
