@@ -591,6 +591,7 @@ export default function App() {
   const lastLogoTapTime = useRef(0);
   const [isBannerVisible, setIsBannerVisible] = useState(true);
   const lastScrollY = useRef(0);
+  const accumulatedScrollUp = useRef(0);
 
   const handleLogoTap = () => {
     const now = Date.now();
@@ -638,14 +639,26 @@ export default function App() {
     if (!container) return;
 
     const currentScrollY = container.scrollTop;
+    const scrollDiff = currentScrollY - lastScrollY.current;
     
-    // Hide banner when scrolling down, show when scrolling up or at top
-    // Only apply this logic on mobile/small screens (width < 768px)
+    // Professional header visibility logic (Mobile only)
     if (window.innerWidth < 768) {
-      if (currentScrollY > lastScrollY.current && currentScrollY > 50) {
-        setIsBannerVisible(false);
-      } else if (currentScrollY < lastScrollY.current || currentScrollY <= 0) {
+      // Always show when near the top
+      if (currentScrollY <= 80) {
         setIsBannerVisible(true);
+        accumulatedScrollUp.current = 0;
+      } 
+      // Hide when scrolling down (with a small buffer)
+      else if (scrollDiff > 5) {
+        setIsBannerVisible(false);
+        accumulatedScrollUp.current = 0;
+      } 
+      // Show only on significant accumulated scroll up (intentional gesture)
+      else if (scrollDiff < 0) {
+        accumulatedScrollUp.current += Math.abs(scrollDiff);
+        if (accumulatedScrollUp.current > 120) {
+          setIsBannerVisible(true);
+        }
       }
     }
     
@@ -1584,49 +1597,62 @@ export default function App() {
         </div>
 
         {/* Bottom Cart Bar - Enhanced */}
-        <AnimatePresence>
-          {totalItems > 0 && (
-            <div className="fixed bottom-6 right-4 z-30">
-              <motion.div 
-                layout
-                initial={{ y: 100, opacity: 0, scale: 0.8 }}
-                animate={{ 
-                  y: 0, 
-                  opacity: 1,
-                  scale: isCartPopping ? 1.05 : 1,
-                  width: 'min(70vw, 400px)'
-                }}
-                exit={{ y: 100, opacity: 0, scale: 0.8 }}
-                transition={{
-                  scale: { duration: 0.1 },
-                  layout: { duration: 0.3, type: "spring", stiffness: 300, damping: 30 }
-                }}
-                className="bg-[#1f2937]/50 backdrop-blur-xl border border-white/10 rounded-full h-16 flex items-center shadow-[0_20px_50px_rgba(0,0,0,0.3)] active:scale-95 transition-transform overflow-hidden"
-              >
-                <div 
-                  onClick={() => setIsCartOpen(!isCartOpen)}
-                  className="flex items-center cursor-pointer flex-1 pl-3"
-                >
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-500/20 mr-3">
-                      <ShoppingCart size={20} />
-                    </div>
-                    <motion.div 
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center text-[0.65rem] font-black border-2 border-[#1f2937]"
-                    >
-                      {totalItems}
-                    </motion.div>
-                  </div>
-                  
-                  <div className="flex flex-col whitespace-nowrap">
+        <div className="fixed bottom-6 right-4 z-30">
+          <motion.div 
+            layout
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ 
+              y: 0, 
+              opacity: 1,
+              scale: isCartPopping ? 1.05 : 1,
+              width: totalItems > 0 ? 'min(70vw, 400px)' : '64px'
+            }}
+            transition={{
+              scale: { duration: 0.1 },
+              layout: { duration: 0.3, type: "spring", stiffness: 300, damping: 30 }
+            }}
+            className="bg-[#1f2937]/50 backdrop-blur-xl border border-white/10 rounded-full h-16 flex items-center shadow-[0_20px_50px_rgba(0,0,0,0.3)] active:scale-95 transition-transform overflow-hidden"
+          >
+            <div 
+              onClick={() => totalItems > 0 && setIsCartOpen(!isCartOpen)}
+              className={`flex items-center cursor-pointer transition-all duration-300 ${totalItems > 0 ? 'flex-1 pl-3' : 'justify-center w-full'}`}
+            >
+              <div className="relative">
+                <div className={`rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-500/20 transition-all duration-300 ${totalItems > 0 ? 'w-10 h-10 mr-3' : 'w-12 h-12'}`}>
+                  <ShoppingCart size={totalItems > 0 ? 20 : 24} />
+                </div>
+                {totalItems > 0 && (
+                  <motion.div 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center text-[0.65rem] font-black border-2 border-[#1f2937]"
+                  >
+                    {totalItems}
+                  </motion.div>
+                )}
+              </div>
+              
+              <AnimatePresence>
+                {totalItems > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    className="flex flex-col whitespace-nowrap"
+                  >
                     <span className="text-white text-sm font-black">{t.orderedItems(totalItems)}</span>
                     <span className="text-[0.6rem] text-gray-400 font-bold">{t.viewCart}</span>
-                  </div>
-                </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
 
+            <AnimatePresence>
+              {totalItems > 0 && (
                 <motion.button 
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleOrderSubmit();
@@ -1645,10 +1671,10 @@ export default function App() {
                   )}
                   <span>{isOrdering ? t.submitting : t.checkout}</span>
                 </motion.button>
-              </motion.div>
-            </div>
-          )}
-        </AnimatePresence>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </div>
 
         {/* Cart Drawer Overlay - Enhanced */}
         <AnimatePresence>
