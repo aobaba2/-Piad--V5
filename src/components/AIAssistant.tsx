@@ -46,6 +46,10 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCar
         audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
       }
       
+      if (audioContextRef.current.state === 'suspended') {
+        await audioContextRef.current.resume();
+      }
+
       const binaryString = window.atob(base64Audio);
       const len = binaryString.length;
       const bytes = new Uint8Array(len);
@@ -53,7 +57,16 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCar
         bytes[i] = binaryString.charCodeAt(i);
       }
       
-      const audioBuffer = await audioContextRef.current.decodeAudioData(bytes.buffer);
+      // The gemini-2.5-flash-preview-tts model returns raw 16-bit PCM data at 24000Hz
+      const int16Data = new Int16Array(bytes.buffer);
+      const float32Data = new Float32Array(int16Data.length);
+      for (let i = 0; i < int16Data.length; i++) {
+        float32Data[i] = int16Data[i] / 32768.0;
+      }
+
+      const audioBuffer = audioContextRef.current.createBuffer(1, float32Data.length, 24000);
+      audioBuffer.getChannelData(0).set(float32Data);
+      
       const source = audioContextRef.current.createBufferSource();
       source.buffer = audioBuffer;
       source.connect(audioContextRef.current.destination);
