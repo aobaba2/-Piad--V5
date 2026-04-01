@@ -21,7 +21,8 @@ import {
   LogIn,
   LogOut,
   Trash2,
-  CheckCircle2
+  CheckCircle2,
+  XCircle
 } from 'lucide-react';
 import { Dish, DishModifier, CATEGORIES, DISHES, formatPrice, Settings as AppSettings, Table, Banner } from './constants';
 import AdminPanel from './AdminPanel';
@@ -104,7 +105,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 }
 
 // Banner Carousel Component
-const BannerCarousel = ({ banners, onBannerClick }: { banners: Banner[], onBannerClick?: (dishId: string) => void }) => {
+const BannerCarousel = ({ banners, onBannerClick, onClose }: { banners: Banner[], onBannerClick?: (dishId: string) => void, onClose?: () => void }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
@@ -120,6 +121,18 @@ const BannerCarousel = ({ banners, onBannerClick }: { banners: Banner[], onBanne
   return (
     <div className="px-4 py-3">
       <div className="relative aspect-[16/7] w-full overflow-hidden rounded-2xl shadow-lg shadow-piad-primary/5">
+        {/* Close Button */}
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose?.();
+          }}
+          className="absolute right-3 top-3 z-20 flex items-center space-x-1 rounded-full bg-black/40 px-2 py-1 text-[0.65rem] font-bold text-white backdrop-blur-md hover:bg-black/60 transition-colors border border-white/10"
+        >
+          <X size={12} />
+          <span>关闭广告</span>
+        </button>
+
         <AnimatePresence mode="wait">
           <motion.div
             key={currentIndex}
@@ -388,8 +401,14 @@ export default function App() {
         "新鲜原浆，口感醇厚。": "新鲜原浆，口感醇厚。"
       },
       stockLeft: (count: number) => `仅剩 ${count} 份`,
+      duplicateReminderTitle: '温馨提示',
+      duplicateReminderDesc: (name: string) => `您的购物车中已经有一份“${name}”了，您是想再点一份吗？`,
+      duplicateConfirm: '是的，再来一份',
+      duplicateCancel: '点错了，不加了',
       offlineTitle: '网络连接已断开',
       offlineDesc: '请检查网络连接，以免影响下单',
+      clearCartConfirmTitle: '确定要清空购物车吗？',
+      clearCartConfirmDesc: '清空后将无法恢复，需要重新选择菜品。',
       upsellTitle: '超值加购',
       upsellDesc: '再加一点，美味翻倍',
       emptyCartHint: '肚子空空，快去点餐吧~',
@@ -453,8 +472,14 @@ export default function App() {
       viewNow: '지금 확인',
       viewCart: '장바구니 보기',
       stockLeft: (count: number) => `남은 수량 ${count}개`,
+      duplicateReminderTitle: '알림',
+      duplicateReminderDesc: (name: string) => `이미 장바구니에 "${name}"이(가) 있습니다. 한 개 더 추가하시겠습니까?`,
+      duplicateConfirm: '네, 추가할게요',
+      duplicateCancel: '아니요, 괜찮아요',
       offlineTitle: '네트워크 연결 끊김',
       offlineDesc: '주문 실패를 방지하기 위해 네트워크 연결을 확인해주세요',
+      clearCartConfirmTitle: '장바구니를 비우시겠습니까?',
+      clearCartConfirmDesc: '장바구니를 비우면 복구할 수 없으며 메뉴를 다시 선택해야 합니다.',
       upsellTitle: '가성비 추가',
       upsellDesc: '조금만 더하면 맛이 두 배!',
       emptyCartHint: '배가 비어있어요, 주문하러 가볼까요?~',
@@ -558,6 +583,8 @@ export default function App() {
     stockLeft: (count: number) => `仅剩 ${count} 份`,
     offlineTitle: '网络连接已断开',
     offlineDesc: '请检查网络连接，以免影响下单',
+    clearCartConfirmTitle: '确定要清空购物车吗？',
+    clearCartConfirmDesc: '清空后将无法恢复，需要重新选择菜品。',
     upsellTitle: '超值加购',
     upsellDesc: '再加一点，美味翻倍',
     emptyCartHint: '肚子空空，快去点餐吧~',
@@ -580,6 +607,8 @@ export default function App() {
   const [selectedDishForSpecs, setSelectedDishForSpecs] = useState<Dish | null>(null);
   const [selectedDishForDetail, setSelectedDishForDetail] = useState<Dish | null>(null);
   const [selectedModifiers, setSelectedModifiers] = useState<DishModifier[]>([]);
+  const [duplicateConfirmItem, setDuplicateConfirmItem] = useState<{ dish: Dish, modifiers?: DishModifier[], startPos?: { x: number, y: number } } | null>(null);
+  const [showClearCartConfirm, setShowClearCartConfirm] = useState(false);
   const [isCartPopping, setIsCartPopping] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [searchPlaceholderIndex, setSearchPlaceholderIndex] = useState(0);
@@ -589,6 +618,7 @@ export default function App() {
   const [logoTapCount, setLogoTapCount] = useState(0);
   const lastLogoTapTime = useRef(0);
   const [isBannerVisible, setIsBannerVisible] = useState(true);
+  const [isBannerDismissed, setIsBannerDismissed] = useState(false);
   const lastScrollY = useRef(0);
   const accumulatedScrollUp = useRef(0);
 
@@ -969,15 +999,34 @@ export default function App() {
     setTimeout(() => setIsCartPopping(false), 300);
   };
 
-  const handleAddToCart = async (dish: Dish, e?: React.MouseEvent) => {
+  const handleAddToCart = async (dish: Dish, e?: React.MouseEvent, force: boolean = false, startPos?: { x: number, y: number }) => {
     if (dish.isSoldOut) return;
 
+    // Check for duplicate if not forced
+    if (!force) {
+      const signature = 'none';
+      const existing = cart.find(item => item.id === dish.id && getModifierSignature(item.modifiers) === signature);
+      if (existing) {
+        let pos;
+        if (e) {
+          const rect = e.currentTarget.getBoundingClientRect();
+          pos = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        }
+        setDuplicateConfirmItem({ dish, startPos: pos });
+        return;
+      }
+    }
+
     // Trigger fly animation
-    if (e) {
+    const finalPos = startPos || (e ? (() => {
       const rect = e.currentTarget.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    })() : null);
+
+    if (finalPos) {
       const newItem = {
         id: `fly-add-${Date.now()}-${Math.random()}`,
-        start: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+        start: finalPos
       };
       setFlyItems(prev => [...prev, newItem]);
     }
@@ -1010,13 +1059,36 @@ export default function App() {
     setTimeout(() => setIsCartPopping(false), 300);
   };
 
-  const handleAddWithModifiers = (dish: Dish, selectedModifiers: DishModifier[], e?: React.MouseEvent) => {
+  const handleAddWithModifiers = (dish: Dish, selectedModifiers: DishModifier[], e?: React.MouseEvent, force: boolean = false, startPos?: { x: number, y: number }) => {
+    // Check for duplicate if not forced
+    if (!force) {
+      const signature = getModifierSignature(selectedModifiers);
+      const existing = cart.find(item => 
+        item.id === dish.id && 
+        getModifierSignature(item.modifiers) === signature
+      );
+
+      if (existing) {
+        let pos;
+        if (e) {
+          const rect = e.currentTarget.getBoundingClientRect();
+          pos = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+        }
+        setDuplicateConfirmItem({ dish, modifiers: selectedModifiers, startPos: pos });
+        return;
+      }
+    }
+
     // Trigger fly animation
-    if (e) {
+    const finalPos = startPos || (e ? (() => {
       const rect = e.currentTarget.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+    })() : null);
+
+    if (finalPos) {
       const newItem = {
         id: `fly-mod-${Date.now()}-${Math.random()}`,
-        start: { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 }
+        start: finalPos
       };
       setFlyItems(prev => [...prev, newItem]);
     }
@@ -1066,6 +1138,7 @@ export default function App() {
   };
 
   const clearCart = () => {
+    console.log('clearCart called');
     setCart([]);
     setSelectedTable(null);
     setIsCartOpen(false);
@@ -1277,7 +1350,7 @@ export default function App() {
 
           {/* Banner Carousel */}
           <AnimatePresence initial={false}>
-            {isBannerVisible && (
+            {isBannerVisible && !isBannerDismissed && (
               <motion.div
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
@@ -1291,6 +1364,7 @@ export default function App() {
                     const dish = dishes.find(d => d.id === dishId);
                     if (dish) setSelectedDishForDetail(dish);
                   }} 
+                  onClose={() => setIsBannerDismissed(true)}
                 />
               </motion.div>
             )}
@@ -1688,21 +1762,13 @@ export default function App() {
                 <motion.button 
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleOrderSubmit();
+                    console.log('Cancel button clicked');
+                    setShowClearCartConfirm(true);
                   }}
-                  disabled={isOrdering}
-                  className="h-12 px-5 mr-2 rounded-full font-black text-sm transition-all flex items-center space-x-2 bg-red-600 text-white shadow-lg shadow-red-900/20 active:scale-95 whitespace-nowrap"
+                  className="h-12 px-5 mr-2 rounded-full font-black text-sm transition-all flex items-center space-x-2 bg-gray-700/50 text-white border border-white/10 active:scale-95 whitespace-nowrap"
                 >
-                  {isOrdering ? (
-                    <motion.div 
-                      animate={{ rotate: 360 }}
-                      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                      className="w-5 h-5 border-2 border-white border-t-transparent rounded-full"
-                    />
-                  ) : (
-                    <CheckCircle2 size={18} />
-                  )}
-                  <span>{isOrdering ? t.submitting : t.checkout}</span>
+                  <XCircle size={18} />
+                  <span>{t.cancel}</span>
                 </motion.button>
               </motion.div>
             </div>
@@ -1999,6 +2065,104 @@ export default function App() {
                 >
                   <Plus size={14} strokeWidth={3} />
                   <span>{t.addToCart}</span>
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Duplicate Dish Confirmation Modal */}
+      <AnimatePresence mode="wait">
+        {duplicateConfirmItem && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setDuplicateConfirmItem(null)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm bg-[#f2f1ed] rounded-3xl overflow-hidden shadow-2xl"
+            >
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 bg-piad-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Bell className="text-piad-primary" size={32} />
+                </div>
+                <h3 className="text-xl font-black text-piad-text mb-3">{t.duplicateReminderTitle}</h3>
+                <p className="text-piad-subtext font-medium leading-relaxed">
+                  {t.duplicateReminderDesc(getLocalizedName(duplicateConfirmItem.dish))}
+                </p>
+              </div>
+              <div className="p-4 bg-[#e8e7e2] flex flex-col gap-3">
+                <button 
+                  onClick={() => {
+                    if (duplicateConfirmItem.modifiers) {
+                      handleAddWithModifiers(duplicateConfirmItem.dish, duplicateConfirmItem.modifiers, undefined, true, duplicateConfirmItem.startPos);
+                    } else {
+                      handleAddToCart(duplicateConfirmItem.dish, undefined, true, duplicateConfirmItem.startPos);
+                    }
+                    setDuplicateConfirmItem(null);
+                  }}
+                  className="w-full bg-piad-primary text-white py-4 rounded-2xl font-black shadow-lg shadow-piad-primary/20 active:scale-[0.98] transition-all"
+                >
+                  {t.duplicateConfirm}
+                </button>
+                <button 
+                  onClick={() => setDuplicateConfirmItem(null)}
+                  className="w-full bg-[#f2f1ed] text-piad-subtext py-4 rounded-2xl font-bold border border-black/5 active:scale-[0.98] transition-all"
+                >
+                  {t.duplicateCancel}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+
+        {showClearCartConfirm && (
+          <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowClearCartConfirm(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-sm bg-[#f2f1ed] rounded-3xl overflow-hidden shadow-2xl"
+            >
+              <div className="p-8 text-center">
+                <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Trash2 className="text-red-500" size={32} />
+                </div>
+                <h3 className="text-xl font-black text-piad-text mb-3">{t.clearCartConfirmTitle}</h3>
+                <p className="text-piad-subtext font-medium leading-relaxed">
+                  {t.clearCartConfirmDesc}
+                </p>
+              </div>
+              <div className="p-4 bg-[#e8e7e2] flex flex-col gap-3">
+                <button 
+                  onClick={() => {
+                    console.log('User confirmed clear cart via custom modal');
+                    clearCart();
+                    setShowClearCartConfirm(false);
+                  }}
+                  className="w-full bg-red-500 text-white py-4 rounded-2xl font-black shadow-lg shadow-red-500/20 active:scale-[0.98] transition-all"
+                >
+                  {t.confirm}
+                </button>
+                <button 
+                  onClick={() => setShowClearCartConfirm(false)}
+                  className="w-full bg-white text-piad-text py-4 rounded-2xl font-black border border-piad-text/10 active:scale-[0.98] transition-all"
+                >
+                  {t.cancel}
                 </button>
               </div>
             </motion.div>
