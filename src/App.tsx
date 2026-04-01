@@ -1377,7 +1377,7 @@ export default function App() {
                             {dish.modifiers && dish.modifiers.length > 0 ? (
                               <span className="text-[0.65rem] font-black">{t.selectSpecs}</span>
                             ) : (
-                              <Plus size={20} />
+                              <Plus size={16} />
                             )}
                           </button>
                         </div>
@@ -1457,7 +1457,7 @@ export default function App() {
                             {dish.modifiers && dish.modifiers.length > 0 ? (
                               <span className="text-[0.65rem] font-black">{t.selectSpecs}</span>
                             ) : (
-                              <Plus size={20} />
+                              <Plus size={16} />
                             )}
                           </button>
                         </div>
@@ -1539,7 +1539,7 @@ export default function App() {
                                 {dish.modifiers && dish.modifiers.length > 0 ? (
                                   <span className="text-[0.65rem] font-black">{t.selectSpecs}</span>
                                 ) : (
-                                  <Plus size={20} />
+                                  <Plus size={16} />
                                 )}
                               </button>
                             </div>
