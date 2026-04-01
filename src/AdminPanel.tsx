@@ -35,8 +35,6 @@ import {
 import { Dish, DishModifier, formatPrice, Table, Settings as AppSettings, Banner } from './constants';
 import { initializeApp } from 'firebase/app';
 import { 
-  signInWithPopup, 
-  GoogleAuthProvider, 
   onAuthStateChanged, 
   signOut,
   signInWithEmailAndPassword,
@@ -555,16 +553,6 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-      showToast('登录成功', 'success');
-    } catch (error) {
-      console.error('Google login failed:', error);
-      showToast('登录失败', 'error');
-    }
-  };
 
   const handleLogout = async () => {
     try {
@@ -814,17 +802,6 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                 </button>
               </form>
 
-              <div className="mt-10 pt-8 border-t border-gray-50">
-                <p className="text-center text-[10px] text-gray-300 font-bold mb-4 uppercase tracking-widest">注意：请确保 Firebase 控制台已启用 邮箱/密码 登录方式</p>
-                <p className="text-center text-xs text-gray-400 font-bold mb-6 uppercase tracking-widest">或者使用</p>
-                <button 
-                  onClick={handleGoogleLogin}
-                  className="w-full bg-white border-2 border-gray-100 text-gray-600 py-4 rounded-2xl font-bold hover:bg-gray-50 active:scale-[0.98] transition-all flex items-center justify-center space-x-3"
-                >
-                  <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
-                  <span>Google 账号登录</span>
-                </button>
-              </div>
             </div>
           </motion.div>
           
