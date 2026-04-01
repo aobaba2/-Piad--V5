@@ -35,9 +35,20 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCar
   }, [messages]);
 
   const getApiKey = () => {
-    return (typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_GEMINI_API_KEY : null) || 
-           (import.meta as any).env?.VITE_GEMINI_API_KEY || 
-           (typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : null);
+    // Priority 1: AI Studio environment key
+    const studioKey = typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : null;
+    if (studioKey) return studioKey;
+
+    // Priority 2: Vite prefixed keys (Required for Vite apps on Vercel/Netlify)
+    const viteKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || 
+                   (import.meta as any).env?.VITE_NEXT_PUBLIC_GEMINI_API_KEY;
+    if (viteKey) return viteKey;
+
+    // Priority 3: Next.js style keys (if running in a hybrid environment)
+    const nextKey = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_GEMINI_API_KEY : null;
+    if (nextKey) return nextKey;
+
+    return null;
   };
 
   const playAudio = async (base64Audio: string) => {
@@ -120,7 +131,10 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCar
 
     try {
       const apiKey = getApiKey();
-      if (!apiKey) throw new Error('API key missing');
+      if (!apiKey) {
+        console.error('Missing Gemini API Key. Please set VITE_GEMINI_API_KEY in Vercel.');
+        throw new Error('API_KEY_MISSING');
+      }
 
       const ai = new GoogleGenAI({ apiKey });
       
@@ -184,9 +198,13 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCar
         setMessages(prev => [...prev, { role: 'model', text: reply }]);
         speak(reply);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('AI Assistant Error:', error);
-      setMessages(prev => [...prev, { role: 'model', text: '哎呀亲，网络好像有点调皮，请稍后再试哦。' }]);
+      let errorMsg = '哎呀亲，网络好像有点调皮，请稍后再试哦。';
+      if (error.message === 'API_KEY_MISSING') {
+        errorMsg = '哎呀亲，领班还没领到开工钥匙（API Key 未配置），请联系管理员检查后台设置哦。';
+      }
+      setMessages(prev => [...prev, { role: 'model', text: errorMsg }]);
     } finally {
       setIsLoading(false);
     }
