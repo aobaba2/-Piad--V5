@@ -587,6 +587,7 @@ export default function App() {
   const [searchPlaceholderIndex, setSearchPlaceholderIndex] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isScrollingRef = useRef(false);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [logoTapCount, setLogoTapCount] = useState(0);
   const lastLogoTapTime = useRef(0);
   const [isBannerVisible, setIsBannerVisible] = useState(true);
@@ -1281,49 +1282,6 @@ export default function App() {
               </motion.div>
             )}
           </AnimatePresence>
-
-          {/* Search Bar inside Sticky Header */}
-          <AnimatePresence initial={false}>
-            {isBannerVisible && (
-              <motion.div 
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="px-4 pb-3 overflow-hidden"
-              >
-                <div className="bg-piad-primary/5 rounded-xl flex items-center px-4 py-2 border border-piad-primary/5">
-                  <Search size={18} className="text-piad-subtext mr-2 shrink-0" />
-                  <div className="relative flex-1 h-5 overflow-hidden">
-                    <AnimatePresence mode="wait">
-                      {!searchQuery && (
-                        <motion.div
-                          key={searchPlaceholderIndex}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          className="absolute inset-0 flex items-center text-sm text-piad-subtext pointer-events-none"
-                        >
-                          {placeholders[searchPlaceholderIndex % placeholders.length]}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                    <input 
-                      type="text" 
-                      className="absolute inset-0 bg-transparent border-none outline-none text-sm w-full text-piad-text placeholder-transparent"
-                      value={searchQuery || ''}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
-                  {searchQuery && (
-                    <button onClick={() => setSearchQuery('')} className="ml-2 text-piad-subtext hover:text-piad-primary">
-                      <X size={16} />
-                    </button>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
 
         {/* Offline Banner */}
@@ -1596,63 +1554,125 @@ export default function App() {
           )}
         </div>
 
-        {/* Bottom Cart Bar - Enhanced */}
-        <div className="fixed bottom-6 right-4 z-30">
+        {/* Floating Search Bar */}
+        <div className="fixed bottom-0 right-4 z-30 pointer-events-none">
           <motion.div 
             layout
             initial={{ y: 100, opacity: 0 }}
             animate={{ 
               y: 0, 
               opacity: 1,
-              scale: isCartPopping ? 1.05 : 1,
-              width: totalItems > 0 ? 'min(70vw, 400px)' : '64px'
+              bottom: totalItems > 0 ? 96 : 24,
+              width: searchQuery || isSearchExpanded ? 'min(85vw, 400px)' : '64px'
             }}
             transition={{
-              scale: { duration: 0.1 },
-              layout: { duration: 0.3, type: "spring", stiffness: 300, damping: 30 }
+              layout: { duration: 0.3, type: "spring", stiffness: 300, damping: 30 },
+              bottom: { duration: 0.3, type: "spring", stiffness: 300, damping: 30 }
             }}
-            className="bg-[#1f2937]/50 backdrop-blur-xl border border-white/10 rounded-full h-16 flex items-center shadow-[0_20px_50px_rgba(0,0,0,0.3)] active:scale-95 transition-transform overflow-hidden"
+            className="absolute right-0 bg-[#1f2937]/50 backdrop-blur-xl border border-white/10 rounded-full h-16 flex items-center shadow-[0_20px_50px_rgba(0,0,0,0.3)] active:scale-95 transition-transform overflow-hidden pointer-events-auto"
           >
             <div 
-              onClick={() => totalItems > 0 && setIsCartOpen(!isCartOpen)}
-              className={`flex items-center cursor-pointer transition-all duration-300 ${totalItems > 0 ? 'flex-1 pl-3' : 'justify-center w-full'}`}
+              onClick={() => setIsSearchExpanded(!isSearchExpanded)}
+              className={`flex items-center cursor-pointer transition-all duration-300 ${searchQuery || isSearchExpanded ? 'flex-1 pl-3' : 'justify-center w-full'}`}
             >
               <div className="relative">
-                <div className={`rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-500/20 transition-all duration-300 ${totalItems > 0 ? 'w-10 h-10 mr-3' : 'w-12 h-12'}`}>
-                  <ShoppingCart size={totalItems > 0 ? 20 : 24} />
+                <div className={`rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-500/20 transition-all duration-300 ${searchQuery || isSearchExpanded ? 'w-10 h-10 mr-3' : 'w-12 h-12'}`}>
+                  {searchQuery || isSearchExpanded ? <Search size={20} /> : <span className="text-lg font-black">搜</span>}
                 </div>
-                {totalItems > 0 && (
-                  <motion.div 
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center text-[0.65rem] font-black border-2 border-[#1f2937]"
-                  >
-                    {totalItems}
-                  </motion.div>
-                )}
               </div>
               
               <AnimatePresence>
-                {totalItems > 0 && (
+                {(searchQuery || isSearchExpanded) && (
                   <motion.div 
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -10 }}
-                    className="flex flex-col whitespace-nowrap"
+                    className="flex-1 relative h-10 flex items-center"
                   >
-                    <span className="text-white text-sm font-black">{t.orderedItems(totalItems)}</span>
-                    <span className="text-[0.6rem] text-gray-400 font-bold">{t.viewCart}</span>
+                    <input 
+                      autoFocus
+                      type="text"
+                      className="bg-transparent border-none outline-none text-white text-sm w-full pr-16"
+                      placeholder={t.searchPlaceholder}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <div className="absolute right-0 flex items-center space-x-1">
+                      {searchQuery && (
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSearchQuery('');
+                          }}
+                          className="p-1 text-white/40 hover:text-white transition-colors"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                      <div className="w-px h-4 bg-white/20 mx-1" />
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsSearchExpanded(false);
+                          setSearchQuery('');
+                        }}
+                        className="p-1 text-white/80 hover:text-white transition-colors"
+                      >
+                        <X size={20} />
+                      </button>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
+          </motion.div>
+        </div>
 
-            <AnimatePresence>
-              {totalItems > 0 && (
+        {/* Bottom Cart Bar - Enhanced */}
+        <AnimatePresence>
+          {totalItems > 0 && (
+            <div className="fixed bottom-6 right-4 z-30">
+              <motion.div 
+                layout
+                initial={{ y: 100, opacity: 0, scale: 0.8 }}
+                animate={{ 
+                  y: 0, 
+                  opacity: 1,
+                  scale: isCartPopping ? 1.05 : 1,
+                  width: 'min(70vw, 400px)'
+                }}
+                exit={{ y: 100, opacity: 0, scale: 0.8 }}
+                transition={{
+                  scale: { duration: 0.1 },
+                  layout: { duration: 0.3, type: "spring", stiffness: 300, damping: 30 }
+                }}
+                className="bg-[#1f2937]/50 backdrop-blur-xl border border-white/10 rounded-full h-16 flex items-center shadow-[0_20px_50px_rgba(0,0,0,0.3)] active:scale-95 transition-transform overflow-hidden"
+              >
+                <div 
+                  onClick={() => setIsCartOpen(!isCartOpen)}
+                  className="flex items-center cursor-pointer flex-1 pl-3"
+                >
+                  <div className="relative">
+                    <div className="w-10 h-10 rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-500/20 mr-3">
+                      <ShoppingCart size={20} />
+                    </div>
+                    <motion.div 
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      className="absolute -top-1 -right-1 w-5 h-5 bg-red-600 text-white rounded-full flex items-center justify-center text-[0.65rem] font-black border-2 border-[#1f2937]"
+                    >
+                      {totalItems}
+                    </motion.div>
+                  </div>
+                  
+                  <div className="flex flex-col whitespace-nowrap">
+                    <span className="text-white text-sm font-black">{t.orderedItems(totalItems)}</span>
+                    <span className="text-[0.6rem] text-gray-400 font-bold">{t.viewCart}</span>
+                  </div>
+                </div>
+
                 <motion.button 
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleOrderSubmit();
@@ -1671,10 +1691,10 @@ export default function App() {
                   )}
                   <span>{isOrdering ? t.submitting : t.checkout}</span>
                 </motion.button>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
         {/* Cart Drawer Overlay - Enhanced */}
         <AnimatePresence>
