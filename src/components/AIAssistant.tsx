@@ -1,12 +1,14 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { MessageCircle, X, Send, Bot, User, Loader2, Plus, ShoppingCart, Volume2, VolumeX, Sparkles } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, User, Loader2, Plus, ShoppingCart, Sparkles, ChevronDown } from 'lucide-react';
 import { GoogleGenAI, Type, Modality } from "@google/genai";
 import { Dish } from '../constants';
 
 interface AIAssistantProps {
   dishes: Dish[];
   handleAddToCart: (dish: Dish) => void;
+  totalItems?: number;
+  onSearch?: (query: string) => void;
 }
 
 interface Message {
@@ -14,17 +16,14 @@ interface Message {
   text: string;
 }
 
-export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCart }) => {
+export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCart, totalItems = 0, onSearch }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     { role: 'model', text: '您好！我是您的智能点餐管家。很高兴为您服务，请问今天想品尝点什么？' }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isVoiceEnabled, setIsVoiceEnabled] = useState(true);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -35,91 +34,23 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCar
   }, [messages]);
 
   const getApiKey = () => {
-    // Priority 1: AI Studio environment key
-    const studioKey = typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : null;
-    if (studioKey) return studioKey;
-
-    // Priority 2: Vite prefixed keys (Required for Vite apps on Vercel/Netlify)
-    const viteKey = (import.meta as any).env?.VITE_GEMINI_API_KEY || 
-                   (import.meta as any).env?.VITE_NEXT_PUBLIC_GEMINI_API_KEY;
+    // Priority 1: Vite environment variables (Standard for this setup)
+    const viteKey = import.meta.env.VITE_GEMINI_API_KEY;
     if (viteKey) return viteKey;
 
-    // Priority 3: Next.js style keys (if running in a hybrid environment)
-    const nextKey = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_GEMINI_API_KEY : null;
-    if (nextKey) return nextKey;
+    // Priority 2: Alternative Vite access
+    const altViteKey = (import.meta as any).env?.VITE_GEMINI_API_KEY;
+    if (altViteKey) return altViteKey;
+
+    // Priority 3: Process env (Fallback for some environments)
+    try {
+      const processKey = typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : null;
+      if (processKey) return processKey;
+    } catch (e) {
+      // Ignore process errors
+    }
 
     return null;
-  };
-
-  const playAudio = async (base64Audio: string) => {
-    try {
-      if (!audioContextRef.current) {
-        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-      }
-      
-      if (audioContextRef.current.state === 'suspended') {
-        await audioContextRef.current.resume();
-      }
-
-      const binaryString = window.atob(base64Audio);
-      const len = binaryString.length;
-      const bytes = new Uint8Array(len);
-      for (let i = 0; i < len; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      
-      // The gemini-2.5-flash-preview-tts model returns raw 16-bit PCM data at 24000Hz
-      const int16Data = new Int16Array(bytes.buffer);
-      const float32Data = new Float32Array(int16Data.length);
-      for (let i = 0; i < int16Data.length; i++) {
-        float32Data[i] = int16Data[i] / 32768.0;
-      }
-
-      const audioBuffer = audioContextRef.current.createBuffer(1, float32Data.length, 24000);
-      audioBuffer.getChannelData(0).set(float32Data);
-      
-      const source = audioContextRef.current.createBufferSource();
-      source.buffer = audioBuffer;
-      source.connect(audioContextRef.current.destination);
-      
-      setIsSpeaking(true);
-      source.onended = () => setIsSpeaking(false);
-      source.start(0);
-    } catch (error) {
-      console.error('Audio playback error:', error);
-      setIsSpeaking(false);
-    }
-  };
-
-  const speak = async (text: string) => {
-    if (!isVoiceEnabled) return;
-    
-    const apiKey = getApiKey();
-    if (!apiKey) return;
-
-    try {
-      const ai = new GoogleGenAI({ apiKey });
-      const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-tts",
-        contents: [{ parts: [{ text }] }],
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: {
-              // 'Puck' is a sweeter, more youthful female voice
-              prebuiltVoiceConfig: { voiceName: 'Puck' },
-            },
-          },
-        },
-      });
-
-      const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
-      if (base64Audio) {
-        await playAudio(base64Audio);
-      }
-    } catch (error) {
-      console.error('TTS Error:', error);
-    }
   };
 
   const handleSend = async () => {
@@ -132,27 +63,35 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCar
 
     try {
       const apiKey = getApiKey();
-      if (!apiKey) {
-        console.error('Missing Gemini API Key. Please set VITE_GEMINI_API_KEY in Vercel.');
-        throw new Error('API_KEY_MISSING');
-      }
+      if (!apiKey) throw new Error('API_KEY_MISSING');
 
       const ai = new GoogleGenAI({ apiKey });
       
       const addToCartTool = {
         name: "addToCart",
-        description: "将菜品添加到购物车。当用户说'点一份[菜名]'或类似表达时调用。",
+        description: "将菜品添加到购物车",
         parameters: {
           type: Type.OBJECT,
           properties: {
-            itemName: {
-              type: Type.STRING,
-              description: "菜品的名称",
-            },
+            itemName: { type: Type.STRING },
           },
           required: ["itemName"],
         },
       };
+
+      const searchDishesTool = {
+        name: "searchDishes",
+        description: "搜索餐厅菜单中的菜品",
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            query: { type: Type.STRING, description: "搜索关键词，例如：鱼、辣、凉菜" },
+          },
+          required: ["query"],
+        },
+      };
+
+      const today = new Date().toLocaleDateString('zh-CN', { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' });
 
       const streamResponse = await ai.models.generateContentStream({
         model: "gemini-3-flash-preview",
@@ -161,49 +100,39 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCar
           { role: 'user', parts: [{ text: userMessage }] }
         ],
         config: {
-          systemInstruction: `你是一个在“巫山烤鱼”餐厅工作了10年的明星领班，名叫“小美”。你的语气应该非常甜美、热情、专业、幽默。
+          systemInstruction: `你是一个在“巫山烤鱼”餐厅工作了10年的明星领班“小美”。
+          
+          今天是：${today}。请确保你提到的日期与此一致。
           
           核心职责：
-          1. 餐厅专家：熟悉菜单，引导客人点餐。
-          2. 生活伴侣：你不仅懂美食，还博学多才。如果客人让你朗诵唐诗、讲笑话、聊生活，你都要以甜美的语气满足他们。
-          
-          餐厅菜品列表：
-          ${dishes.map(d => `- ${d.name} (价格: ¥${d.price})`).join('\n')}
+          1. 餐厅专家：熟悉菜单（烤鱼、毛血旺、小龙虾等），引导客人点餐。
+          2. 搜索达人：如果客人想找某种菜品，请使用 searchDishes 工具帮他们过滤菜单。
+          3. 全能助手：博学多才，能吟诗、讲笑话、聊生活。
           
           规则：
-          1. 必须使用中文，语气要像年轻甜美的美女领班，多用“亲”、“么么哒”、“为您服务是我的荣幸”等词。
-          2. 如果用户想点餐，请使用 addToCart 工具。
-          3. 每次回答尽量简洁，方便手机阅读。
-          4. 如果点了烤鱼，主动询问辣度。
-          5. 保持全能AI的形象，客人问任何生活问题都要温柔回答。`,
-          tools: [{ functionDeclarations: [addToCartTool] }],
+          1. 语气：甜美、大方、得体。多用“亲”、“为您服务是我的荣幸”。
+          2. 工具：点餐请用 addToCart，搜索请用 searchDishes。
+          3. 表达：简洁精炼，避免啰嗦，方便手机阅读。
+          4. 互动：客人问任何生活问题都要温柔回答。`,
+          tools: [{ functionDeclarations: [addToCartTool, searchDishesTool] }],
         },
       });
 
       let fullText = '';
-      let currentSentence = '';
-      let hasStartedSpeaking = false;
+      let hasReceivedData = false;
 
       setMessages(prev => [...prev, { role: 'model', text: '' }]);
 
       for await (const chunk of streamResponse) {
+        hasReceivedData = true;
         const chunkText = chunk.text || '';
         fullText += chunkText;
-        currentSentence += chunkText;
 
-        // Update UI in real-time
         setMessages(prev => {
           const newMessages = [...prev];
           newMessages[newMessages.length - 1].text = fullText;
           return newMessages;
         });
-
-        // Trigger voice playback as soon as a sentence is complete for faster interaction
-        if (!hasStartedSpeaking && (currentSentence.includes('。') || currentSentence.includes('！') || currentSentence.includes('？') || currentSentence.length > 20)) {
-          speak(currentSentence);
-          currentSentence = '';
-          hasStartedSpeaking = true;
-        }
 
         const functionCalls = chunk.functionCalls;
         if (functionCalls) {
@@ -211,53 +140,80 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCar
             if (call.name === 'addToCart') {
               const { itemName } = call.args as { itemName: string };
               const dish = dishes.find(d => d.name.includes(itemName) || itemName.includes(d.name));
-              
               if (dish) {
                 handleAddToCart(dish);
-                const reply = `好的亲！已为您将“${dish.name}”加入购物车。咱们家的这道菜可是回头客的最爱，还需要点别的吗？`;
+                const reply = `好的亲！已为您将“${dish.name}”加入购物车。这可是咱们家的招牌，您真有眼光！还需要点别的吗？`;
                 setMessages(prev => {
                   const newMessages = [...prev];
                   newMessages[newMessages.length - 1].text = reply;
                   return newMessages;
                 });
-                speak(reply);
-              } else {
-                const reply = `哎呀亲，真抱歉，咱们家暂时没有“${itemName}”这道菜。要不我给您推荐一下咱们最火的巫山招牌烤鱼？保准您吃了还想吃！`;
+              }
+            } else if (call.name === 'searchDishes') {
+              const { query } = call.args as { query: string };
+              if (onSearch) {
+                onSearch(query);
+                const reply = `好的亲！正在为您查找关于“${query}”的美味。您看，这些都是领班为您精挑细选的哦~ 还有什么想吃的吗？`;
                 setMessages(prev => {
                   const newMessages = [...prev];
                   newMessages[newMessages.length - 1].text = reply;
                   return newMessages;
                 });
-                speak(reply);
               }
             }
           }
         }
       }
 
-      // Speak the remaining text if it hasn't been spoken yet
-      if (currentSentence.trim() && !hasStartedSpeaking) {
-        speak(currentSentence);
-      } else if (currentSentence.trim() && hasStartedSpeaking) {
-        // If we already started, we might want to speak the rest, 
-        // but for simplicity in this implementation, we'll just speak the first chunk immediately.
-        // For a full "immediate" experience, we'd queue sentences.
+      // If loop finished but no data was received, show a fallback
+      if (!hasReceivedData && !fullText) {
+        throw new Error('NO_DATA_RECEIVED');
       }
-
     } catch (error: any) {
       console.error('AI Assistant Error:', error);
       let errorMsg = '哎呀亲，网络好像有点调皮，请稍后再试哦。';
+      
+      const errorStr = error?.message || JSON.stringify(error);
+      const isQuotaError = errorStr.includes('429') || errorStr.includes('RESOURCE_EXHAUSTED') || error?.status === 'RESOURCE_EXHAUSTED';
+
       if (error.message === 'API_KEY_MISSING') {
         errorMsg = '哎呀亲，领班还没领到开工钥匙（API Key 未配置），请联系管理员检查后台设置哦。';
+      } else if (isQuotaError) {
+        errorMsg = '哎呀亲，今天客流量实在太大，领班的小脑袋转不过来了（配额超限）。请稍等片刻再来找我哦，么么哒~';
+      } else if (error.message === 'NO_DATA_RECEIVED') {
+        errorMsg = '哎呀亲，信号好像断了一下，我没听清您说什么，能再跟我说一遍吗？';
       }
-      setMessages(prev => [...prev, { role: 'model', text: errorMsg }]);
+      
+      setMessages(prev => {
+        const newMessages = [...prev];
+        // If the last message is from model and is empty, update it instead of adding a new one
+        if (newMessages.length > 0 && 
+            newMessages[newMessages.length - 1].role === 'model' && 
+            !newMessages[newMessages.length - 1].text) {
+          newMessages[newMessages.length - 1].text = errorMsg;
+          return newMessages;
+        }
+        return [...prev, { role: 'model', text: errorMsg }];
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="fixed bottom-24 right-6 z-[9999] font-sans pointer-events-auto">
+    <motion.div 
+      drag
+      dragMomentum={false}
+      dragElastic={0.1}
+      dragConstraints={{ left: -window.innerWidth + 100, right: 0, top: -window.innerHeight + 200, bottom: 0 }}
+      animate={{
+        bottom: totalItems > 0 ? 96 : 24
+      }}
+      transition={{
+        bottom: { duration: 0.3, type: "spring", stiffness: 300, damping: 30 }
+      }}
+      className="fixed right-[20px] z-[9999] font-sans pointer-events-auto touch-none"
+    >
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -287,17 +243,11 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCar
               </div>
               <div className="flex items-center space-x-2 relative z-10">
                 <button 
-                  onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
-                  className={`p-2 rounded-xl transition-all ${isVoiceEnabled ? 'bg-white/20 text-[#D4AF37]' : 'bg-white/10 text-white/40'}`}
-                  title={isVoiceEnabled ? "关闭语音" : "开启语音"}
-                >
-                  {isVoiceEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
-                </button>
-                <button 
                   onClick={() => setIsOpen(false)}
                   className="p-2 hover:bg-white/20 rounded-xl transition-colors"
+                  title="最小化"
                 >
-                  <X size={24} />
+                  <ChevronDown size={24} />
                 </button>
               </div>
             </div>
@@ -325,13 +275,6 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCar
                         : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none'
                     }`}>
                       {msg.text}
-                      {msg.role === 'model' && isSpeaking && idx === messages.length - 1 && (
-                        <div className="absolute -bottom-4 left-0 flex space-x-1">
-                          <div className="w-1 h-3 bg-[#D4AF37] animate-[bounce_1s_infinite_0ms]"></div>
-                          <div className="w-1 h-3 bg-[#D4AF37] animate-[bounce_1s_infinite_200ms]"></div>
-                          <div className="w-1 h-3 bg-[#D4AF37] animate-[bounce_1s_infinite_400ms]"></div>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </motion.div>
@@ -370,13 +313,6 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCar
                   <Send size={20} />
                 </button>
               </div>
-              <div className="flex items-center justify-center space-x-2 mt-4">
-                <div className="h-[1px] w-8 bg-gray-100"></div>
-                <p className="text-[10px] font-bold text-gray-300 uppercase tracking-[0.2em]">
-                  Premium AI Concierge
-                </p>
-                <div className="h-[1px] w-8 bg-gray-100"></div>
-              </div>
             </div>
           </motion.div>
         )}
@@ -384,42 +320,62 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCar
 
       {/* Toggle Button */}
       <div className="relative flex flex-col items-center">
-        {!isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            className="absolute -top-14 bg-gradient-to-r from-[#8B0000] to-[#A52A2A] text-[#D4AF37] text-[11px] font-black px-4 py-2 rounded-full border-2 border-[#D4AF37] shadow-[0_10px_25px_-5px_rgba(139,0,0,0.4)] whitespace-nowrap z-20"
-          >
-            <div className="flex items-center space-x-2">
-              <Sparkles size={12} className="animate-pulse" />
-              <span>明星领班在线</span>
-            </div>
-            {/* Arrow */}
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[8px] border-t-[#D4AF37]"></div>
-          </motion.div>
-        )}
-        <motion.button
-          whileHover={{ scale: 1.1, rotate: 5 }}
-          whileTap={{ scale: 0.9 }}
+        <motion.div
+          style={{ 
+            perspective: 1000,
+            transformStyle: 'preserve-3d'
+          }}
+          animate={{ rotateY: isOpen ? 0 : [0, 180, 180, 0] }}
+          transition={isOpen ? { duration: 0.3 } : {
+            duration: 6,
+            repeat: Infinity,
+            repeatDelay: 2,
+            times: [0, 0.1, 0.5, 0.6]
+          }}
+          className="relative w-[70px] h-[70px] cursor-pointer"
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-16 h-16 rounded-[1.5rem] shadow-[0_15px_35px_-10px_rgba(139,0,0,0.5)] flex items-center justify-center transition-all duration-500 border-2 relative overflow-hidden group ${
-            isOpen 
-              ? 'bg-white text-[#8B0000] border-gray-100' 
-              : 'bg-gradient-to-br from-[#D4AF37] via-[#FFD700] to-[#B8860B] text-[#8B0000] border-[#8B0000]'
-          }`}
         >
-          {/* Shine effect */}
-          <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/30 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-          
-          {isOpen ? <X size={32} /> : <Bot size={32} className="relative z-10" />}
-          
-          {!isOpen && (
-            <span className="absolute -top-1 -right-1 w-6 h-6 bg-[#8B0000] text-[#D4AF37] text-[10px] font-black rounded-full flex items-center justify-center border-2 border-[#D4AF37] shadow-lg z-20">
-              AI
-            </span>
-          )}
-        </motion.button>
+          {/* Front Side: Avatar */}
+          <motion.div
+            className={`absolute inset-0 w-full h-full rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.4)] flex items-center justify-center border-2 transition-all duration-300 overflow-hidden ${
+              isOpen ? 'border-[#8B0000] scale-105' : 'border-[#FFD700]'
+            }`}
+            style={{
+              backfaceVisibility: 'hidden',
+              backgroundImage: 'url(https://i.imgur.com/ooDFYf8.png)',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              WebkitBackfaceVisibility: 'hidden'
+            }}
+          >
+            {!isOpen && (
+              <div className="absolute top-[5px] right-[5px] w-3 h-3 bg-[#4CAF50] border-2 border-white rounded-full shadow-sm z-30" />
+            )}
+            {!isOpen && (
+              <span className="absolute -bottom-1 -right-1 w-6 h-6 bg-[#8B0000] text-[#D4AF37] text-[10px] font-black rounded-full flex items-center justify-center border-2 border-[#D4AF37] shadow-lg z-20">
+                AI
+              </span>
+            )}
+          </motion.div>
+
+          {/* Back Side: Text */}
+          <motion.div
+            className="absolute inset-0 w-full h-full rounded-full shadow-[0_4px_15px_rgba(0,0,0,0.4)] flex flex-col items-center justify-center border-2 border-[#FFD700] bg-gradient-to-br from-[#8B0000] to-[#A52A2A] text-[#D4AF37]"
+            style={{
+              backfaceVisibility: 'hidden',
+              rotateY: 180,
+              WebkitBackfaceVisibility: 'hidden'
+            }}
+          >
+            <div className="flex flex-col items-center justify-center leading-none">
+              <span className="text-[20px] font-black mb-1">点餐</span>
+              <span className="text-[20px] font-black">助手</span>
+            </div>
+          </motion.div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
+
   );
 };

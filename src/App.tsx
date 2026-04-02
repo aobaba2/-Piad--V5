@@ -661,10 +661,8 @@ export default function App() {
   const [showClearCartConfirm, setShowClearCartConfirm] = useState(false);
   const [isCartPopping, setIsCartPopping] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [searchPlaceholderIndex, setSearchPlaceholderIndex] = useState(0);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isScrollingRef = useRef(false);
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [logoTapCount, setLogoTapCount] = useState(0);
   const lastLogoTapTime = useRef(0);
   const [isBannerVisible, setIsBannerVisible] = useState(true);
@@ -703,21 +701,6 @@ export default function App() {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
-
-  const placeholders = useMemo(() => {
-    if (appSettings.searchPlaceholders && appSettings.searchPlaceholders.length > 0) {
-      return appSettings.searchPlaceholders;
-    }
-    return t.searchPlaceholders;
-  }, [appSettings.searchPlaceholders, t.searchPlaceholders]);
-
-  useEffect(() => {
-    if (searchQuery) return;
-    const interval = setInterval(() => {
-      setSearchPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [placeholders, searchQuery]);
 
   const handleScroll = () => {
     const container = scrollContainerRef.current;
@@ -1312,6 +1295,8 @@ export default function App() {
         <AIAssistant 
           dishes={dishes} 
           handleAddToCart={handleAddToCart} 
+          totalItems={totalItems}
+          onSearch={(query) => setSearchQuery(query)}
         />
       </div>
     );
@@ -1456,8 +1441,26 @@ export default function App() {
           className="flex-1 overflow-y-auto px-4 pb-32 no-scrollbar bg-piad-bg overscroll-contain"
         >
           {searchQuery ? (
-            <div className="grid grid-cols-1 gap-4 pt-4">
-              <AnimatePresence mode="popLayout">
+            <div className="pt-4">
+              <div className="flex items-center justify-between mb-4 bg-white p-4 rounded-2xl shadow-sm border border-piad-primary/5">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 rounded-full bg-piad-primary/10 flex items-center justify-center text-piad-primary">
+                    <Search size={18} />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-black text-piad-subtext uppercase tracking-widest mb-0.5">搜索结果</div>
+                    <div className="text-sm font-bold text-piad-text">“{searchQuery}”</div>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => setSearchQuery('')}
+                  className="text-xs font-black text-piad-primary bg-piad-primary/5 px-4 py-2 rounded-xl active:scale-95 transition-all border border-piad-primary/10"
+                >
+                  清除搜索
+                </button>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                <AnimatePresence mode="popLayout">
                 {filteredDishes.map(dish => (
                   <motion.div
                     key={dish.id}
@@ -1535,122 +1538,54 @@ export default function App() {
                     </div>
                   </motion.div>
                 ))}
-              </AnimatePresence>
+                </AnimatePresence>
+              </div>
             </div>
           ) : (
             <>
-              {/* Hot Recommended Section */}
-              <div id="category-店长推荐" className="category-section pt-4">
-                <div className="mb-6 flex items-center justify-between">
-                  <h2 className="text-lg font-black text-piad-text flex items-center">
-                    {t.hotRecommended} {CATEGORY_ICONS['店长推荐']}
-                  </h2>
-                </div>
-                <div className="grid grid-cols-1 gap-4 mb-8">
-                  {dishes.filter(d => d.isRecommended).map(dish => (
-                    <motion.div
-                      key={`rec-${dish.id}`}
-                      layout
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                    className={`bg-piad-card rounded-2xl p-2 shadow-piad border border-piad-primary/5 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-md hover:border-piad-primary/20'}`}
-                  >
-                    {dish.isSoldOut && (
-                      <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-[1px] rounded-2xl">
-                        <div className="bg-piad-text text-piad-bg px-3 py-1 rounded-full text-[0.65rem] font-black uppercase tracking-widest shadow-xl">
-                          {t.soldOut}
-                        </div>
-                      </div>
-                    )}
-                    <div 
-                      onClick={() => !dish.isSoldOut && setSelectedDishForDetail(dish)}
-                      className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl bg-piad-primary/5 cursor-pointer"
-                    >
-                      <motion.div layoutId={`dish-image-${dish.id}`} className="w-full h-full">
-                        <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
-                      </motion.div>
-                      <div className="absolute top-2 left-2 bg-piad-primary text-white text-[0.5rem] font-bold px-1.5 py-0.5 rounded-md shadow-lg z-10">
-                        {t.recommended}
-                      </div>
+              {categories.map((category) => (
+                <div key={category} id={`category-${category}`} className="pt-6 first:pt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-1.5 h-6 bg-piad-primary rounded-full" />
+                      <h2 className="text-xl font-black text-piad-text tracking-tight">
+                        {getLocalizedCategory(category)}
+                      </h2>
                     </div>
-                    
-                    <div className="flex-1 pl-3 py-1 flex flex-col justify-between">
-                      <div>
-                        <div className="flex items-start justify-between mb-1">
-                          <h3 className="text-lg font-black text-piad-text group-hover:text-piad-primary transition-colors line-clamp-1">
-                            {getLocalizedName(dish)}
-                          </h3>
-                        </div>
-                        <p className="text-[0.65rem] text-piad-subtext line-clamp-1">{getLocalizedDesc(dish) || t.defaultDesc}</p>
-                      </div>
-
-                      <div className="flex items-center justify-between mt-auto">
-                        <div className="flex flex-col">
-                          <span className="text-piad-primary text-lg font-black">{formatPrice(dish.price, appSettings.currency)}</span>
-                          {dish.stock !== undefined && dish.stock > 0 && dish.stock <= 10 && (
-                            <span className="text-[0.6rem] text-piad-accent font-bold animate-pulse">
-                              🔥 {t.stockLeft(dish.stock)}
-                            </span>
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center space-x-2">
-                          <button 
-                            onClick={(e) => handleAddToCart(dish, e)}
-                            disabled={dish.isSoldOut}
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-lg transition-all active:scale-95 ${
-                              dish.isSoldOut 
-                                ? 'bg-piad-primary/10 text-piad-subtext' 
-                                : 'bg-piad-primary text-white shadow-piad-primary/20'
-                            }`}
-                          >
-                            {dish.modifiers && dish.modifiers.length > 0 ? (
-                              <span className="text-[0.65rem] font-black">{t.selectSpecs}</span>
-                            ) : (
-                              <Plus size={14} />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Other Categories */}
-              {categories.map(category => (
-                <div key={category} id={`category-${category}`} className="category-section">
-                  <div className="mb-6 flex items-center justify-between pt-4">
-                    <h2 className="text-lg font-black text-gray-900 flex items-center">
-                      {getLocalizedCategory(category)} {CATEGORY_ICONS[category]}
-                    </h2>
+                    <span className="text-[10px] font-black text-piad-subtext uppercase tracking-widest bg-piad-primary/5 px-2 py-1 rounded-md">
+                      {dishes.filter(d => d.category === category).length} Items
+                    </span>
                   </div>
-                  <div className="grid grid-cols-1 gap-4 mb-8">
+                  
+                  <div className="grid grid-cols-1 gap-4">
                     {dishes.filter(d => d.category === category).map(dish => (
                       <motion.div
                         key={dish.id}
                         layout
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={`bg-white rounded-2xl p-2 shadow-sm border border-gray-50 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-md hover:border-red-50'}`}
+                        className={`bg-piad-card rounded-2xl p-2 shadow-piad border border-piad-primary/5 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-md hover:border-piad-primary/20'}`}
                       >
                         {dish.isSoldOut && (
-                          <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/40 backdrop-blur-[1px] rounded-2xl">
-                            <div className="bg-gray-800 text-white px-3 py-1 rounded-full text-[0.65rem] font-black uppercase tracking-widest shadow-xl">
+                          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-[1px] rounded-2xl">
+                            <div className="bg-piad-text text-piad-bg px-3 py-1 rounded-full text-[0.65rem] font-black uppercase tracking-widest shadow-xl">
                               {t.soldOut}
                             </div>
                           </div>
                         )}
                         <div 
                           onClick={() => !dish.isSoldOut && setSelectedDishForDetail(dish)}
-                          className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl bg-gray-100 cursor-pointer"
+                          className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl bg-gray-100 cursor-pointer group-hover:shadow-lg transition-shadow"
                         >
-                          <motion.div layoutId={`dish-image-${dish.id}`} className="w-full h-full">
+                          <motion.div 
+                            layoutId={`dish-image-${dish.id}`} 
+                            className="w-full h-full"
+                            whileHover={{ scale: 1.05 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                          >
                             <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
                           </motion.div>
+                          
                           {dish.isRecommended && (
-                            <div className="absolute top-2 left-2 bg-red-600 text-white text-[0.5rem] font-bold px-1.5 py-0.5 rounded-md shadow-lg z-10">
+                            <div className="absolute top-2 left-2 bg-red-600/90 backdrop-blur-sm text-white text-[0.5rem] font-bold px-1.5 py-0.5 rounded-md shadow-lg z-10">
                               {t.recommended}
                             </div>
                           )}
@@ -1659,16 +1594,16 @@ export default function App() {
                         <div className="flex-1 pl-3 py-1 flex flex-col justify-between">
                           <div>
                             <div className="flex items-start justify-between mb-1">
-                              <h3 className="text-lg font-black text-gray-900 group-hover:text-red-600 transition-colors line-clamp-1">
+                              <h3 className="text-lg font-black text-piad-text group-hover:text-piad-primary transition-colors line-clamp-1">
                                 {getLocalizedName(dish)}
                               </h3>
                             </div>
-                            <p className="text-[0.65rem] text-gray-400 line-clamp-1">{getLocalizedDesc(dish) || t.defaultDesc}</p>
+                            <p className="text-[0.65rem] text-piad-subtext line-clamp-1">{getLocalizedDesc(dish) || t.defaultDesc}</p>
                           </div>
 
                           <div className="flex items-center justify-between mt-auto">
                             <div className="flex flex-col">
-                              <span className="text-red-600 text-lg font-black">{formatPrice(dish.price, appSettings.currency)}</span>
+                              <span className="text-piad-primary text-lg font-black">{formatPrice(dish.price, appSettings.currency)}</span>
                               {dish.stock !== undefined && dish.stock > 0 && dish.stock <= 10 && (
                                 <span className="text-[0.6rem] text-red-500 font-bold animate-pulse">
                                   🔥 {t.stockLeft(dish.stock)}
@@ -1702,81 +1637,6 @@ export default function App() {
               ))}
             </>
           )}
-        </div>
-
-        {/* Floating Search Bar */}
-        <div className="fixed bottom-0 right-4 z-30 pointer-events-none">
-          <motion.div 
-            layout
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ 
-              y: 0, 
-              opacity: 1,
-              bottom: totalItems > 0 ? 96 : 24,
-              width: searchQuery || isSearchExpanded ? 'min(85vw, 400px)' : '64px'
-            }}
-            transition={{
-              layout: { duration: 0.3, type: "spring", stiffness: 300, damping: 30 },
-              bottom: { duration: 0.3, type: "spring", stiffness: 300, damping: 30 }
-            }}
-            className="absolute right-0 bg-[#1f2937]/50 backdrop-blur-xl border border-white/10 rounded-full h-16 flex items-center shadow-[0_20px_50px_rgba(0,0,0,0.3)] active:scale-95 transition-transform overflow-hidden pointer-events-auto"
-          >
-            <div 
-              onClick={() => setIsSearchExpanded(!isSearchExpanded)}
-              className={`flex items-center cursor-pointer transition-all duration-300 ${searchQuery || isSearchExpanded ? 'flex-1 pl-3' : 'justify-center w-full'}`}
-            >
-              <div className="relative">
-                <div className={`rounded-full bg-red-600 flex items-center justify-center text-white shadow-lg shadow-red-500/20 transition-all duration-300 ${searchQuery || isSearchExpanded ? 'w-8 h-8 mr-2' : 'w-10 h-10'}`}>
-                  {searchQuery || isSearchExpanded ? <Search size={16} /> : <span className="text-base font-black">搜</span>}
-                </div>
-              </div>
-              
-              <AnimatePresence>
-                {(searchQuery || isSearchExpanded) && (
-                  <motion.div 
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -10 }}
-                    className="flex-1 relative h-10 flex items-center"
-                  >
-                    <input 
-                      autoFocus
-                      type="text"
-                      className="bg-transparent border-none outline-none text-white text-sm w-full pr-16"
-                      placeholder={t.searchPlaceholder}
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                    <div className="absolute right-0 flex items-center space-x-1">
-                      {searchQuery && (
-                        <button 
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSearchQuery('');
-                          }}
-                          className="p-1 text-white/40 hover:text-white transition-colors"
-                        >
-                          <X size={14} />
-                        </button>
-                      )}
-                      <div className="w-px h-4 bg-white/20 mx-1" />
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsSearchExpanded(false);
-                          setSearchQuery('');
-                        }}
-                        className="p-1 text-white/80 hover:text-white transition-colors"
-                      >
-                        <X size={20} />
-                      </button>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </motion.div>
         </div>
 
         {/* Bottom Cart Bar - Enhanced */}
@@ -2507,13 +2367,12 @@ export default function App() {
 
       {/* AI Ordering Assistant */}
       {!isAdminOpen && (
-        <>
-          {console.log('Rendering AIAssistant in main view')}
-          <AIAssistant 
-            dishes={dishes} 
-            handleAddToCart={handleAddToCart} 
-          />
-        </>
+        <AIAssistant 
+          dishes={dishes} 
+          handleAddToCart={handleAddToCart} 
+          totalItems={totalItems}
+          onSearch={(query) => setSearchQuery(query)}
+        />
       )}
     </div>
   );
