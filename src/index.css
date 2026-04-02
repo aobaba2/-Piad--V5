@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;700;900&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -11,29 +12,31 @@
 }
 
 :root {
-  --piad-bg: #FAFAFA;
-  --piad-primary: #E60012;
-  --piad-accent: #FFB800;
-  --piad-text: #1A1A1A;
-  --piad-subtext: #666666;
-  --piad-card: #FFFFFF;
-  --piad-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --piad-bg: #FDF5E6;
+  --piad-primary: #8B0000;
+  --piad-accent: #D4AF37;
+  --piad-text: #2C1E1E;
+  --piad-subtext: #5D4037;
+  --piad-card: rgba(255, 255, 255, 0.65);
+  --piad-shadow: 0 8px 32px rgba(139, 0, 0, 0.08);
 }
 
 .theme-default {
-  --piad-bg: #FAFAFA;
-  --piad-primary: #E60012;
-  --piad-accent: #FFB800;
-  --piad-text: #1A1A1A;
-  --piad-subtext: #666666;
-  --piad-card: #FFFFFF;
-  --piad-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --piad-bg: #FDF5E6;
+  --piad-primary: #8B0000;
+  --piad-accent: #D4AF37;
+  --piad-text: #2C1E1E;
+  --piad-subtext: #5D4037;
+  --piad-card: rgba(255, 255, 255, 0.65);
+  --piad-shadow: 0 8px 32px rgba(139, 0, 0, 0.08);
 }
 
 body {
   background-color: var(--piad-bg);
+  background-image: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
   color: var(--piad-text);
   transition: background-color 0.3s ease, color 0.3s ease;
+  font-family: "Noto Serif SC", serif;
   
   /* PWA Fixes */
   min-height: 100vh;

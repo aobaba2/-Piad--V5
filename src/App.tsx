@@ -341,7 +341,7 @@ export default function App() {
   const [appSettings, setAppSettings] = useState<AppSettings>({
     currency: 'KRW',
     language: 'zh',
-    restaurantName: 'PIAD 点餐'
+    restaurantName: '巫山烤鱼 点餐OS'
   });
   const [localLanguage, setLocalLanguage] = useState<'zh' | 'ko' | null>(null);
   const currentLanguage = localLanguage || appSettings.language;
@@ -1321,19 +1321,20 @@ export default function App() {
         )}
       </AnimatePresence>
       {/* Mobile Sidebar Navigation */}
-      <aside className="flex w-24 bg-piad-bg border-r border-piad-primary/5 flex-col py-4 z-10 overflow-y-auto no-scrollbar overscroll-contain">
-        <div className="flex flex-col space-y-3">
+      <aside className="flex w-24 bg-[#FDF5E6] border-r border-[#8B0000]/10 flex-col py-4 z-10 overflow-y-auto no-scrollbar overscroll-contain relative">
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] opacity-50 pointer-events-none"></div>
+        <div className="flex flex-col space-y-3 relative z-10">
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => handleCategoryClick('店长推荐')}
             className={`flex flex-col items-center py-5 relative transition-all ${
-              activeCategory === '店长推荐' ? 'bg-piad-card text-piad-primary' : 'text-piad-subtext'
+              activeCategory === '店长推荐' ? 'bg-white/40 backdrop-blur-md text-[#8B0000]' : 'text-[#5D4037]'
             }`}
           >
             {activeCategory === '店长推荐' && (
               <motion.div 
                 layoutId="active-indicator"
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-piad-primary rounded-r-full" 
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-[#8B0000] rounded-r-full" 
               />
             )}
             <motion.span 
@@ -1342,7 +1343,7 @@ export default function App() {
             >
               {CATEGORY_ICONS['店长推荐']}
             </motion.span>
-            <span className={`text-[0.8rem] font-black leading-tight text-center px-1 ${activeCategory === '店长推荐' ? 'text-piad-primary' : 'text-piad-subtext'}`}>{t.hotRecommended}</span>
+            <span className={`text-[0.8rem] font-black leading-tight text-center px-1 ${activeCategory === '店长推荐' ? 'text-[#8B0000]' : 'text-[#5D4037]'}`}>{t.hotRecommended}</span>
           </motion.button>
           {categories.map(category => (
             <motion.button
@@ -1350,13 +1351,13 @@ export default function App() {
               whileTap={{ scale: 0.95 }}
               onClick={() => handleCategoryClick(category)}
               className={`flex flex-col items-center py-5 relative transition-all ${
-                activeCategory === category ? 'bg-piad-card text-piad-primary' : 'text-piad-subtext'
+                activeCategory === category ? 'bg-white/40 backdrop-blur-md text-[#8B0000]' : 'text-[#5D4037]'
               }`}
             >
               {activeCategory === category && (
                 <motion.div 
                   layoutId="active-indicator"
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-piad-primary rounded-r-full" 
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-[#8B0000] rounded-r-full" 
                 />
               )}
               <motion.span 
@@ -1365,7 +1366,7 @@ export default function App() {
               >
                 {CATEGORY_ICONS[category] || '🍽️'}
               </motion.span>
-              <span className={`text-[0.8rem] font-black leading-tight text-center px-1 ${activeCategory === category ? 'text-piad-primary' : 'text-piad-subtext'}`}>{getLocalizedCategory(category)}</span>
+              <span className={`text-[0.8rem] font-black leading-tight text-center px-1 ${activeCategory === category ? 'text-[#8B0000]' : 'text-[#5D4037]'}`}>{getLocalizedCategory(category)}</span>
             </motion.button>
           ))}
         </div>
@@ -1374,24 +1375,25 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col relative overflow-hidden bg-piad-bg">
         {/* Sticky Header with Glassmorphism */}
-        <div className="sticky top-0 z-30 bg-piad-card/80 backdrop-blur-md border-b border-piad-primary/5">
+        <div className="sticky top-0 z-30 bg-white/60 backdrop-blur-xl border-b border-[#8B0000]/5">
           <div className="pt-[env(safe-area-inset-top)]">
             <div className="h-14 flex items-center justify-between px-4">
               <div className="w-8" />
-              <h1 
-                className="text-base sm:text-lg md:text-xl font-black tracking-tight text-piad-text cursor-pointer select-none active:scale-95 transition-transform truncate max-w-[140px] sm:max-w-none"
-                onClick={handleLogoTap}
-              >
-                {appSettings.restaurantName}
-              </h1>
+              <div className="flex items-center space-x-2">
+                <h1 
+                  className="text-lg sm:text-xl font-black tracking-tight text-[#2C1E1E] cursor-pointer select-none active:scale-95 transition-transform flex items-center"
+                  onClick={handleLogoTap}
+                >
+                  巫山烤鱼 <span className="mx-2 w-4 h-4 bg-[#8B0000] text-white flex items-center justify-center text-[8px] rounded-sm">★</span> 点餐OS
+                </h1>
+              </div>
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => setLocalLanguage(currentLanguage === 'zh' ? 'ko' : 'zh')}
-                  className="px-4 py-2 text-sm font-bold rounded-lg bg-piad-primary/5 text-piad-subtext hover:bg-piad-primary/10 transition-colors flex items-center space-x-1"
+                  className="px-3 py-1.5 text-xs font-bold rounded-xl bg-gray-100 text-[#5D4037] hover:bg-gray-200 transition-colors flex items-center space-x-1 border border-gray-200"
                 >
-                  <span>{currentLanguage === 'zh' ? '🇨🇳' : '🇰🇷'}</span>
+                  <span className="uppercase">{currentLanguage === 'zh' ? 'CN' : 'KO'}</span>
                 </button>
-                {/* Admin buttons removed as requested */}
               </div>
             </div>
           </div>
@@ -1468,18 +1470,18 @@ export default function App() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className={`bg-piad-card rounded-2xl p-2 shadow-piad border border-piad-primary/5 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-md hover:border-piad-primary/20'}`}
+                    className={`bg-white/60 backdrop-blur-md rounded-[2rem] p-3 shadow-piad border border-white/40 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-xl hover:border-[#8B0000]/20'}`}
                   >
                     {dish.isSoldOut && (
-                      <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-[1px] rounded-2xl">
-                        <div className="bg-piad-text text-piad-bg px-3 py-1 rounded-full text-[0.65rem] font-black uppercase tracking-widest shadow-xl">
+                      <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 backdrop-blur-[2px] rounded-[2rem]">
+                        <div className="bg-[#2C1E1E] text-white px-4 py-1.5 rounded-full text-[0.7rem] font-black uppercase tracking-widest shadow-xl">
                           {t.soldOut}
                         </div>
                       </div>
                     )}
                     <div 
                       onClick={() => !dish.isSoldOut && setSelectedDishForDetail(dish)}
-                      className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl bg-gray-100 cursor-pointer group-hover:shadow-lg transition-shadow"
+                      className="relative w-[38%] aspect-square overflow-hidden flex-shrink-0 rounded-[1.5rem] bg-gray-100 cursor-pointer group-hover:shadow-lg transition-shadow"
                     >
                       <motion.div 
                         layoutId={`dish-image-${dish.id}`} 
@@ -1562,18 +1564,18 @@ export default function App() {
                       <motion.div
                         key={dish.id}
                         layout
-                        className={`bg-piad-card rounded-2xl p-2 shadow-piad border border-piad-primary/5 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-md hover:border-piad-primary/20'}`}
+                        className={`bg-white/60 backdrop-blur-md rounded-[2rem] p-3 shadow-piad border border-white/40 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-xl hover:border-[#8B0000]/20'}`}
                       >
                         {dish.isSoldOut && (
-                          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40 backdrop-blur-[1px] rounded-2xl">
-                            <div className="bg-piad-text text-piad-bg px-3 py-1 rounded-full text-[0.65rem] font-black uppercase tracking-widest shadow-xl">
+                          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 backdrop-blur-[2px] rounded-[2rem]">
+                            <div className="bg-[#2C1E1E] text-white px-4 py-1.5 rounded-full text-[0.7rem] font-black uppercase tracking-widest shadow-xl">
                               {t.soldOut}
                             </div>
                           </div>
                         )}
                         <div 
                           onClick={() => !dish.isSoldOut && setSelectedDishForDetail(dish)}
-                          className="relative w-[35%] aspect-square overflow-hidden flex-shrink-0 rounded-xl bg-gray-100 cursor-pointer group-hover:shadow-lg transition-shadow"
+                          className="relative w-[38%] aspect-square overflow-hidden flex-shrink-0 rounded-[1.5rem] bg-gray-100 cursor-pointer group-hover:shadow-lg transition-shadow"
                         >
                           <motion.div 
                             layoutId={`dish-image-${dish.id}`} 
@@ -1726,25 +1728,25 @@ export default function App() {
                     else setIsCartOpen(false);
                   }
                 }}
-                className="fixed bottom-0 left-0 right-0 w-full bg-piad-card rounded-t-[2.5rem] z-40 flex flex-col shadow-piad border-t border-piad-primary/5 overflow-hidden touch-none"
+                className="fixed bottom-0 left-0 right-0 w-full bg-white/60 backdrop-blur-xl rounded-t-[3rem] z-40 flex flex-col shadow-[0_-20px_60px_-15px_rgba(0,0,0,0.1)] border-t border-white/40 overflow-hidden touch-none"
               >
                 {/* Step 1: Handle */}
-                <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mt-4 mb-2 shrink-0 cursor-grab active:cursor-grabbing" />
+                <div className="w-12 h-1.5 bg-gray-300/50 rounded-full mx-auto mt-4 mb-2 shrink-0 cursor-grab active:cursor-grabbing" />
                 
                 {/* Step 1 & 2: Header & Actions */}
-                <div className="px-6 py-4 flex items-center justify-between border-b border-piad-primary/5 shrink-0">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-xl bg-piad-primary/10 flex items-center justify-center">
-                      <ShoppingCart size={20} className="text-piad-primary" />
+                <div className="px-8 py-6 flex items-center justify-between border-b border-gray-100/50 shrink-0">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 rounded-2xl bg-[#8B0000]/10 flex items-center justify-center">
+                      <ShoppingCart size={24} className="text-[#8B0000]" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-black text-piad-text leading-tight">{t.myOrder}</h3>
-                      <p className="text-[0.65rem] text-piad-subtext font-bold uppercase tracking-wider">{t.itemsSelected(totalItems)}</p>
+                      <h3 className="text-xl font-black text-[#2C1E1E] leading-tight">{t.myOrder}</h3>
+                      <p className="text-[0.7rem] text-gray-500 font-bold uppercase tracking-widest">{t.itemsSelected(totalItems)}</p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <button onClick={clearCart} className="text-xs font-black text-piad-subtext hover:text-piad-primary transition-colors">{t.clearAll}</button>
-                    <button onClick={() => setIsCartOpen(false)} className="w-10 h-10 rounded-full bg-piad-primary/5 flex items-center justify-center text-piad-subtext hover:bg-piad-primary/10 transition-colors">
+                    <button onClick={clearCart} className="text-xs font-black text-gray-400 hover:text-[#8B0000] transition-colors">{t.clearAll}</button>
+                    <button onClick={() => setIsCartOpen(false)} className="w-10 h-10 rounded-full bg-gray-100/50 flex items-center justify-center text-gray-400 hover:bg-gray-100 transition-colors">
                       <X size={20} />
                     </button>
                   </div>
@@ -1790,39 +1792,39 @@ export default function App() {
                             <motion.div 
                               layout
                               key={`${item.id}-${getModifierSignature(item.modifiers)}`} 
-                              className="flex items-center bg-piad-card p-3 rounded-2xl shadow-piad border border-piad-primary/5"
+                              className="flex items-center bg-white/80 backdrop-blur-md p-4 rounded-[2rem] shadow-sm border border-white/50"
                             >
-                              <div className="w-16 h-16 shrink-0 rounded-xl overflow-hidden mr-4 bg-piad-primary/5">
+                              <div className="w-20 h-20 shrink-0 rounded-2xl overflow-hidden mr-4 bg-gray-100">
                                 <DishImage src={getOptimizedImage(item.image)} alt={item.name} />
                               </div>
                               <div className="flex-1 min-w-0 mr-4">
-                                <div className="text-[10px] font-black text-piad-primary/40 uppercase tracking-wider mb-0.5">
+                                <div className="text-[10px] font-black text-[#8B0000]/40 uppercase tracking-widest mb-1">
                                   {t.categories[item.category as keyof typeof t.categories] || item.category}
                                 </div>
-                                <h4 className="font-bold text-lg text-piad-text truncate">{getLocalizedName(item)}</h4>
+                                <h4 className="font-bold text-lg text-[#2C1E1E] truncate">{getLocalizedName(item)}</h4>
                                 {item.modifiers && item.modifiers.length > 0 && (
                                   <div className="flex flex-wrap gap-1 mt-1">
                                     {item.modifiers.map((m, idx) => (
-                                      <span key={idx} className="text-[10px] bg-piad-primary/5 text-piad-subtext px-1.5 py-0.5 rounded font-medium">
+                                      <span key={idx} className="text-[10px] bg-[#8B0000]/5 text-[#8B0000] px-2 py-0.5 rounded-full font-bold">
                                         {getLocalizedModifierName(m)}
                                       </span>
                                     ))}
                                   </div>
                                 )}
                               </div>
-                              <div className="flex items-center bg-piad-primary/5 rounded-full p-1 shrink-0">
+                              <div className="flex items-center bg-gray-100/50 rounded-full p-1 shrink-0">
                                 <button 
                                   onClick={() => removeFromCart(item)}
-                                  className="w-8 h-8 flex items-center justify-center text-piad-subtext hover:text-piad-primary hover:bg-piad-card rounded-full transition-colors"
+                                  className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-[#8B0000] hover:bg-white rounded-full transition-colors"
                                 >
-                                  <Minus size={16} strokeWidth={3} />
+                                  <Minus size={18} strokeWidth={3} />
                                 </button>
-                                <span className="w-8 text-center font-bold text-sm text-piad-text">{item.quantity}</span>
+                                <span className="w-8 text-center font-black text-base text-[#2C1E1E]">{item.quantity}</span>
                                 <button 
                                   onClick={(e) => incrementCartItem(item)}
-                                  className="w-8 h-8 flex items-center justify-center text-piad-subtext hover:text-piad-primary hover:bg-piad-card rounded-full transition-colors"
+                                  className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-[#8B0000] hover:bg-white rounded-full transition-colors"
                                 >
-                                  <Plus size={14} strokeWidth={3} />
+                                  <Plus size={16} strokeWidth={3} />
                                 </button>
                               </div>
                             </motion.div>
@@ -1949,60 +1951,64 @@ export default function App() {
             />
             <motion.div
               layoutId={`dish-card-${selectedDishForDetail.id}`}
-              className="relative w-[90%] max-w-[400px] bg-white rounded-[24px] overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.08)] z-10 flex flex-col max-h-[70vh]"
+              className="relative w-[90%] max-w-[420px] bg-white/90 backdrop-blur-xl rounded-[3rem] overflow-hidden shadow-[0_30px_80px_-20px_rgba(0,0,0,0.2)] z-10 flex flex-col max-h-[85vh] border border-white/50"
             >
-              <div className="relative w-full aspect-[4/3] overflow-hidden">
+              <div className="relative w-full aspect-square overflow-hidden">
                 <motion.div layoutId={`dish-image-${selectedDishForDetail.id}`} className="w-full h-full">
                   <DishImage 
                     src={getOptimizedImage(selectedDishForDetail.image)} 
                     alt={selectedDishForDetail.name}
                   />
                 </motion.div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"></div>
                 <button 
                   onClick={() => setSelectedDishForDetail(null)}
-                  className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white z-10 hover:bg-black/40 transition-all"
+                  className="absolute top-6 right-6 w-12 h-12 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white z-10 hover:bg-black/40 transition-all border border-white/20"
                 >
-                  <X size={20} strokeWidth={2.5} />
+                  <X size={24} strokeWidth={2.5} />
                 </button>
                 {selectedDishForDetail.isRecommended && (
-                  <div className="absolute top-4 left-4 bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg animate-pulse">
+                  <div className="absolute top-6 left-6 bg-[#8B0000] text-white text-[10px] font-black px-4 py-1.5 rounded-full shadow-lg animate-pulse tracking-widest uppercase">
                     {t.recommended}
                   </div>
                 )}
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6 space-y-5 no-scrollbar bg-piad-primary/[0.03] overscroll-contain">
-                <div className="flex items-start justify-between gap-2">
-                  <h2 className="dish-detail-title font-black text-gray-900 leading-tight">
+              <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar overscroll-contain">
+                <div className="flex items-start justify-between gap-4">
+                  <h2 className="text-3xl font-black text-[#2C1E1E] leading-tight">
                     {getLocalizedName(selectedDishForDetail)}
                   </h2>
+                  <div className="text-2xl font-black text-[#8B0000]">
+                    {t.currency}{selectedDishForDetail.price}
+                  </div>
                 </div>
 
                 <div className="space-y-3">
-                  <h4 className="text-[10px] font-black text-piad-primary/40 uppercase tracking-[0.2em]">菜品故事</h4>
-                  <p className="dish-detail-desc text-gray-600 leading-relaxed italic font-medium text-sm">
+                  <h4 className="text-[10px] font-black text-[#8B0000]/40 uppercase tracking-[0.3em]">菜品故事 · Story</h4>
+                  <p className="text-gray-600 leading-relaxed italic font-medium text-base">
                     “{getLocalizedDesc(selectedDishForDetail) || t.defaultDesc}”
                   </p>
                 </div>
 
                 {selectedDishForDetail.stock !== undefined && selectedDishForDetail.stock > 0 && selectedDishForDetail.stock <= 10 && (
-                  <div className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg inline-flex items-center space-x-2 text-xs font-bold">
-                    <span>🔥</span>
+                  <div className="bg-[#8B0000]/5 text-[#8B0000] px-4 py-2 rounded-xl inline-flex items-center space-x-2 text-sm font-black">
+                    <span className="animate-bounce">🔥</span>
                     <span>{t.stockLeft(selectedDishForDetail.stock)}</span>
                   </div>
                 )}
               </div>
 
-              <div className="p-5 bg-white/80 backdrop-blur-md border-t border-gray-50">
+              <div className="p-8 bg-white/50 backdrop-blur-md border-t border-gray-100/50">
                 <button
                   onClick={(e) => {
                     handleAddToCart(selectedDishForDetail, e);
                     setSelectedDishForDetail(null);
                   }}
-                  className="w-full h-14 bg-red-600 text-white rounded-xl font-black text-base shadow-lg shadow-red-100 active:scale-95 transition-all flex items-center justify-center space-x-2"
+                  className="w-full py-5 bg-[#8B0000] text-white rounded-2xl font-black text-xl shadow-lg shadow-[#8B0000]/20 active:scale-[0.98] transition-all flex items-center justify-center space-x-3"
                 >
-                  <Plus size={14} strokeWidth={3} />
-                  <span>{t.addToCart}</span>
+                  <Plus size={24} strokeWidth={3} />
+                  <span>加入我的菜单</span>
                 </button>
               </div>
             </motion.div>
