@@ -242,11 +242,15 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     coverImage: '',
     upsellDishIds: [],
     upsellPhrases: [],
-    upsellFontSize: 16
+    upsellFontSize: 16,
+    backgroundImage: 'https://i.imgur.com/jHyJvmF.png',
+    backgroundOpacity: 0.4
   });
   const [newUpsellPhrase, setNewUpsellPhrase] = useState('');
   const [isUpsellModalOpen, setIsUpsellModalOpen] = useState(false);
   const [localRestaurantName, setLocalRestaurantName] = useState('PIAD 点餐');
+  const [localBackgroundImage, setLocalBackgroundImage] = useState('https://i.imgur.com/jHyJvmF.png');
+  const [localBackgroundOpacity, setLocalBackgroundOpacity] = useState(0.4);
   const lastOrderCountRef = useRef(0);
 
   // Auth State
@@ -333,10 +337,14 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           coverImage: data.coverImage || '',
           upsellDishIds: data.upsellDishIds || [],
           upsellPhrases: data.upsellPhrases || [],
-          upsellFontSize: data.upsellFontSize || 16
+          upsellFontSize: data.upsellFontSize || 16,
+          backgroundImage: data.backgroundImage || 'https://i.imgur.com/jHyJvmF.png',
+          backgroundOpacity: data.backgroundOpacity !== undefined ? data.backgroundOpacity : 0.4
         };
         setAppSettings(newSettings);
         setLocalRestaurantName(data.restaurantName || 'PIAD 点餐');
+        setLocalBackgroundImage(data.backgroundImage || 'https://i.imgur.com/jHyJvmF.png');
+        setLocalBackgroundOpacity(data.backgroundOpacity !== undefined ? data.backgroundOpacity : 0.4);
         setGridColumns(data.gridColumns || 3);
         
         // Apply theme to body
@@ -1808,6 +1816,89 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                         {cols} 列
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                {/* Homepage Background Settings */}
+                <div className="space-y-6 pt-4 border-t border-gray-50">
+                  <div className="space-y-3">
+                    <h3 className="font-black text-sm text-gray-800 flex items-center">
+                      <ImageIcon size={16} className="mr-2 text-red-600" />
+                      首页背景图
+                    </h3>
+                    <div className="flex space-x-2">
+                      <input 
+                        type="text"
+                        value={localBackgroundImage}
+                        onChange={(e) => setLocalBackgroundImage(e.target.value)}
+                        placeholder="输入背景图片链接..."
+                        className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-red-600 transition-colors"
+                      />
+                      <button
+                        onClick={async () => {
+                          try {
+                            await setDoc(doc(db, 'settings', 'global'), { backgroundImage: localBackgroundImage }, { merge: true });
+                            showToast('背景图已保存', 'success');
+                          } catch (error) {
+                            handleFirestoreError(error, OperationType.UPDATE, 'settings/global');
+                          }
+                        }}
+                        className="bg-red-600 text-white px-6 py-3 rounded-xl font-black text-sm shadow-lg shadow-red-100 active:scale-95 transition-all"
+                      >
+                        保存
+                      </button>
+                    </div>
+                    {localBackgroundImage && (
+                      <div className="mt-2 w-full aspect-video rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 relative">
+                        <img 
+                          src={localBackgroundImage} 
+                          alt="Background Preview" 
+                          className="w-full h-full object-cover"
+                          style={{ opacity: localBackgroundOpacity }}
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          <span className="bg-black/40 backdrop-blur-sm text-white text-[0.6rem] px-2 py-1 rounded-full font-bold">预览效果</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-black text-sm text-gray-800 flex items-center">
+                        <Zap size={16} className="mr-2 text-red-600" />
+                        背景不透明度
+                      </h3>
+                      <span className="text-xs font-black text-red-600 bg-red-50 px-2 py-1 rounded-lg">
+                        {Math.round(localBackgroundOpacity * 100)}%
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-4">
+                      <input 
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.05"
+                        value={localBackgroundOpacity}
+                        onChange={(e) => setLocalBackgroundOpacity(parseFloat(e.target.value))}
+                        onMouseUp={async () => {
+                          try {
+                            await setDoc(doc(db, 'settings', 'global'), { backgroundOpacity: localBackgroundOpacity }, { merge: true });
+                          } catch (error) {
+                            handleFirestoreError(error, OperationType.UPDATE, 'settings/global');
+                          }
+                        }}
+                        onTouchEnd={async () => {
+                          try {
+                            await setDoc(doc(db, 'settings', 'global'), { backgroundOpacity: localBackgroundOpacity }, { merge: true });
+                          } catch (error) {
+                            handleFirestoreError(error, OperationType.UPDATE, 'settings/global');
+                          }
+                        }}
+                        className="flex-1 accent-red-600 h-1.5 bg-gray-100 rounded-lg appearance-none cursor-pointer"
+                      />
+                    </div>
+                    <p className="text-[0.6rem] text-gray-400 font-bold">调整背景图的透明度，建议设置在 30% - 60% 之间以保证文字可读性。</p>
                   </div>
                 </div>
 

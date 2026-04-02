@@ -341,7 +341,9 @@ export default function App() {
   const [appSettings, setAppSettings] = useState<AppSettings>({
     currency: 'KRW',
     language: 'zh',
-    restaurantName: '巫山烤鱼 点餐OS'
+    restaurantName: '巫山烤鱼 点餐OS',
+    backgroundImage: 'https://i.imgur.com/jHyJvmF.png',
+    backgroundOpacity: 0.4
   });
   const [localLanguage, setLocalLanguage] = useState<'zh' | 'ko' | null>(null);
   const currentLanguage = localLanguage || appSettings.language;
@@ -857,7 +859,9 @@ export default function App() {
         const newSettings: AppSettings = {
           currency: data.currency || 'KRW',
           language: data.language || 'zh',
-          restaurantName: data.restaurantName || 'PIAD 点餐'
+          restaurantName: data.restaurantName || 'PIAD 点餐',
+          backgroundImage: data.backgroundImage || 'https://i.imgur.com/jHyJvmF.png',
+          backgroundOpacity: data.backgroundOpacity !== undefined ? data.backgroundOpacity : 0.4
         };
         setAppSettings(newSettings);
         setGridColumns(data.gridColumns || 3);
@@ -1304,6 +1308,14 @@ export default function App() {
 
   return (
     <div className="flex h-screen bg-transparent text-piad-text font-sans overflow-hidden select-none relative">
+      {/* Dynamic Background Image */}
+      <div 
+        className="fixed inset-0 w-full h-full bg-cover bg-center bg-no-repeat -z-10 pointer-events-none transition-all duration-700"
+        style={{ 
+          backgroundImage: `url(${appSettings.backgroundImage || 'https://i.imgur.com/jHyJvmF.png'})`,
+          opacity: appSettings.backgroundOpacity !== undefined ? appSettings.backgroundOpacity : 0.4
+        }}
+      />
       {/* Notification Toast */}
       <AnimatePresence>
         {notification && (
@@ -1322,13 +1334,13 @@ export default function App() {
       </AnimatePresence>
       {/* Mobile Sidebar Navigation */}
       <aside className="flex w-24 bg-transparent border-r border-[#8B0000]/10 flex-col py-4 z-10 overflow-y-auto no-scrollbar overscroll-contain relative">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] opacity-50 pointer-events-none"></div>
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] opacity-20 pointer-events-none"></div>
         <div className="flex flex-col space-y-3 relative z-10">
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={() => handleCategoryClick('店长推荐')}
             className={`flex flex-col items-center py-5 relative transition-all ${
-              activeCategory === '店长推荐' ? 'bg-white/40 backdrop-blur-md text-[#8B0000]' : 'text-[#5D4037]'
+              activeCategory === '店长推荐' ? 'bg-white/20 backdrop-blur-sm text-[#8B0000]' : 'text-[#5D4037]'
             }`}
           >
             {activeCategory === '店长推荐' && (
@@ -1351,7 +1363,7 @@ export default function App() {
               whileTap={{ scale: 0.95 }}
               onClick={() => handleCategoryClick(category)}
               className={`flex flex-col items-center py-5 relative transition-all ${
-                activeCategory === category ? 'bg-white/40 backdrop-blur-md text-[#8B0000]' : 'text-[#5D4037]'
+                activeCategory === category ? 'bg-white/20 backdrop-blur-sm text-[#8B0000]' : 'text-[#5D4037]'
               }`}
             >
               {activeCategory === category && (
@@ -1375,7 +1387,7 @@ export default function App() {
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col relative overflow-hidden bg-transparent">
         {/* Sticky Header with Glassmorphism */}
-        <div className="sticky top-0 z-30 bg-white/60 backdrop-blur-xl border-b border-[#8B0000]/5">
+        <div className="sticky top-0 z-30 bg-transparent border-b border-[#8B0000]/5">
           <div className="pt-[env(safe-area-inset-top)]">
             <div className="h-14 flex items-center justify-between px-4">
               <div className="w-8" />

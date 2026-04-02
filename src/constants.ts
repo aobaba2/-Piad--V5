@@ -39,6 +39,8 @@ export interface Settings {
   upsellDishIds?: string[];
   upsellPhrases?: string[];
   upsellFontSize?: number;
+  backgroundImage?: string;
+  backgroundOpacity?: number;
 }
 
 export interface Banner {
