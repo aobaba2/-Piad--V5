@@ -1262,7 +1262,7 @@ export default function App() {
 
   if (isLoading && dishes.length === 0) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-[#f3f4f6]">
+      <div className="h-screen w-screen flex items-center justify-center bg-transparent">
         <motion.div 
           animate={{ rotate: 360 }}
           transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
@@ -1274,7 +1274,7 @@ export default function App() {
 
   if (isSessionValid === false && !isAdminOpen && !(user && userRole)) {
     return (
-      <div className="min-h-screen bg-piad-bg flex flex-col items-center justify-center p-6 text-center">
+      <div className="min-h-screen bg-transparent flex flex-col items-center justify-center p-6 text-center">
         <div 
           onClick={handleLogoTap}
           className="w-20 h-20 bg-piad-primary/10 text-piad-primary rounded-full flex items-center justify-center mb-6 cursor-pointer active:scale-95 transition-transform"
@@ -1303,7 +1303,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-screen bg-piad-bg text-piad-text font-sans overflow-hidden select-none relative">
+    <div className="flex h-screen bg-transparent text-piad-text font-sans overflow-hidden select-none relative">
       {/* Notification Toast */}
       <AnimatePresence>
         {notification && (
@@ -1321,7 +1321,7 @@ export default function App() {
         )}
       </AnimatePresence>
       {/* Mobile Sidebar Navigation */}
-      <aside className="flex w-24 bg-[#FDF5E6] border-r border-[#8B0000]/10 flex-col py-4 z-10 overflow-y-auto no-scrollbar overscroll-contain relative">
+      <aside className="flex w-24 bg-transparent border-r border-[#8B0000]/10 flex-col py-4 z-10 overflow-y-auto no-scrollbar overscroll-contain relative">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/paper-fibers.png')] opacity-50 pointer-events-none"></div>
         <div className="flex flex-col space-y-3 relative z-10">
           <motion.button
@@ -1373,7 +1373,7 @@ export default function App() {
       </aside>
 
       {/* Main Content Area */}
-      <main className="flex-1 flex flex-col relative overflow-hidden bg-piad-bg">
+      <main className="flex-1 flex flex-col relative overflow-hidden bg-transparent">
         {/* Sticky Header with Glassmorphism */}
         <div className="sticky top-0 z-30 bg-white/60 backdrop-blur-xl border-b border-[#8B0000]/5">
           <div className="pt-[env(safe-area-inset-top)]">
@@ -1440,7 +1440,7 @@ export default function App() {
         <div 
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto px-4 pb-32 no-scrollbar bg-piad-bg overscroll-contain"
+          className="flex-1 overflow-y-auto px-4 pb-32 no-scrollbar bg-transparent overscroll-contain"
         >
           {searchQuery ? (
             <div className="pt-4">
