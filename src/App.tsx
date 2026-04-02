@@ -1545,6 +1545,100 @@ export default function App() {
             </div>
           ) : (
             <>
+              {/* Hot Recommended Section */}
+              {dishes.some(d => d.isRecommended) && (
+                <div id="category-店长推荐" className="pt-6 first:pt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-1.5 h-6 bg-[#8B0000] rounded-full" />
+                      <h2 className="text-xl font-black text-[#2C1E1E] tracking-tight">
+                        {t.hotRecommended}
+                      </h2>
+                    </div>
+                    <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest bg-[#8B0000]/5 px-2 py-1 rounded-md">
+                      {dishes.filter(d => d.isRecommended).length} Items
+                    </span>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-4">
+                    {dishes.filter(d => d.isRecommended).map(dish => (
+                      <motion.div
+                        key={`recommended-${dish.id}`}
+                        layout
+                        className={`bg-white/60 backdrop-blur-md rounded-[2rem] p-3 shadow-piad border border-white/40 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-xl hover:border-[#8B0000]/20'}`}
+                      >
+                        {dish.isSoldOut && (
+                          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 backdrop-blur-[2px] rounded-[2rem]">
+                            <div className="bg-[#2C1E1E] text-white px-4 py-1.5 rounded-full text-[0.7rem] font-black uppercase tracking-widest shadow-xl">
+                              {t.soldOut}
+                            </div>
+                          </div>
+                        )}
+                        <div 
+                          onClick={() => !dish.isSoldOut && setSelectedDishForDetail(dish)}
+                          className="relative w-[38%] aspect-square overflow-hidden flex-shrink-0 rounded-[1.5rem] bg-gray-100 cursor-pointer group-hover:shadow-lg transition-shadow"
+                        >
+                          <motion.div 
+                            layoutId={`dish-image-rec-${dish.id}`} 
+                            className="w-full h-full"
+                            whileHover={{ scale: 1.05 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                          >
+                            <DishImage src={getOptimizedImage(dish.image)} alt={dish.name} />
+                          </motion.div>
+                          
+                          <div className="absolute top-2 left-2 bg-red-600/90 backdrop-blur-sm text-white text-[0.5rem] font-bold px-1.5 py-0.5 rounded-md shadow-lg z-10">
+                            {t.recommended}
+                          </div>
+                        </div>
+                        
+                        <div className="flex-1 pl-3 py-1 flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-start justify-between mb-1">
+                              <h3 className="text-lg font-black text-[#2C1E1E] group-hover:text-[#8B0000] transition-colors line-clamp-1">
+                                {getLocalizedName(dish)}
+                              </h3>
+                            </div>
+                            <p className="text-[0.7rem] text-gray-500 line-clamp-2 leading-relaxed mb-2">
+                              {getLocalizedDesc(dish) || t.defaultDesc}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-between mt-auto">
+                            <div className="flex flex-col">
+                              <span className="text-[#8B0000] text-lg font-black">{formatPrice(dish.price, appSettings.currency)}</span>
+                              {dish.stock !== undefined && dish.stock > 0 && dish.stock <= 10 && (
+                                <span className="text-[0.6rem] text-red-500 font-bold animate-pulse">
+                                  🔥 {t.stockLeft(dish.stock)}
+                                </span>
+                              )}
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                              <button 
+                                onClick={(e) => handleAddToCart(dish, e)}
+                                disabled={dish.isSoldOut}
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 ${
+                                  dish.isSoldOut 
+                                    ? 'bg-gray-100 text-gray-300' 
+                                    : 'bg-[#8B0000] text-white shadow-red-100'
+                                }`}
+                              >
+                                {dish.modifiers && dish.modifiers.length > 0 ? (
+                                  <span className="text-[0.7rem] font-black">{t.selectSpecs}</span>
+                                ) : (
+                                  <Plus size={18} strokeWidth={3} />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {categories.map((category) => (
                 <div key={category} id={`category-${category}`} className="pt-6 first:pt-4">
                   <div className="flex items-center justify-between mb-4">
