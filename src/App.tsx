@@ -1456,7 +1456,7 @@ export default function App() {
         >
           {searchQuery ? (
             <div className="pt-4">
-              <div className="flex items-center justify-between mb-4 bg-white p-4 rounded-2xl shadow-sm border border-piad-primary/5">
+              <div className="flex items-center justify-between mb-4 bg-[#FDF5E6]/80 backdrop-blur-md p-4 rounded-2xl shadow-sm border border-piad-primary/5">
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 rounded-full bg-piad-primary/10 flex items-center justify-center text-piad-primary">
                     <Search size={18} />
@@ -1482,7 +1482,7 @@ export default function App() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className={`bg-white/60 backdrop-blur-md rounded-[2rem] p-3 shadow-piad border border-white/40 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-xl hover:border-[#8B0000]/20'}`}
+                    className={`bg-[#FDF5E6]/80 backdrop-blur-md rounded-[2rem] p-3 shadow-piad border border-white/40 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-xl hover:border-[#8B0000]/20'}`}
                   >
                     {dish.isSoldOut && (
                       <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 backdrop-blur-[2px] rounded-[2rem]">
@@ -1577,7 +1577,7 @@ export default function App() {
                       <motion.div
                         key={`recommended-${dish.id}`}
                         layout
-                        className={`bg-white/60 backdrop-blur-md rounded-[2rem] p-3 shadow-piad border border-white/40 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-xl hover:border-[#8B0000]/20'}`}
+                        className={`bg-[#FDF5E6]/80 backdrop-blur-md rounded-[2rem] p-3 shadow-piad border border-white/40 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-xl hover:border-[#8B0000]/20'}`}
                       >
                         {dish.isSoldOut && (
                           <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 backdrop-blur-[2px] rounded-[2rem]">
@@ -1670,7 +1670,7 @@ export default function App() {
                       <motion.div
                         key={dish.id}
                         layout
-                        className={`bg-white/60 backdrop-blur-md rounded-[2rem] p-3 shadow-piad border border-white/40 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-xl hover:border-[#8B0000]/20'}`}
+                        className={`bg-[#FDF5E6]/80 backdrop-blur-md rounded-[2rem] p-3 shadow-piad border border-white/40 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-xl hover:border-[#8B0000]/20'}`}
                       >
                         {dish.isSoldOut && (
                           <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 backdrop-blur-[2px] rounded-[2rem]">
@@ -1834,7 +1834,7 @@ export default function App() {
                     else setIsCartOpen(false);
                   }
                 }}
-                className="fixed bottom-0 left-0 right-0 w-full bg-white/60 backdrop-blur-xl rounded-t-[3rem] z-40 flex flex-col shadow-[0_-20px_60px_-15px_rgba(0,0,0,0.1)] border-t border-white/40 overflow-hidden touch-none"
+                className="fixed bottom-0 left-0 right-0 w-full bg-[#FDF5E6]/80 backdrop-blur-xl rounded-t-[3rem] z-40 flex flex-col shadow-[0_-20px_60px_-15px_rgba(0,0,0,0.1)] border-t border-white/40 overflow-hidden touch-none"
               >
                 {/* Step 1: Handle */}
                 <div className="w-12 h-1.5 bg-gray-300/50 rounded-full mx-auto mt-4 mb-2 shrink-0 cursor-grab active:cursor-grabbing" />
@@ -1898,7 +1898,7 @@ export default function App() {
                             <motion.div 
                               layout
                               key={`${item.id}-${getModifierSignature(item.modifiers)}`} 
-                              className="flex items-center bg-white/80 backdrop-blur-md p-4 rounded-[2rem] shadow-sm border border-white/50"
+                              className="flex items-center bg-[#FDF5E6]/90 backdrop-blur-md p-4 rounded-[2rem] shadow-sm border border-white/50"
                             >
                               <div className="w-20 h-20 shrink-0 rounded-2xl overflow-hidden mr-4 bg-gray-100">
                                 <DishImage src={getOptimizedImage(item.image)} alt={item.name} />
@@ -2057,7 +2057,7 @@ export default function App() {
             />
             <motion.div
               layoutId={`dish-card-${selectedDishForDetail.id}`}
-              className="relative w-[90%] max-w-[420px] bg-white/90 backdrop-blur-xl rounded-[3rem] overflow-hidden shadow-[0_30px_80px_-20px_rgba(0,0,0,0.2)] z-10 flex flex-col max-h-[85vh] border border-white/50"
+              className="relative w-[90%] max-w-[420px] bg-[#FDF5E6]/95 backdrop-blur-xl rounded-[3rem] overflow-hidden shadow-[0_30px_80px_-20px_rgba(0,0,0,0.2)] z-10 flex flex-col max-h-[85vh] border border-white/50"
             >
               <div className="relative w-full aspect-square overflow-hidden">
                 <motion.div layoutId={`dish-image-${selectedDishForDetail.id}`} className="w-full h-full">
@@ -2105,7 +2105,7 @@ export default function App() {
                 )}
               </div>
 
-              <div className="p-8 bg-white/50 backdrop-blur-md border-t border-gray-100/50">
+              <div className="p-8 bg-[#FDF5E6]/60 backdrop-blur-md border-t border-gray-100/50">
                 <button
                   onClick={(e) => {
                     handleAddToCart(selectedDishForDetail, e);
