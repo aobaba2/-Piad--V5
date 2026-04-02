@@ -216,105 +216,126 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCar
     >
       <AnimatePresence>
         {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.9, transformOrigin: 'bottom right' }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="absolute bottom-16 right-0 w-[380px] max-w-[95vw] h-[600px] max-h-[75vh] bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(139,0,0,0.3)] border border-white/20 flex flex-col overflow-hidden"
-          >
-            {/* Header */}
-            <div className="bg-gradient-to-r from-[#8B0000] via-[#A52A2A] to-[#8B0000] p-6 flex items-center justify-between text-white relative overflow-hidden">
-              <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
-              <div className="flex items-center space-x-4 relative z-10">
-                <div className="relative">
-                  <div className="w-12 h-12 bg-gradient-to-br from-[#D4AF37] to-[#B8860B] rounded-2xl flex items-center justify-center shadow-lg transform rotate-3">
-                    <Bot size={28} className="text-[#8B0000]" />
+          <>
+            {/* Backdrop for focus */}
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsOpen(false)}
+              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[-1]"
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-0 m-auto w-[85vw] h-[80vh] max-w-5xl bg-white rounded-[2.5rem] shadow-[0_40px_120px_-20px_rgba(0,0,0,0.3)] border border-gray-100 flex flex-col overflow-hidden z-50"
+            >
+              {/* Header */}
+              <div className="bg-white border-b border-gray-50 p-6 flex items-center justify-between relative z-10">
+                <div className="flex items-center space-x-5">
+                  <div className="relative">
+                    <div className="w-14 h-14 rounded-full border-2 border-[#D4AF37]/30 p-1 shadow-sm overflow-hidden bg-gray-50">
+                      <img 
+                        src="https://i.imgur.com/ooDFYf8.png" 
+                        alt="小美" 
+                        className="w-full h-full object-cover rounded-full"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                    <div className="absolute bottom-0.5 right-0.5 w-4 h-4 bg-green-500 border-2 border-white rounded-full shadow-sm"></div>
                   </div>
-                  <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-2 border-white rounded-full animate-pulse"></div>
+                  <div>
+                    <h3 className="font-bold text-gray-900 text-xl tracking-tight">AI小美点餐管家</h3>
+                    <p className="text-xs font-medium text-gray-400 mt-0.5 tracking-wide">专业领班 · 竭诚为您服务</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-black text-lg tracking-tight">明星领班 · 智能管家</h3>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37]">Premium Assistant</span>
-                    <div className="w-1 h-1 rounded-full bg-[#D4AF37]"></div>
-                    <span className="text-[10px] font-medium text-white/70">在线为您服务</span>
-                  </div>
+                <div className="flex items-center space-x-3">
+                  <button 
+                    onClick={() => setIsOpen(false)}
+                    className="p-3 hover:bg-gray-50 rounded-full transition-all text-gray-400 hover:text-gray-900 group"
+                    title="最小化"
+                  >
+                    <ChevronDown size={24} className="group-hover:translate-y-0.5 transition-transform" />
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center space-x-2 relative z-10">
-                <button 
-                  onClick={() => setIsOpen(false)}
-                  className="p-2 hover:bg-white/20 rounded-xl transition-colors"
-                  title="最小化"
-                >
-                  <ChevronDown size={24} />
-                </button>
-              </div>
-            </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gradient-to-b from-gray-50 to-white no-scrollbar">
-              {messages.map((msg, idx) => (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  key={idx}
-                  className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className={`flex max-w-[85%] items-start space-x-3 ${msg.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
-                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-md ${
-                      msg.role === 'user' 
-                        ? 'bg-gradient-to-br from-[#8B0000] to-[#A52A2A] text-white' 
-                        : 'bg-white border border-gray-100 text-[#8B0000]'
-                    }`}>
-                      {msg.role === 'user' ? <User size={18} /> : <Sparkles size={18} className="text-[#D4AF37]" />}
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-10 space-y-10 bg-[#FDFDFD] no-scrollbar">
+                {messages.map((msg, idx) => (
+                  <motion.div
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    key={idx}
+                    className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className={`flex max-w-[75%] items-start space-x-5 ${msg.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}>
+                      <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 shadow-sm overflow-hidden ${
+                        msg.role === 'user' 
+                          ? 'bg-gray-900 text-white' 
+                          : 'bg-white border border-gray-100'
+                      }`}>
+                        {msg.role === 'user' ? (
+                          <User size={22} />
+                        ) : (
+                          <img 
+                            src="https://i.imgur.com/ooDFYf8.png" 
+                            alt="小美" 
+                            className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                        )}
+                      </div>
+                      <div className={`p-6 rounded-[2rem] text-[16px] leading-relaxed shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] relative ${
+                        msg.role === 'user' 
+                          ? 'bg-[#8B0000] text-white rounded-tr-none' 
+                          : 'bg-white text-gray-700 border border-gray-50 rounded-tl-none'
+                      }`}>
+                        {msg.text}
+                      </div>
                     </div>
-                    <div className={`p-4 rounded-[1.5rem] text-[15px] leading-relaxed shadow-sm relative ${
-                      msg.role === 'user' 
-                        ? 'bg-[#8B0000] text-white rounded-tr-none' 
-                        : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none'
-                    }`}>
-                      {msg.text}
+                  </motion.div>
+                ))}
+                {isLoading && (
+                  <div className="flex justify-start">
+                    <div className="flex items-center space-x-5 bg-white p-6 rounded-[2rem] border border-gray-50 shadow-sm">
+                      <div className="flex space-x-2">
+                        <div className="w-2 h-2 bg-[#8B0000] rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-[#8B0000] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                        <div className="w-2 h-2 bg-[#8B0000] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                      </div>
+                      <span className="text-sm font-medium text-gray-400">小美正在为您准备中...</span>
                     </div>
                   </div>
-                </motion.div>
-              ))}
-              {isLoading && (
-                <div className="flex justify-start">
-                  <div className="flex items-center space-x-3 bg-white/50 backdrop-blur-sm p-4 rounded-[1.5rem] border border-gray-100 shadow-sm">
-                    <div className="flex space-x-1">
-                      <div className="w-2 h-2 bg-[#8B0000] rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-[#8B0000] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                      <div className="w-2 h-2 bg-[#8B0000] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                    </div>
-                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">领班正在为您准备...</span>
-                  </div>
-                </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Input */}
-            <div className="p-6 bg-white border-t border-gray-100">
-              <div className="relative group">
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="想吃点什么？直接告诉我吧..."
-                  className="w-full bg-gray-50 border-2 border-gray-100 rounded-[1.5rem] px-6 py-4 pr-16 text-[15px] outline-none focus:border-[#8B0000]/20 focus:bg-white transition-all shadow-inner"
-                />
-                <button
-                  onClick={handleSend}
-                  disabled={!input.trim() || isLoading}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 w-12 h-12 bg-gradient-to-br from-[#8B0000] to-[#A52A2A] text-white rounded-2xl flex items-center justify-center shadow-lg disabled:opacity-30 disabled:grayscale transition-all hover:scale-105 active:scale-95"
-                >
-                  <Send size={20} />
-                </button>
+                )}
+                <div ref={messagesEndRef} />
               </div>
-            </div>
-          </motion.div>
+
+              {/* Input */}
+              <div className="p-10 bg-white border-t border-gray-50">
+                <div className="relative group max-w-4xl mx-auto">
+                  <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                    placeholder="想吃点什么？直接告诉我吧..."
+                    className="w-full bg-gray-50 border border-gray-100 rounded-[2.5rem] px-10 py-6 pr-24 text-[17px] outline-none focus:border-[#8B0000]/20 focus:bg-white focus:shadow-2xl transition-all placeholder:text-gray-300"
+                  />
+                  <button
+                    onClick={handleSend}
+                    disabled={!input.trim() || isLoading}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 w-16 h-16 bg-gradient-to-br from-[#8B0000] to-[#A52A2A] text-white rounded-full flex items-center justify-center shadow-xl disabled:opacity-10 disabled:grayscale transition-all hover:scale-105 active:scale-95"
+                  >
+                    <Send size={24} />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
