@@ -234,7 +234,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   const [appSettings, setAppSettings] = useState<AppSettings>({
     currency: 'KRW',
     language: 'zh',
-    restaurantName: 'PIAD 点餐',
+    restaurantName: '巫山烤鱼 点餐OS',
     searchPlaceholders: [],
     coverHistory: '',
     coverAddress: '',
@@ -248,7 +248,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   });
   const [newUpsellPhrase, setNewUpsellPhrase] = useState('');
   const [isUpsellModalOpen, setIsUpsellModalOpen] = useState(false);
-  const [localRestaurantName, setLocalRestaurantName] = useState('PIAD 点餐');
+  const [localRestaurantName, setLocalRestaurantName] = useState('巫山烤鱼 点餐OS');
   const [localBackgroundImage, setLocalBackgroundImage] = useState('https://i.imgur.com/jHyJvmF.png');
   const [localBackgroundOpacity, setLocalBackgroundOpacity] = useState(0.4);
   const lastOrderCountRef = useRef(0);

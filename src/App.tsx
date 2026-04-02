@@ -1396,7 +1396,7 @@ export default function App() {
                   className="text-lg sm:text-xl font-black tracking-tight text-[#2C1E1E] cursor-pointer select-none active:scale-95 transition-transform flex items-center"
                   onClick={handleLogoTap}
                 >
-                  巫山烤鱼 <span className="mx-2 w-4 h-4 bg-[#8B0000] text-white flex items-center justify-center text-[8px] rounded-sm">★</span> 点餐OS
+                  {appSettings.restaurantName}
                 </h1>
               </div>
               <div className="flex items-center space-x-2">
