@@ -23,7 +23,30 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCar
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState('小美正在思考中...');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const loadingPhrases = [
+    '小美正在为您准备建议...',
+    '正在为您翻阅菜单...',
+    '请稍等，小美马上就来...',
+    '正在为您挑选最适合的美味...',
+    '小美正在努力思考中...',
+    '美味值得等待，请稍后...'
+  ];
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isLoading) {
+      setLoadingMessage(loadingPhrases[0]);
+      let i = 0;
+      interval = setInterval(() => {
+        i = (i + 1) % loadingPhrases.length;
+        setLoadingMessage(loadingPhrases[i]);
+      }, 3000);
+    }
+    return () => clearInterval(interval);
+  }, [isLoading]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -124,7 +147,10 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCar
       setMessages(prev => [...prev, { role: 'model', text: '' }]);
 
       for await (const chunk of streamResponse) {
-        hasReceivedData = true;
+        if (!hasReceivedData) {
+          hasReceivedData = true;
+          setIsLoading(false);
+        }
         const chunkText = chunk.text || '';
         fullText += chunkText;
 
@@ -284,15 +310,27 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ dishes, handleAddToCar
                   </motion.div>
                 ))}
                 {isLoading && (
-                  <div className="flex justify-start">
+                  <motion.div 
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex justify-start"
+                  >
                     <div className="flex items-center space-x-3 bg-white/50 backdrop-blur-sm p-4 rounded-[1.5rem] border border-white/50 shadow-sm">
-                      <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-[#8B0000] rounded-full animate-bounce"></div>
-                        <div className="w-2 h-2 bg-[#8B0000] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                        <div className="w-2 h-2 bg-[#8B0000] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                      <div className="w-9 h-9 rounded-full border border-white shadow-sm overflow-hidden flex-shrink-0 bg-white flex items-center justify-center">
+                        <Loader2 className="w-5 h-5 text-[#8B0000] animate-spin" />
+                      </div>
+                      <div className="flex flex-col">
+                        <div className="flex space-x-1 mb-1">
+                          <div className="w-1.5 h-1.5 bg-[#8B0000] rounded-full animate-bounce"></div>
+                          <div className="w-1.5 h-1.5 bg-[#8B0000] rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                          <div className="w-1.5 h-1.5 bg-[#8B0000] rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                        </div>
+                        <span className="text-xs font-black text-[#8B0000]/60 italic tracking-tight">
+                          {loadingMessage}
+                        </span>
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 )}
                 <div ref={messagesEndRef} />
               </div>

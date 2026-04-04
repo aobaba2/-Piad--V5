@@ -1807,7 +1807,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                     菜单显示列数
                   </h3>
                   <div className="flex items-center bg-gray-50 p-1 rounded-xl border border-gray-100 w-full">
-                    {[2, 3, 4].map(cols => (
+                    {[1, 2, 3, 4].map(cols => (
                       <button
                         key={cols}
                         onClick={() => handleUpdateGridColumns(cols)}
