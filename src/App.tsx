@@ -1473,7 +1473,7 @@ export default function App() {
                   清除搜索
                 </button>
               </div>
-              <div className={`grid gap-4 ${gridColumns === 1 ? 'grid-cols-1' : gridColumns === 2 ? 'grid-cols-2' : gridColumns === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
+              <div className="grid grid-cols-1 gap-4">
                 <AnimatePresence mode="popLayout">
                 {filteredDishes.map(dish => (
                   <motion.div
@@ -1482,7 +1482,7 @@ export default function App() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    className={`bg-[#FDF5E6]/80 backdrop-blur-md rounded-[2rem] ${gridColumns >= 3 ? 'p-2' : 'p-3'} shadow-piad border border-white/40 transition-all duration-300 group relative flex ${gridColumns > 1 ? 'flex-col' : 'flex'} ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-xl hover:border-[#8B0000]/20'}`}
+                    className={`bg-[#FDF5E6]/80 backdrop-blur-md rounded-[2rem] p-3 shadow-piad border border-white/40 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-xl hover:border-[#8B0000]/20'}`}
                   >
                     {dish.isSoldOut && (
                       <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 backdrop-blur-[2px] rounded-[2rem]">
@@ -1493,7 +1493,7 @@ export default function App() {
                     )}
                     <div 
                       onClick={() => !dish.isSoldOut && setSelectedDishForDetail(dish)}
-                      className={`relative aspect-square overflow-hidden flex-shrink-0 rounded-[1.5rem] bg-gray-100 cursor-pointer group-hover:shadow-lg transition-shadow ${gridColumns > 1 ? 'w-full mb-2' : 'w-[38%]'}`}
+                      className="relative w-[38%] aspect-square overflow-hidden flex-shrink-0 rounded-[1.5rem] bg-gray-100 cursor-pointer group-hover:shadow-lg transition-shadow"
                     >
                       <motion.div 
                         layoutId={`dish-image-${dish.id}`} 
@@ -1511,22 +1511,20 @@ export default function App() {
                       )}
                     </div>
                     
-                    <div className={`flex-1 ${gridColumns > 1 ? 'pl-0' : 'pl-3'} py-1 flex flex-col justify-between`}>
+                    <div className="flex-1 pl-3 py-1 flex flex-col justify-between">
                       <div>
                         <div className="flex items-start justify-between mb-1">
-                          <h3 className={`${gridColumns >= 3 ? 'text-sm' : 'text-lg'} font-black text-piad-text group-hover:text-piad-primary transition-colors line-clamp-1`}>
+                          <h3 className="text-lg font-black text-piad-text group-hover:text-piad-primary transition-colors line-clamp-1">
                             {getLocalizedName(dish)}
                           </h3>
                         </div>
-                        {gridColumns < 3 && (
-                          <p className="text-[0.65rem] text-piad-subtext line-clamp-1">{getLocalizedDesc(dish) || t.defaultDesc}</p>
-                        )}
+                        <p className="text-[0.65rem] text-piad-subtext line-clamp-1">{getLocalizedDesc(dish) || t.defaultDesc}</p>
                       </div>
 
-                      <div className={`flex items-center justify-between mt-auto ${gridColumns >= 4 ? 'flex-col items-start space-y-2' : ''}`}>
+                      <div className="flex items-center justify-between mt-auto">
                         <div className="flex flex-col">
-                          <span className={`${gridColumns >= 3 ? 'text-sm' : 'text-lg'} text-piad-primary font-black`}>{formatPrice(dish.price, appSettings.currency)}</span>
-                          {dish.stock !== undefined && dish.stock > 0 && dish.stock <= 10 && gridColumns < 4 && (
+                          <span className="text-piad-primary text-lg font-black">{formatPrice(dish.price, appSettings.currency)}</span>
+                          {dish.stock !== undefined && dish.stock > 0 && dish.stock <= 10 && (
                             <span className="text-[0.6rem] text-red-500 font-bold animate-pulse">
                               🔥 {t.stockLeft(dish.stock)}
                             </span>
@@ -1537,16 +1535,16 @@ export default function App() {
                           <button 
                             onClick={(e) => handleAddToCart(dish, e)}
                             disabled={dish.isSoldOut}
-                            className={`${gridColumns >= 3 ? 'w-8 h-8' : 'w-10 h-10'} rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 ${
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-lg transition-all active:scale-95 ${
                               dish.isSoldOut 
                                 ? 'bg-gray-100 text-gray-300' 
                                 : 'bg-red-600 text-white shadow-red-100'
                             }`}
                           >
                             {dish.modifiers && dish.modifiers.length > 0 ? (
-                              <span className={`${gridColumns >= 3 ? 'text-[0.6rem]' : 'text-[0.7rem]'} font-black`}>{t.selectSpecs}</span>
+                              <span className="text-[0.65rem] font-black">{t.selectSpecs}</span>
                             ) : (
-                              <Plus size={gridColumns >= 3 ? 14 : 18} strokeWidth={3} />
+                              <Plus size={14} />
                             )}
                           </button>
                         </div>
@@ -1574,12 +1572,12 @@ export default function App() {
                     </span>
                   </div>
                   
-                  <div className={`grid gap-4 ${gridColumns === 1 ? 'grid-cols-1' : gridColumns === 2 ? 'grid-cols-2' : gridColumns === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
+                  <div className="grid grid-cols-1 gap-4">
                     {dishes.filter(d => d.isRecommended).map(dish => (
                       <motion.div
                         key={`recommended-${dish.id}`}
                         layout
-                        className={`bg-[#FDF5E6]/80 backdrop-blur-md rounded-[2rem] ${gridColumns >= 3 ? 'p-2' : 'p-3'} shadow-piad border border-white/40 transition-all duration-300 group relative flex ${gridColumns > 1 ? 'flex-col' : 'flex'} ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-xl hover:border-[#8B0000]/20'}`}
+                        className={`bg-[#FDF5E6]/80 backdrop-blur-md rounded-[2rem] p-3 shadow-piad border border-white/40 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-xl hover:border-[#8B0000]/20'}`}
                       >
                         {dish.isSoldOut && (
                           <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 backdrop-blur-[2px] rounded-[2rem]">
@@ -1590,7 +1588,7 @@ export default function App() {
                         )}
                         <div 
                           onClick={() => !dish.isSoldOut && setSelectedDishForDetail(dish)}
-                          className={`relative aspect-square overflow-hidden flex-shrink-0 rounded-[1.5rem] bg-gray-100 cursor-pointer group-hover:shadow-lg transition-shadow ${gridColumns > 1 ? 'w-full mb-2' : 'w-[38%]'}`}
+                          className="relative w-[38%] aspect-square overflow-hidden flex-shrink-0 rounded-[1.5rem] bg-gray-100 cursor-pointer group-hover:shadow-lg transition-shadow"
                         >
                           <motion.div 
                             layoutId={`dish-image-rec-${dish.id}`} 
@@ -1606,24 +1604,22 @@ export default function App() {
                           </div>
                         </div>
                         
-                        <div className={`flex-1 ${gridColumns > 1 ? 'pl-0' : 'pl-3'} py-1 flex flex-col justify-between`}>
+                        <div className="flex-1 pl-3 py-1 flex flex-col justify-between">
                           <div>
                             <div className="flex items-start justify-between mb-1">
-                              <h3 className={`${gridColumns >= 3 ? 'text-sm' : 'text-lg'} font-black text-[#2C1E1E] group-hover:text-[#8B0000] transition-colors line-clamp-1`}>
+                              <h3 className="text-lg font-black text-[#2C1E1E] group-hover:text-[#8B0000] transition-colors line-clamp-1">
                                 {getLocalizedName(dish)}
                               </h3>
                             </div>
-                            {gridColumns < 3 && (
-                              <p className="text-[0.7rem] text-gray-500 line-clamp-2 leading-relaxed mb-2">
-                                {getLocalizedDesc(dish) || t.defaultDesc}
-                              </p>
-                            )}
+                            <p className="text-[0.7rem] text-gray-500 line-clamp-2 leading-relaxed mb-2">
+                              {getLocalizedDesc(dish) || t.defaultDesc}
+                            </p>
                           </div>
 
-                          <div className={`flex items-center justify-between mt-auto ${gridColumns >= 4 ? 'flex-col items-start space-y-2' : ''}`}>
+                          <div className="flex items-center justify-between mt-auto">
                             <div className="flex flex-col">
-                              <span className={`${gridColumns >= 3 ? 'text-sm' : 'text-lg'} text-[#8B0000] font-black`}>{formatPrice(dish.price, appSettings.currency)}</span>
-                              {dish.stock !== undefined && dish.stock > 0 && dish.stock <= 10 && gridColumns < 4 && (
+                              <span className="text-[#8B0000] text-lg font-black">{formatPrice(dish.price, appSettings.currency)}</span>
+                              {dish.stock !== undefined && dish.stock > 0 && dish.stock <= 10 && (
                                 <span className="text-[0.6rem] text-red-500 font-bold animate-pulse">
                                   🔥 {t.stockLeft(dish.stock)}
                                 </span>
@@ -1634,16 +1630,16 @@ export default function App() {
                               <button 
                                 onClick={(e) => handleAddToCart(dish, e)}
                                 disabled={dish.isSoldOut}
-                                className={`${gridColumns >= 3 ? 'w-8 h-8' : 'w-10 h-10'} rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 ${
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 ${
                                   dish.isSoldOut 
                                     ? 'bg-gray-100 text-gray-300' 
                                     : 'bg-[#8B0000] text-white shadow-red-100'
                                 }`}
                               >
                                 {dish.modifiers && dish.modifiers.length > 0 ? (
-                                  <span className={`${gridColumns >= 3 ? 'text-[0.6rem]' : 'text-[0.7rem]'} font-black`}>{t.selectSpecs}</span>
+                                  <span className="text-[0.7rem] font-black">{t.selectSpecs}</span>
                                 ) : (
-                                  <Plus size={gridColumns >= 3 ? 14 : 18} strokeWidth={3} />
+                                  <Plus size={18} strokeWidth={3} />
                                 )}
                               </button>
                             </div>
@@ -1669,12 +1665,12 @@ export default function App() {
                     </span>
                   </div>
                   
-                  <div className={`grid gap-4 ${gridColumns === 1 ? 'grid-cols-1' : gridColumns === 2 ? 'grid-cols-2' : gridColumns === 3 ? 'grid-cols-3' : 'grid-cols-4'}`}>
+                  <div className="grid grid-cols-1 gap-4">
                     {dishes.filter(d => d.category === category).map(dish => (
                       <motion.div
                         key={dish.id}
                         layout
-                        className={`bg-[#FDF5E6]/80 backdrop-blur-md rounded-[2rem] ${gridColumns >= 3 ? 'p-2' : 'p-3'} shadow-piad border border-white/40 transition-all duration-300 group relative flex ${gridColumns > 1 ? 'flex-col' : 'flex'} ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-xl hover:border-[#8B0000]/20'}`}
+                        className={`bg-[#FDF5E6]/80 backdrop-blur-md rounded-[2rem] p-3 shadow-piad border border-white/40 transition-all duration-300 group relative flex ${dish.isSoldOut ? 'opacity-60 grayscale-[0.5]' : 'hover:shadow-xl hover:border-[#8B0000]/20'}`}
                       >
                         {dish.isSoldOut && (
                           <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 backdrop-blur-[2px] rounded-[2rem]">
@@ -1685,7 +1681,7 @@ export default function App() {
                         )}
                         <div 
                           onClick={() => !dish.isSoldOut && setSelectedDishForDetail(dish)}
-                          className={`relative aspect-square overflow-hidden flex-shrink-0 rounded-[1.5rem] bg-gray-100 cursor-pointer group-hover:shadow-lg transition-shadow ${gridColumns > 1 ? 'w-full mb-2' : 'w-[38%]'}`}
+                          className="relative w-[38%] aspect-square overflow-hidden flex-shrink-0 rounded-[1.5rem] bg-gray-100 cursor-pointer group-hover:shadow-lg transition-shadow"
                         >
                           <motion.div 
                             layoutId={`dish-image-${dish.id}`} 
@@ -1703,24 +1699,20 @@ export default function App() {
                           )}
                         </div>
                         
-                        <div className={`flex-1 ${gridColumns > 1 ? 'pl-0' : 'pl-3'} py-1 flex flex-col justify-between`}>
+                        <div className="flex-1 pl-3 py-1 flex flex-col justify-between">
                           <div>
                             <div className="flex items-start justify-between mb-1">
-                              <h3 className={`${gridColumns >= 3 ? 'text-sm' : 'text-lg'} font-black text-piad-text group-hover:text-piad-primary transition-colors line-clamp-1`}>
+                              <h3 className="text-lg font-black text-piad-text group-hover:text-piad-primary transition-colors line-clamp-1">
                                 {getLocalizedName(dish)}
                               </h3>
                             </div>
-                            {gridColumns < 3 && (
-                              <p className="text-[0.65rem] text-piad-subtext line-clamp-1">
-                                {getLocalizedDesc(dish) || t.defaultDesc}
-                              </p>
-                            )}
+                            <p className="text-[0.65rem] text-piad-subtext line-clamp-1">{getLocalizedDesc(dish) || t.defaultDesc}</p>
                           </div>
 
-                          <div className={`flex items-center justify-between mt-auto ${gridColumns >= 4 ? 'flex-col items-start space-y-2' : ''}`}>
+                          <div className="flex items-center justify-between mt-auto">
                             <div className="flex flex-col">
-                              <span className={`${gridColumns >= 3 ? 'text-sm' : 'text-lg'} text-piad-primary font-black`}>{formatPrice(dish.price, appSettings.currency)}</span>
-                              {dish.stock !== undefined && dish.stock > 0 && dish.stock <= 10 && gridColumns < 4 && (
+                              <span className="text-piad-primary text-lg font-black">{formatPrice(dish.price, appSettings.currency)}</span>
+                              {dish.stock !== undefined && dish.stock > 0 && dish.stock <= 10 && (
                                 <span className="text-[0.6rem] text-red-500 font-bold animate-pulse">
                                   🔥 {t.stockLeft(dish.stock)}
                                 </span>
@@ -1731,16 +1723,16 @@ export default function App() {
                               <button 
                                 onClick={(e) => handleAddToCart(dish, e)}
                                 disabled={dish.isSoldOut}
-                                className={`${gridColumns >= 3 ? 'w-8 h-8' : 'w-10 h-10'} rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 ${
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-lg transition-all active:scale-95 ${
                                   dish.isSoldOut 
                                     ? 'bg-gray-100 text-gray-300' 
                                     : 'bg-red-600 text-white shadow-red-100'
                                 }`}
                               >
                                 {dish.modifiers && dish.modifiers.length > 0 ? (
-                                  <span className={`${gridColumns >= 3 ? 'text-[0.6rem]' : 'text-[0.7rem]'} font-black`}>{t.selectSpecs}</span>
+                                  <span className="text-[0.65rem] font-black">{t.selectSpecs}</span>
                                 ) : (
-                                  <Plus size={gridColumns >= 3 ? 14 : 18} strokeWidth={3} />
+                                  <Plus size={14} />
                                 )}
                               </button>
                             </div>
@@ -2065,7 +2057,7 @@ export default function App() {
             />
             <motion.div
               layoutId={`dish-card-${selectedDishForDetail.id}`}
-              className="relative w-[80%] max-w-[400px] bg-[#FDF5E6]/95 backdrop-blur-xl rounded-[1.5rem] overflow-hidden shadow-[0_30px_80px_-20px_rgba(0,0,0,0.2)] z-10 flex flex-col max-h-[85vh] border border-white/50"
+              className="relative w-[90%] max-w-[420px] bg-[#FDF5E6]/95 backdrop-blur-xl rounded-[3rem] overflow-hidden shadow-[0_30px_80px_-20px_rgba(0,0,0,0.2)] z-10 flex flex-col max-h-[85vh] border border-white/50"
             >
               <div className="relative w-full aspect-square overflow-hidden">
                 <motion.div layoutId={`dish-image-${selectedDishForDetail.id}`} className="w-full h-full">
