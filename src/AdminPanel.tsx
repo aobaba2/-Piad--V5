@@ -30,8 +30,11 @@ import {
   QrCode,
   Languages,
   LayoutGrid,
-  LogOut
+  LogOut,
+  Sparkles,
+  Loader2
 } from 'lucide-react';
+import { GoogleGenAI, Type } from "@google/genai";
 import { Dish, DishModifier, formatPrice, Table, Settings as AppSettings, Banner } from './constants';
 import { initializeApp } from 'firebase/app';
 import { 
@@ -276,6 +279,9 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   const [userPermissions, setUserPermissions] = useState<string[]>([]);
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' | 'info' } | null>(null);
   const [gridColumns, setGridColumns] = useState(3);
+  const [isAIAdding, setIsAIAdding] = useState(false);
+  const [aiInput, setAiInput] = useState('');
+  const [isAILoading, setIsAILoading] = useState(false);
   const isReorderingRef = React.useRef(false);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -627,6 +633,65 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
     }
   };
 
+  const handleAIQuickAdd = async () => {
+    if (!aiInput.trim()) return;
+    setIsAILoading(true);
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const prompt = `你是一个餐厅管理助手。请根据菜名 "${aiInput}" 补全该菜品的详细信息。
+      当前已有的分类有: ${categories.map(c => c.name).join(', ')}。
+      请尽量将菜品归类到已有分类中，如果没有合适的，可以建议一个新分类。
+      价格请根据一般餐厅的市场价给出（单位：韩币 KRW）。
+      描述要诱人。
+      同时提供英文和韩文的名称及描述。
+      提供一个简单的英文关键词用于搜索图片。`;
+
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              name: { type: Type.STRING },
+              name_en: { type: Type.STRING },
+              name_ko: { type: Type.STRING },
+              price: { type: Type.NUMBER },
+              category: { type: Type.STRING },
+              description: { type: Type.STRING },
+              description_en: { type: Type.STRING },
+              description_ko: { type: Type.STRING },
+              tags: { type: Type.ARRAY, items: { type: Type.STRING } },
+              imageSearchKeyword: { type: Type.STRING }
+            },
+            required: ["name", "name_en", "name_ko", "price", "category", "description", "imageSearchKeyword"]
+          }
+        }
+      });
+
+      const result = JSON.parse(response.text);
+      
+      const newDish: Partial<Dish> = {
+        ...result,
+        image: `https://picsum.photos/seed/${encodeURIComponent(result.imageSearchKeyword)}/600/400`,
+        isRecommended: false,
+        isSoldOut: false,
+        order: dishes.filter(d => d.category === result.category).length
+      };
+
+      setEditingDish(newDish);
+      setIsAIAdding(false);
+      setAiInput('');
+      showToast('AI 已生成菜品预览，请核对后保存', 'success');
+    } catch (error) {
+      console.error('AI Quick Add Error:', error);
+      showToast('AI 生成失败，请重试', 'error');
+    } finally {
+      setIsAILoading(false);
+    }
+  };
+
   const handleDeleteDish = async (id: string) => {
     try {
       await deleteDoc(doc(db, 'dishes', id));
@@ -879,13 +944,22 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
             <Bell size={18} />
           </button>
           {view === 'menu' && (
-            <button 
-              onClick={() => setEditingDish({ name: '', price: 0, category: categories[0]?.name || '', description: '', tags: [] })}
-              className="bg-piad-primary text-white px-3 py-1.5 rounded-lg font-bold text-xs flex items-center shadow-md shadow-piad-primary/20 active:scale-95 transition-all"
-            >
-              <Plus size={14} className="mr-1" />
-              新增
-            </button>
+            <div className="flex items-center space-x-2">
+              <button 
+                onClick={() => setIsAIAdding(true)}
+                className="bg-purple-600 text-white px-3 py-1.5 rounded-lg font-bold text-xs flex items-center shadow-md shadow-purple-600/20 active:scale-95 transition-all"
+              >
+                <Sparkles size={14} className="mr-1" />
+                AI 快速录入
+              </button>
+              <button 
+                onClick={() => setEditingDish({ name: '', price: 0, category: categories[0]?.name || '', description: '', tags: [] })}
+                className="bg-piad-primary text-white px-3 py-1.5 rounded-lg font-bold text-xs flex items-center shadow-md shadow-piad-primary/20 active:scale-95 transition-all"
+              >
+                <Plus size={14} className="mr-1" />
+                新增
+              </button>
+            </div>
           )}
           <button 
             onClick={() => setIsSimpleMode(true)}
@@ -2840,6 +2914,77 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
               <span className="text-sm font-bold">{toast.message}</span>
             </div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* AI Quick Add Modal */}
+      <AnimatePresence>
+        {isAIAdding && (
+          <div className="fixed inset-0 z-[160] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => !isAILoading && setIsAIAdding(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-md"
+            />
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-white w-full max-w-md rounded-[2.5rem] overflow-hidden shadow-2xl relative z-10 flex flex-col border border-white/20"
+            >
+              <div className="p-8 text-center">
+                <div className="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Sparkles className="text-purple-600" size={40} />
+                </div>
+                <h3 className="text-2xl font-black text-gray-800 mb-2">AI 智能录入</h3>
+                <p className="text-gray-500 text-sm leading-relaxed mb-8">
+                  只需输入菜名，AI 将自动为您生成分类、描述、多语言翻译及配图。
+                </p>
+                
+                <div className="relative mb-6">
+                  <input 
+                    type="text"
+                    placeholder="例如：宫保鸡丁、麻辣烫..."
+                    value={aiInput}
+                    onChange={(e) => setAiInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && !isAILoading && handleAIQuickAdd()}
+                    disabled={isAILoading}
+                    className="w-full px-6 py-4 bg-gray-50 border-2 border-gray-100 rounded-2xl outline-none focus:border-purple-500 text-lg font-bold transition-all disabled:opacity-50"
+                    autoFocus
+                  />
+                </div>
+
+                <div className="flex flex-col space-y-3">
+                  <button 
+                    onClick={handleAIQuickAdd}
+                    disabled={isAILoading || !aiInput.trim()}
+                    className="w-full bg-purple-600 text-white py-4 rounded-2xl font-black text-lg shadow-xl shadow-purple-600/20 active:scale-[0.98] transition-all disabled:opacity-50 flex items-center justify-center space-x-3"
+                  >
+                    {isAILoading ? (
+                      <>
+                        <Loader2 size={24} className="animate-spin" />
+                        <span>AI 正在思考中...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Zap size={20} />
+                        <span>立即生成</span>
+                      </>
+                    )}
+                  </button>
+                  <button 
+                    onClick={() => setIsAIAdding(false)}
+                    disabled={isAILoading}
+                    className="w-full py-4 text-gray-400 font-bold hover:text-gray-600 transition-colors"
+                  >
+                    取消
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
 
