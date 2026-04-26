@@ -32,10 +32,13 @@ import {
   LayoutGrid,
   LogOut,
   Sparkles,
-  Loader2
+  Loader2,
+  Gift,
+  Trophy,
+  Star
 } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
-import { Dish, DishModifier, formatPrice, Table, Settings as AppSettings, Banner } from './constants';
+import { Dish, DishModifier, formatPrice, Table, Settings as AppSettings, Banner, LuckyPrize } from './constants';
 import { initializeApp } from 'firebase/app';
 import { 
   onAuthStateChanged, 
@@ -225,7 +228,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   const [itemToDelete, setItemToDelete] = useState<{ id: string, name: string, type: 'dish' | 'category' | 'order' | 'banner' } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [view, setView] = useState<'menu' | 'settings' | 'orders' | 'analytics' | 'access' | 'tables'>('orders');
+  const [view, setView] = useState<'menu' | 'settings' | 'orders' | 'analytics' | 'access' | 'tables' | 'lucky-wheel'>('orders');
   const [isSimpleMode, setIsSimpleMode] = useState(false);
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [isAddingStaff, setIsAddingStaff] = useState(false);
@@ -283,6 +286,8 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
   const [aiInput, setAiInput] = useState('');
   const [isAILoading, setIsAILoading] = useState(false);
   const isReorderingRef = React.useRef(false);
+  const [isResetting, setIsResetting] = useState<string | null>(null);
+  const [isAddingTable, setIsAddingTable] = useState(false);
 
   const showToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setToast({ message, type });
@@ -345,7 +350,9 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           upsellPhrases: data.upsellPhrases || [],
           upsellFontSize: data.upsellFontSize || 16,
           backgroundImage: data.backgroundImage || 'https://i.imgur.com/jHyJvmF.png',
-          backgroundOpacity: data.backgroundOpacity !== undefined ? data.backgroundOpacity : 0.4
+          backgroundOpacity: data.backgroundOpacity !== undefined ? data.backgroundOpacity : 0.4,
+          luckyWheelPrizes: data.luckyWheelPrizes || [],
+          isLuckyWheelEnabled: data.isLuckyWheelEnabled ?? true
         };
         setAppSettings(newSettings);
         setLocalRestaurantName(data.restaurantName || 'PIAD 点餐');
@@ -635,9 +642,16 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
 
   const handleAIQuickAdd = async () => {
     if (!aiInput.trim()) return;
+    
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey || apiKey === 'MY_GEMINI_API_KEY') {
+      showToast('未检测到 Gemini API Key，请在 Vercel 环境变量中配置 GEMINI_API_KEY', 'error');
+      return;
+    }
+
     setIsAILoading(true);
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const ai = new GoogleGenAI({ apiKey });
       const prompt = `你是一个餐厅管理助手。请根据菜名 "${aiInput}" 补全该菜品的详细信息。
       当前已有的分类有: ${categories.map(c => c.name).join(', ')}。
       请尽量将菜品归类到已有分类中，如果没有合适的，可以建议一个新分类。
@@ -684,9 +698,16 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
       setIsAIAdding(false);
       setAiInput('');
       showToast('AI 已生成菜品预览，请核对后保存', 'success');
-    } catch (error) {
+    } catch (error: any) {
       console.error('AI Quick Add Error:', error);
-      showToast('AI 生成失败，请重试', 'error');
+      const errorMessage = error?.message || '';
+      if (errorMessage.includes('API_KEY_INVALID')) {
+        showToast('API Key 无效，请检查配置', 'error');
+      } else if (errorMessage.includes('quota')) {
+        showToast('AI 配额已耗尽，请稍后再试', 'error');
+      } else {
+        showToast('AI 生成失败，请重试', 'error');
+      }
     } finally {
       setIsAILoading(false);
     }
@@ -1027,6 +1048,15 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
           )}
           {userPermissions.includes('settings') && (
             <button 
+              onClick={() => setView('lucky-wheel')}
+              className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'lucky-wheel' ? 'bg-piad-primary text-white shadow-lg shadow-piad-primary/20' : 'text-piad-subtext bg-piad-primary/5'}`}
+            >
+              <Gift size={14} className="mr-2" />
+              抽奖设置
+            </button>
+          )}
+          {userPermissions.includes('settings') && (
+            <button 
               onClick={() => setView('settings')}
               className={`flex-shrink-0 flex items-center px-4 py-2 rounded-xl text-xs font-bold transition-all ${view === 'settings' ? 'bg-piad-primary text-white shadow-lg shadow-piad-primary/20' : 'text-piad-subtext bg-piad-primary/5'}`}
             >
@@ -1038,6 +1068,271 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
 
         {/* Content Area */}
         <main className="flex-1 p-4 overflow-y-auto bg-gray-50/50 no-scrollbar">
+          {view === 'lucky-wheel' && (
+            <div className="w-full max-w-4xl mx-auto">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-2xl font-black text-gray-800">抽奖大轮盘设置</h2>
+                  <p className="text-gray-400 text-xs mt-1">设置奖品名称、中奖概率和奖品类型</p>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <span className="text-xs font-bold text-gray-500">启用抽奖功能</span>
+                  <button 
+                    onClick={async () => {
+                      const newValue = !appSettings.isLuckyWheelEnabled;
+                      setAppSettings(prev => ({ ...prev, isLuckyWheelEnabled: newValue }));
+                      await setDoc(doc(db, 'settings', 'global'), { isLuckyWheelEnabled: newValue }, { merge: true });
+                    }}
+                    className={`w-12 h-6 rounded-full transition-all relative ${appSettings.isLuckyWheelEnabled !== false ? 'bg-piad-primary' : 'bg-gray-200'}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${appSettings.isLuckyWheelEnabled !== false ? 'left-7' : 'left-1'}`} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-black text-gray-800 flex items-center">
+                      <Trophy size={18} className="mr-2 text-yellow-500" />
+                      奖品列表
+                    </h3>
+                    <div className="flex items-center space-x-3">
+                      <button 
+                        onClick={() => {
+                          const prizes = appSettings.luckyWheelPrizes || [];
+                          if (prizes.length === 0) return;
+                          // Use high precision for intermediate calculations
+                          const nonNonePrizes = prizes.filter(p => p.type !== 'none');
+                          const nonNoneTotal = nonNonePrizes.reduce((sum, p) => sum + (p.probability || 0), 0);
+                          const remaining = Math.max(0, 1 - nonNoneTotal);
+                          const nonePrizes = prizes.filter(p => p.type === 'none');
+                          
+                          if (nonePrizes.length > 0) {
+                            const perNone = Number((remaining / nonePrizes.length).toFixed(4));
+                            const newList = prizes.map(p => p.type === 'none' ? { ...p, probability: perNone } : p);
+                            
+                            // Last adjustment to ensure exact 1.0 sum
+                            const currentSum = newList.reduce((sum, p) => sum + p.probability, 0);
+                            if (Math.abs(currentSum - 1) > 0.0001) {
+                              const diff = 1 - currentSum;
+                              const lastNoneIndex = newList.findLastIndex(p => p.type === 'none');
+                              if (lastNoneIndex !== -1) {
+                                newList[lastNoneIndex].probability = Number((newList[lastNoneIndex].probability + diff).toFixed(4));
+                              }
+                            }
+                            
+                            setAppSettings(prev => ({ ...prev, luckyWheelPrizes: newList }));
+                            showToast('已自动平衡概率（余量分配给"谢谢参与"）', 'success');
+                          } else {
+                            showToast('请先添加至少一个"谢谢参与"类型奖项以进行平衡', 'error');
+                          }
+                        }}
+                        className="text-[0.65rem] font-black text-gray-400 hover:text-piad-primary transition-colors flex items-center bg-gray-50 px-2 py-1 rounded-md"
+                      >
+                        <Zap size={12} className="mr-1" />
+                        自动平衡
+                      </button>
+                      <button 
+                        onClick={() => {
+                        const newPrize: LuckyPrize = {
+                          id: Date.now().toString(),
+                          name: '谢谢参与',
+                          probability: 0.8,
+                          type: 'none'
+                        };
+                        const newList = [...(appSettings.luckyWheelPrizes || []), newPrize];
+                        setAppSettings(prev => ({ ...prev, luckyWheelPrizes: newList }));
+                      }}
+                      className="text-piad-primary text-xs font-black flex items-center"
+                    >
+                      <Plus size={14} className="mr-1" />
+                      添加奖品
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                    {(appSettings.luckyWheelPrizes || []).map((prize, idx) => (
+                      <div key={prize.id} className="bg-gray-50 rounded-2xl p-4 border border-gray-100 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 mr-4">
+                            <label className="text-[0.6rem] font-black text-gray-400 uppercase block mb-1">奖品名称</label>
+                            <input 
+                              type="text"
+                              placeholder="例如：50元代金券"
+                              value={prize.name}
+                              onChange={(e) => {
+                                const newList = [...(appSettings.luckyWheelPrizes || [])];
+                                newList[idx] = { ...prize, name: e.target.value };
+                                setAppSettings(prev => ({ ...prev, luckyWheelPrizes: newList }));
+                              }}
+                              className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-black text-gray-800 outline-none focus:border-piad-primary"
+                            />
+                          </div>
+                          <button 
+                            onClick={() => {
+                              const newList = (appSettings.luckyWheelPrizes || []).filter(p => p.id !== prize.id);
+                              setAppSettings(prev => ({ ...prev, luckyWheelPrizes: newList }));
+                            }}
+                            className="text-gray-300 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[0.6rem] font-black text-gray-400 uppercase">中奖概率 (0-1)</label>
+                            <input 
+                              type="number"
+                              step="0.001"
+                              min="0"
+                              max="1"
+                              value={prize.probability}
+                              onChange={(e) => {
+                                const val = parseFloat(e.target.value);
+                                const newList = [...(appSettings.luckyWheelPrizes || [])];
+                                newList[idx] = { ...prize, probability: isNaN(val) ? 0 : val };
+                                setAppSettings(prev => ({ ...prev, luckyWheelPrizes: newList }));
+                              }}
+                              className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:border-piad-primary"
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[0.6rem] font-black text-gray-400 uppercase">奖品类型</label>
+                            <select 
+                              value={prize.type}
+                              onChange={(e) => {
+                                const newType = e.target.value as any;
+                                const newList = [...(appSettings.luckyWheelPrizes || [])];
+                                let newName = prize.name;
+                                
+                                // Auto-update name if it's default or empty
+                                if (!prize.name || prize.name === '新奖品' || prize.name === '谢谢参与' || prize.name === '代金券' || prize.name === '实物奖励') {
+                                  if (newType === 'none') newName = '谢谢参与';
+                                  else if (newType === 'voucher') newName = '10元代金券';
+                                  else if (newType === 'item') newName = '免费酒水';
+                                }
+                                
+                                newList[idx] = { ...prize, type: newType, name: newName };
+                                setAppSettings(prev => ({ ...prev, luckyWheelPrizes: newList }));
+                              }}
+                              className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:border-piad-primary"
+                            >
+                              <option value="none">谢谢参与</option>
+                              <option value="voucher">代金券</option>
+                              <option value="item">实物奖励 (酒水等)</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {prize.type === 'voucher' && (
+                          <div className="space-y-1">
+                            <label className="text-[0.6rem] font-black text-gray-400 uppercase">代金券面值 (CNY)</label>
+                            <input 
+                              type="number"
+                              value={prize.value || 0}
+                              onChange={(e) => {
+                                const newList = [...(appSettings.luckyWheelPrizes || [])];
+                                newList[idx] = { ...prize, value: parseInt(e.target.value) };
+                                setAppSettings(prev => ({ ...prev, luckyWheelPrizes: newList }));
+                              }}
+                              className="w-full bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-bold outline-none focus:border-piad-primary"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  <button 
+                    onClick={async () => {
+                      try {
+                        const totalProb = (appSettings.luckyWheelPrizes || []).reduce((sum, p) => sum + p.probability, 0);
+                        if (Math.abs(totalProb - 1) > 0.01) {
+                          showToast('警告：总概率不等于 1，请调整', 'error');
+                        }
+                        await setDoc(doc(db, 'settings', 'global'), { luckyWheelPrizes: appSettings.luckyWheelPrizes || [] }, { merge: true });
+                        showToast('抽奖设置已保存', 'success');
+                      } catch (error) {
+                        handleFirestoreError(error, OperationType.UPDATE, 'settings/global');
+                      }
+                    }}
+                    className="w-full bg-piad-primary text-white py-4 rounded-2xl font-black text-sm shadow-xl shadow-piad-primary/20 flex items-center justify-center space-x-2 active:scale-[0.98] transition-all"
+                  >
+                    <Save size={18} />
+                    <span>保存抽奖配置</span>
+                  </button>
+                </div>
+
+                <div className="space-y-6">
+                  <div className="bg-gradient-to-br from-piad-primary to-red-700 rounded-[2rem] p-8 text-white shadow-xl">
+                    <h3 className="text-xl font-black mb-4 flex items-center">
+                      <Zap size={24} className="mr-2" />
+                      专家运营建议
+                    </h3>
+                    <ul className="space-y-4 text-sm opacity-90 font-medium">
+                      <li className="flex items-start">
+                        <span className="mr-2 mt-1">•</span>
+                        <span><strong>阶梯式奖励：</strong>设置高概率的小额代金券（如5元），低概率的大额奖励（如免费烤鱼），让客人觉得“很容易中奖”。</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="mr-2 mt-1">•</span>
+                        <span><strong>即时满足：</strong>啤酒和饮料是极好的奖品，成本低但感知价值高，能立刻提升用餐体验。</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="mr-2 mt-1">•</span>
+                        <span><strong>回头客锁定：</strong>代金券设定为“下次使用”，强制锁定客人的第二次消费。</span>
+                      </li>
+                      <li className="flex items-start">
+                        <span className="mr-2 mt-1">•</span>
+                        <span><strong>概率平衡：</strong>确保所有奖品的概率之和等于 1.0。</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100">
+                    <h3 className="font-black text-gray-800 mb-4 flex items-center">
+                      <Star size={18} className="mr-2 text-yellow-500" />
+                      当前概率统计
+                    </h3>
+                    <div className="space-y-3">
+                      {(appSettings.luckyWheelPrizes || []).map(prize => (
+                        <div key={prize.id} className="space-y-1">
+                          <div className="flex justify-between text-[0.65rem] font-black">
+                            <span className="text-gray-600">{prize.name}</span>
+                            <span className="text-piad-primary">{Math.round(prize.probability * 100)}%</span>
+                          </div>
+                          <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                            <motion.div 
+                              initial={{ width: 0 }}
+                              animate={{ width: `${prize.probability * 100}%` }}
+                              className="h-full bg-piad-primary"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                      <div className="pt-2 border-t border-gray-50 flex flex-col space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-black text-gray-400">中奖概率 (奖品)</span>
+                          <span className="text-sm font-black text-piad-primary">
+                            {Math.round((appSettings.luckyWheelPrizes || []).filter(p => p.type !== 'none').reduce((sum, p) => sum + p.probability, 0) * 100)}%
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-xs font-black text-gray-400">总概率 (需100%)</span>
+                          <span className={`text-sm font-black ${(appSettings.luckyWheelPrizes || []).reduce((sum, p) => sum + p.probability, 0) > 1.01 || (appSettings.luckyWheelPrizes || []).reduce((sum, p) => sum + p.probability, 0) < 0.99 ? 'text-red-500' : 'text-green-500'}`}>
+                            {Math.round((appSettings.luckyWheelPrizes || []).reduce((sum, p) => sum + p.probability, 0) * 100)}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
           {view === 'orders' ? (
             <div className="w-full">
               <div className="mb-6 flex items-center justify-between">
@@ -1282,7 +1577,9 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                     className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden group active:scale-[0.98] transition-all cursor-grab active:cursor-grabbing flex items-center p-3"
                   >
                     <div className="relative w-24 h-24 rounded-2xl overflow-hidden bg-gray-50 flex-shrink-0 shadow-sm">
-                      <img src={dish.image} alt={dish.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      {dish.image && dish.image.trim() !== '' && (
+                        <img src={dish.image} alt={dish.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      )}
                       {dish.isSoldOut && (
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[1px]">
                           <span className="text-[0.5rem] text-white font-black">已售罄</span>
@@ -1712,7 +2009,9 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                   <p className="text-gray-400 text-[0.65rem] mt-0.5">管理桌位状态与动态二维码</p>
                 </div>
                 <button 
+                  disabled={isAddingTable}
                   onClick={async () => {
+                    setIsAddingTable(true);
                     const newNumber = (tables.length + 1).toString();
                     try {
                       await addDoc(collection(db, 'tables'), {
@@ -1720,13 +2019,16 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                         status: 'idle',
                         sessionToken: Math.random().toString(36).substring(2, 15)
                       });
+                      showToast(`桌位 ${newNumber} 已添加`, 'success');
                     } catch (error) {
                       handleFirestoreError(error, OperationType.CREATE, 'tables');
+                    } finally {
+                      setIsAddingTable(false);
                     }
                   }}
-                  className="bg-red-600 text-white p-2 rounded-xl shadow-lg shadow-red-100 active:scale-95 transition-all"
+                  className="bg-red-600 text-white p-2 rounded-xl shadow-lg shadow-red-100 active:scale-95 transition-all disabled:opacity-50"
                 >
-                  <Plus size={20} />
+                  {isAddingTable ? <Loader2 size={20} className="animate-spin" /> : <Plus size={20} />}
                 </button>
               </div>
 
@@ -1752,27 +2054,51 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                       
                       <div className="flex items-center space-x-2 w-full pt-2">
                         <button 
+                          disabled={isResetting === table.id}
                           onClick={async () => {
+                            setIsResetting(table.id);
                             const newToken = Math.random().toString(36).substring(2, 15);
                             try {
                               await updateDoc(doc(db, 'tables', table.id), { 
                                 sessionToken: newToken,
                                 status: 'idle' 
                               });
+                              showToast(`${table.number}号桌二维码已重置`, 'success');
                             } catch (error) {
                               handleFirestoreError(error, OperationType.UPDATE, `tables/${table.id}`);
+                            } finally {
+                              setIsResetting(null);
                             }
                           }}
-                          className="flex-1 bg-gray-50 text-gray-600 py-2 rounded-xl text-[0.6rem] font-bold hover:bg-gray-100 transition-colors flex items-center justify-center"
+                          className="flex-1 bg-gray-50 text-gray-600 py-2 rounded-xl text-[0.6rem] font-bold hover:bg-gray-100 transition-colors flex items-center justify-center disabled:opacity-50"
                           title="重置二维码"
                         >
-                          <RotateCcw size={12} className="mr-1" />
+                          {isResetting === table.id ? (
+                            <Loader2 size={12} className="animate-spin mr-1" />
+                          ) : (
+                            <RotateCcw size={12} className="mr-1" />
+                          )}
                           重置
                         </button>
                         <button 
-                          onClick={() => {
-                            const url = `${window.location.origin}/?table=${table.number}&token=${table.sessionToken}`;
-                            window.open(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`, '_blank');
+                          onClick={async () => {
+                            // Ensure we fetch the latest token before generating QR
+                            try {
+                              const tableRef = doc(db, 'tables', table.id);
+                              const tableSnap = await getDoc(tableRef);
+                              if (tableSnap.exists()) {
+                                const currentTable = tableSnap.data();
+                                const url = `${window.location.origin}/?table=${currentTable.number}&token=${currentTable.sessionToken}`;
+                                window.open(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`, '_blank');
+                              } else {
+                                showToast('找不到桌位信息', 'error');
+                              }
+                            } catch (error) {
+                              console.error('Failed to get latest table info:', error);
+                              // Fallback to state
+                              const url = `${window.location.origin}/?table=${table.number}&token=${table.sessionToken}`;
+                              window.open(`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`, '_blank');
+                            }
                           }}
                           className="flex-1 bg-red-600 text-white py-2 rounded-xl text-[0.6rem] font-bold hover:bg-red-700 transition-colors flex items-center justify-center shadow-md shadow-red-50"
                         >
@@ -1922,7 +2248,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                         保存
                       </button>
                     </div>
-                    {localBackgroundImage && (
+                    {localBackgroundImage && localBackgroundImage.trim() !== '' && (
                       <div className="mt-2 w-full aspect-video rounded-2xl overflow-hidden border border-gray-100 bg-gray-50 relative">
                         <img 
                           src={localBackgroundImage} 
@@ -2068,7 +2394,9 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                           className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex items-center p-2 group"
                         >
                           <div className="w-16 h-9 rounded-lg overflow-hidden bg-gray-50 flex-shrink-0">
-                            <img src={banner.image} alt={banner.title} className="w-full h-full object-cover" />
+                            {banner.image && banner.image.trim() !== '' && (
+                              <img src={banner.image} alt={banner.title} className="w-full h-full object-cover" />
+                            )}
                           </div>
                           <div className="ml-3 flex-1 min-w-0">
                             <h4 className="text-xs font-black text-piad-text truncate">{banner.title}</h4>
@@ -2191,7 +2519,9 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                           return (
                             <div key={id} className="relative group bg-piad-primary/5 rounded-xl p-2 border border-piad-primary/10 flex items-center space-x-3">
                               <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0">
-                                <img src={dish.image} className="w-full h-full object-cover" />
+                                {dish.image && dish.image.trim() !== '' && (
+                                  <img src={dish.image} className="w-full h-full object-cover" />
+                                )}
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-[0.65rem] font-black text-piad-text truncate">{dish.name}</p>
@@ -2405,7 +2735,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                         placeholder="https://..."
                       />
                       <div className="w-16 aspect-video bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden border border-gray-200">
-                        {editingBanner.image ? <img src={editingBanner.image} className="w-full h-full object-cover" /> : <ImageIcon size={14} className="text-gray-300" />}
+                        {editingBanner.image && editingBanner.image.trim() !== '' ? <img src={editingBanner.image} className="w-full h-full object-cover" /> : <ImageIcon size={14} className="text-gray-300" />}
                       </div>
                     </div>
                   </div>
@@ -2603,7 +2933,7 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                         placeholder="https://..."
                       />
                       <div className="w-12 aspect-square bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden border border-gray-200">
-                        {editingDish.image ? <img src={editingDish.image} className="w-full h-full object-cover" /> : <ImageIcon className="text-gray-300" />}
+                        {editingDish.image && editingDish.image.trim() !== '' ? <img src={editingDish.image} className="w-full h-full object-cover" /> : <ImageIcon className="text-gray-300" />}
                       </div>
                     </div>
                   </div>
@@ -3033,7 +3363,9 @@ export default function AdminPanel({ onClose }: AdminPanelProps) {
                       }`}
                     >
                       <div className="w-12 h-12 rounded-xl overflow-hidden flex-shrink-0">
-                        <img src={dish.image} className="w-full h-full object-cover" />
+                        {dish.image && dish.image.trim() !== '' && (
+                          <img src={dish.image} className="w-full h-full object-cover" />
+                        )}
                       </div>
                       <div className="flex-1 text-left">
                         <p className="text-sm font-black text-piad-text">{dish.name}</p>

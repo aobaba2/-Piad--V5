@@ -22,11 +22,15 @@ import {
   LogOut,
   Trash2,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Gift
 } from 'lucide-react';
 import { Dish, DishModifier, CATEGORIES, DISHES, formatPrice, Settings as AppSettings, Table, Banner } from './constants';
 import AdminPanel from './AdminPanel';
 import { db, auth } from './firebase';
+
+import { LuckyWheel } from './components/LuckyWheel';
+import { LuckyPrize } from './constants';
 import { 
   collection, 
   onSnapshot, 
@@ -104,7 +108,6 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
   throw new Error(JSON.stringify(errInfo));
 }
 
-import { AIAssistant } from './components/AIAssistant';
 
 // Banner Carousel Component
 const ScrollingPhrases = ({ phrases, fontSize = 18 }: { phrases: string[], fontSize?: number }) => {
@@ -177,12 +180,14 @@ const BannerCarousel = ({ banners, onBannerClick, onClose }: { banners: Banner[]
             className="absolute inset-0 cursor-pointer"
             onClick={() => banners[currentIndex].dishId && onBannerClick?.(banners[currentIndex].dishId)}
           >
-            <img 
-              src={banners[currentIndex].image} 
-              alt={banners[currentIndex].title}
-              className="h-full w-full object-cover"
-              referrerPolicy="no-referrer"
-            />
+            {banners[currentIndex].image && (
+              <img 
+                src={banners[currentIndex].image} 
+                alt={banners[currentIndex].title}
+                className="h-full w-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            )}
             {/* Overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
             
@@ -283,7 +288,7 @@ const DishImage = ({ src, alt, className = "" }: { src: string; alt: string; cla
       )}
       
       {/* Image with smooth transition */}
-      {(isInView || isLoaded) && (
+      {(isInView || isLoaded) && src && src.trim() !== '' && (
         <img
           src={src}
           alt={alt}
@@ -333,11 +338,8 @@ export default function App() {
   const [flyItems, setFlyItems] = useState<{ id: number; start: { x: number; y: number } }[]>([]);
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [isAuthReady, setIsAuthReady] = useState(false);
-  const [userRole, setUserRole] = useState<'owner' | 'manager' | 'waiter' | null>(null);
-  const [gridColumns, setGridColumns] = useState(3);
+  const [isLuckyWheelOpen, setIsLuckyWheelOpen] = useState(false);
+  const [hasSpun, setHasSpun] = useState(false);
   const [appSettings, setAppSettings] = useState<AppSettings>({
     currency: 'KRW',
     language: 'zh',
@@ -345,6 +347,24 @@ export default function App() {
     backgroundImage: 'https://i.imgur.com/jHyJvmF.png',
     backgroundOpacity: 0.4
   });
+
+  // Default prizes if none in settings
+  const defaultPrizes: LuckyPrize[] = [
+    { id: '1', name: '5元代金券', probability: 0.3, type: 'voucher', value: 5 },
+    { id: '2', name: '10元代金券', probability: 0.1, type: 'voucher', value: 10 },
+    { id: '3', name: '免费青岛啤酒', probability: 0.2, type: 'item' },
+    { id: '4', name: '免费可乐', probability: 0.2, type: 'item' },
+    { id: '5', name: '谢谢参与', probability: 0.2, type: 'none' },
+  ];
+
+  const luckyPrizes = (appSettings.luckyWheelPrizes && appSettings.luckyWheelPrizes.length > 0) 
+    ? appSettings.luckyWheelPrizes 
+    : defaultPrizes;
+  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [userRole, setUserRole] = useState<'owner' | 'manager' | 'waiter' | null>(null);
+  const [gridColumns, setGridColumns] = useState(3);
   const [localLanguage, setLocalLanguage] = useState<'zh' | 'ko' | null>(null);
   const currentLanguage = localLanguage || appSettings.language;
   const t = useMemo(() => ({
@@ -833,19 +853,54 @@ export default function App() {
     if (sessionInfo) {
       const validateSession = async () => {
         try {
-          const q = query(collection(db, 'tables'), orderBy('number'));
-          const snapshot = await getDocs(q);
-          const tableDoc = snapshot.docs.find(d => d.data().number === sessionInfo.table);
+          console.log('Validating session:', sessionInfo);
+          const tablesRef = collection(db, 'tables');
           
-          if (tableDoc && tableDoc.data().sessionToken === sessionInfo.token) {
-            setIsSessionValid(true);
-            // Update table status to active
-            await updateDoc(doc(db, 'tables', tableDoc.id), { status: 'active' });
+          // Try to find the table more robustly
+          const q = query(tablesRef);
+          const snapshot = await getDocs(q);
+          
+          if (snapshot.empty) {
+            console.warn('No tables found in database');
+            setIsSessionValid(false);
+            return;
+          }
+
+          const tableDoc = snapshot.docs.find(d => {
+            const data = d.data();
+            const dbNum = String(data.number || '').trim();
+            const urlNum = String(sessionInfo.table || '').trim();
+            return dbNum === urlNum;
+          });
+          
+          if (tableDoc) {
+            const data = tableDoc.data();
+            const dbToken = String(data.sessionToken || '').trim();
+            const urlToken = String(sessionInfo.token || '').trim();
+            
+            console.log(`Found table ${data.number}. Tokens: DB(${dbToken}), URL(${urlToken})`);
+            
+            if (dbToken === urlToken && urlToken !== '') {
+              setIsSessionValid(true);
+              console.log('Session validated successfully');
+              
+              // Update table status to active (non-critical, don't let it fail the session)
+              try {
+                await updateDoc(doc(db, 'tables', tableDoc.id), { status: 'active' });
+              } catch (updateErr) {
+                console.warn('Failed to update table status to active:', updateErr);
+                // We still have isSessionValid = true, so the user can proceed
+              }
+            } else {
+              console.error('Token mismatch');
+              setIsSessionValid(false);
+            }
           } else {
+            console.error(`Table ${sessionInfo.table} not found in database`);
             setIsSessionValid(false);
           }
         } catch (error) {
-          console.error('Session validation failed:', error);
+          console.error('Session validation error:', error);
           setIsSessionValid(false);
         }
       };
@@ -861,7 +916,9 @@ export default function App() {
           language: data.language || 'zh',
           restaurantName: data.restaurantName || 'PIAD 点餐',
           backgroundImage: data.backgroundImage || 'https://i.imgur.com/jHyJvmF.png',
-          backgroundOpacity: data.backgroundOpacity !== undefined ? data.backgroundOpacity : 0.4
+          backgroundOpacity: data.backgroundOpacity !== undefined ? data.backgroundOpacity : 0.4,
+          luckyWheelPrizes: data.luckyWheelPrizes || [],
+          isLuckyWheelEnabled: data.isLuckyWheelEnabled ?? true
         };
         setAppSettings(newSettings);
         setGridColumns(data.gridColumns || 3);
@@ -1183,7 +1240,6 @@ export default function App() {
   const clearCart = () => {
     console.log('clearCart called');
     setCart([]);
-    setSelectedTable(null);
     setIsCartOpen(false);
   };
 
@@ -1293,15 +1349,6 @@ export default function App() {
         >
           {t.reload}
         </button>
-
-        {/* AI Assistant for testing even on invalid QR screen */}
-        {console.log('Rendering AIAssistant in invalid QR view')}
-        <AIAssistant 
-          dishes={dishes} 
-          handleAddToCart={handleAddToCart} 
-          totalItems={totalItems}
-          onSearch={(query) => setSearchQuery(query)}
-        />
       </div>
     );
   }
@@ -1907,7 +1954,7 @@ export default function App() {
                                 <div className="text-[10px] font-black text-[#8B0000]/40 uppercase tracking-widest mb-1">
                                   {t.categories[item.category as keyof typeof t.categories] || item.category}
                                 </div>
-                                <h4 className="font-bold text-lg text-[#2C1E1E] truncate">{getLocalizedName(item)}</h4>
+                                <h4 className="font-black text-lg text-[#2C1E1E] leading-tight mb-1">{getLocalizedName(item)}</h4>
                                 {item.modifiers && item.modifiers.length > 0 && (
                                   <div className="flex flex-wrap gap-1 mt-1">
                                     {item.modifiers.map((m, idx) => (
@@ -1918,19 +1965,19 @@ export default function App() {
                                   </div>
                                 )}
                               </div>
-                              <div className="flex items-center bg-gray-100/50 rounded-full p-1 shrink-0">
+                              <div className="flex items-center bg-gray-100/50 rounded-xl p-0.5 shrink-0">
                                 <button 
                                   onClick={() => removeFromCart(item)}
-                                  className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-[#8B0000] hover:bg-white rounded-full transition-colors"
+                                  className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-[#8B0000] hover:bg-white rounded-lg transition-colors border border-transparent active:border-gray-200"
                                 >
-                                  <Minus size={18} strokeWidth={3} />
+                                  <Minus size={14} strokeWidth={3} />
                                 </button>
-                                <span className="w-8 text-center font-black text-base text-[#2C1E1E]">{item.quantity}</span>
+                                <span className="w-6 text-center font-black text-sm text-[#2C1E1E]">{item.quantity}</span>
                                 <button 
                                   onClick={(e) => incrementCartItem(item)}
-                                  className="w-9 h-9 flex items-center justify-center text-gray-500 hover:text-[#8B0000] hover:bg-white rounded-full transition-colors"
+                                  className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-[#8B0000] hover:bg-white rounded-lg transition-colors border border-transparent active:border-gray-200"
                                 >
-                                  <Plus size={16} strokeWidth={3} />
+                                  <Plus size={12} strokeWidth={3} />
                                 </button>
                               </div>
                             </motion.div>
@@ -1979,27 +2026,12 @@ export default function App() {
                         </div>
                       </section>
 
-                      {/* Table Selection Section */}
+                      {/* Checkout Summary Section */}
                       <section className="mt-6 pt-6 border-t border-gray-100">
-                        <div className="flex items-center justify-between mb-4">
-                          <h4 className="text-base font-bold text-gray-900">{t.selectTable}</h4>
-                          <span className="text-xs text-red-600 font-medium">{t.required}</span>
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-3xl font-black text-red-600">{selectedTable ? t.tableNumber(selectedTable.toString()) : t.noTableSelected}</h4>
                         </div>
-                        <div className="flex overflow-x-auto gap-3 pb-2 no-scrollbar">
-                          {Array.from({ length: 12 }, (_, i) => i + 1).map(num => (
-                            <button
-                              key={num}
-                              onClick={() => setSelectedTable(num)}
-                              className={`shrink-0 w-14 h-14 rounded-2xl font-bold text-lg transition-all border-2 flex items-center justify-center ${
-                                selectedTable === num
-                                ? 'bg-red-600 border-red-600 text-white shadow-md'
-                                : 'bg-white border-gray-100 text-gray-400 hover:border-red-200 hover:text-red-600'
-                              }`}
-                            >
-                              {num}
-                            </button>
-                          ))}
-                        </div>
+                        <p className="text-xs text-piad-subtext mb-4">通过扫描二维码确定的就餐桌位，不可更改。</p>
                       </section>
                     </>
                   )}
@@ -2009,7 +2041,7 @@ export default function App() {
                 {cart.length > 0 && (
                   <div className="p-6 bg-piad-card border-t border-piad-primary/5 shrink-0 shadow-piad pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
                     <div className="flex items-center justify-between mb-4">
-                      <div className="text-piad-subtext text-sm font-medium">
+                      <div className="text-red-600 text-lg font-black italic">
                         {selectedTable ? t.tableNumber(selectedTable) : t.noTableSelected}
                       </div>
                       <div className="text-piad-subtext text-xs font-bold">
@@ -2034,7 +2066,7 @@ export default function App() {
                       ) : (
                         <UtensilsCrossed size={20} />
                       )}
-                      <span>{isOrdering ? t.submitting : selectedTable ? t.confirmOrder(selectedTable) : t.confirmOrderNoTable}</span>
+                      <span>{isOrdering ? t.submitting : selectedTable ? t.confirmOrder(selectedTable.toString()) : t.confirmOrderNoTable}</span>
                     </button>
                   </div>
                 )}
@@ -2370,6 +2402,46 @@ export default function App() {
         />
       ))}
 
+      {/* Lucky Wheel Trigger Button */}
+      {appSettings.isLuckyWheelEnabled !== false && !isAdminOpen && (
+        <motion.button
+          initial={{ scale: 0, rotate: -180 }}
+          animate={{ scale: 1, rotate: 0 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setIsLuckyWheelOpen(true)}
+          className="fixed bottom-24 right-6 z-[100] w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full shadow-[0_8px_25px_rgba(234,179,8,0.4)] flex flex-col items-center justify-center text-white border-2 border-white/50 overflow-hidden group"
+        >
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+            className="absolute inset-0 bg-[conic-gradient(from_0deg,transparent,rgba(255,255,255,0.3),transparent)]"
+          />
+          <Gift size={24} className="relative z-10 mb-0.5" />
+          <span className="text-[0.6rem] font-black relative z-10 leading-none">抽奖</span>
+          
+          {/* Notification Badge */}
+          {!hasSpun && (
+            <span className="absolute top-1 right-1 w-4 h-4 bg-red-600 rounded-full border-2 border-white animate-bounce" />
+          )}
+        </motion.button>
+      )}
+
+      {/* Lucky Wheel Modal */}
+      <AnimatePresence>
+        {isLuckyWheelOpen && (
+          <LuckyWheel 
+            prizes={luckyPrizes}
+            onWin={(prize) => {
+              setHasSpun(true);
+              // In a real app, we'd save this to the user's account or session
+              console.log('User won:', prize);
+            }}
+            onClose={() => setIsLuckyWheelOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+
       {/* Admin Panel Overlay */}
       <AnimatePresence>
         {isAdminOpen && (
@@ -2476,16 +2548,6 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* AI Ordering Assistant */}
-      {!isAdminOpen && (
-        <AIAssistant 
-          dishes={dishes} 
-          handleAddToCart={handleAddToCart} 
-          totalItems={totalItems}
-          onSearch={(query) => setSearchQuery(query)}
-        />
-      )}
     </div>
   );
 }

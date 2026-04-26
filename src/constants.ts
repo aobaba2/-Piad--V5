@@ -27,6 +27,15 @@ export interface Dish {
   modifiers?: DishModifier[];
 }
 
+export interface LuckyPrize {
+  id: string;
+  name: string;
+  probability: number; // 0 to 1
+  type: 'voucher' | 'item' | 'none';
+  value?: number; // for voucher
+  icon?: string;
+}
+
 export interface Settings {
   currency: 'KRW' | 'CNY' | 'USD';
   language: 'zh' | 'en' | 'ko';
@@ -41,6 +50,8 @@ export interface Settings {
   upsellFontSize?: number;
   backgroundImage?: string;
   backgroundOpacity?: number;
+  luckyWheelPrizes?: LuckyPrize[];
+  isLuckyWheelEnabled?: boolean;
 }
 
 export interface Banner {

@@ -118,7 +118,8 @@ service cloud.firestore {
 
     match /tables/{tableId} {
       allow read: if true;
-      allow create, update: if isStaff() && isValidTable(request.resource.data);
+      allow update: if isStaff() || (request.resource.data.sessionToken == resource.data.sessionToken && request.resource.data.status == 'active');
+      allow create: if isStaff() && isValidTable(request.resource.data);
       allow delete: if isAdmin();
     }
 
